@@ -1,36 +1,128 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ShipOS
+
+**You build the product. ShipOS handles the rest.**
+
+ShipOS is a product operations platform for developers and SaaS teams.
+
+It centralizes everything around your product — documentation, changelogs, roadmaps, announcements, feature flags, and releases — into one system, delivered via an SDK and edge infrastructure. Instead of stitching together multiple tools or building this in-house, teams use ShipOS to ship faster, communicate more clearly, and scale with less operational overhead.
+
+---
+
+## Project Structure
+
+```
+shipos-app/
+├── app/                          # Next.js App Router
+│   ├── layout.tsx                # Root layout
+│   ├── providers.tsx             # Auth UI provider
+│   ├── page.tsx                  # Home page
+│   ├── globals.css               # Global styles (Tailwind)
+│   ├── auth/[path]/              # Auth pages (sign-in, sign-up, etc.)
+│   ├── account/[path]/           # Account management pages
+│   └── organization/[path]/      # Organization management pages
+│
+├── lib/
+│   ├── auth/                     # Authentication configuration
+│   │   ├── index.ts              # Better Auth server config
+│   │   └── auth-client.ts        # Auth client for frontend
+│   └── db/
+│       ├── index.ts              # Database connection (Drizzle + PostgreSQL)
+│       └── schema.ts             # Database schema definitions
+│
+├── workers/
+│   └── auth-api-worker/          # Cloudflare Worker for Auth API
+│       ├── src/index.ts          # Hono-based API handler
+│       └── lib/better-auth.ts    # Worker-specific auth config
+│
+├── drizzle/                      # Database migrations
+│   └── meta/                     # Migration metadata
+│
+├── auth-schema.ts                # Generated auth schema types
+├── drizzle.config.ts             # Drizzle ORM configuration
+└── package.json
+```
+
+## Tech Stack
+
+| Layer          | Technology                                      |
+| -------------- | ----------------------------------------------- |
+| Framework      | [Next.js 16](https://nextjs.org) (App Router)   |
+| Auth           | [Better Auth](https://better-auth.com)          |
+| Auth UI        | [Better Auth UI](https://better-auth-ui.com)    |
+| Database       | PostgreSQL + [Drizzle ORM](https://orm.drizzle.team) |
+| Edge Workers   | [Cloudflare Workers](https://workers.cloudflare.com) + [Hono](https://hono.dev) |
+| Styling        | [Tailwind CSS v4](https://tailwindcss.com)      |
+| Runtime        | [Bun](https://bun.sh)                           |
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- [Bun](https://bun.sh) installed
+- PostgreSQL database
+- Cloudflare account (for Workers)
+
+### Installation
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Install dependencies
+bun install
+
+# Set up environment variables
+cp .example.env .env
+# Edit .env with your DATABASE_URL and other secrets
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Development
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+# Run the Next.js dev server
+bun dev
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# Run database migrations
+bun run drizzle-migrate
 
-## Learn More
+# Open Drizzle Studio (database GUI)
+bun run drizzle-studio
+```
 
-To learn more about Next.js, take a look at the following resources:
+### Auth Worker (Cloudflare)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+cd workers/auth-api-worker
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# Install dependencies
+bun install
 
-## Deploy on Vercel
+# Run locally
+bun run dev
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+# Deploy to Cloudflare
+bun run deploy
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Available Scripts
+
+| Script                | Description                              |
+| --------------------- | ---------------------------------------- |
+| `bun dev`             | Start Next.js development server         |
+| `bun build`           | Build for production                     |
+| `bun start`           | Start production server                  |
+| `bun run drizzle-studio` | Open Drizzle database GUI             |
+| `bun run drizzle-migrate` | Run database migrations              |
+| `bun run drizzle-generate` | Generate new migration files        |
+| `bun run drizzle-push` | Push schema changes to database         |
+| `bun run ba-generate` | Generate Better Auth schema types        |
+
+## Next Steps
+
+- [ ] Add [Settings Cards](https://better-auth-ui.com) from Better Auth UI for user profile management
+- [ ] Implement email sending for magic links and OTP verification
+- [ ] Configure social OAuth providers (Google, GitHub, etc.)
+- [ ] Set up organization invitation flows
+
+---
+
+<p align="center">
+  <strong>ShipOS</strong> — Ship faster. Communicate clearly. Scale with less overhead.
+</p>
