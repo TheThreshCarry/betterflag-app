@@ -4,6 +4,7 @@ import {
   text,
   timestamp,
   boolean,
+  integer,
   index,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
@@ -19,6 +20,13 @@ export const user = pgTable("user", {
     .defaultNow()
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
+  twoFactorEnabled: boolean("two_factor_enabled").default(false),
+  role: text("role"),
+  banned: boolean("banned").default(false),
+  banReason: text("ban_reason"),
+  banExpires: timestamp("ban_expires"),
+  username: text("username").unique(),
+  displayUsername: text("display_username"),
 });
 
 export const session = pgTable(
@@ -37,6 +45,7 @@ export const session = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     activeOrganizationId: text("active_organization_id"),
+    impersonatedBy: text("impersonated_by"),
   },
   (table) => [index("session_userId_idx").on(table.userId)],
 );
@@ -79,6 +88,22 @@ export const verification = pgTable(
       .notNull(),
   },
   (table) => [index("verification_identifier_idx").on(table.identifier)],
+);
+
+export const twoFactor = pgTable(
+  "two_factor",
+  {
+    id: text("id").primaryKey(),
+    secret: text("secret").notNull(),
+    backupCodes: text("backup_codes").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    index("twoFactor_secret_idx").on(table.secret),
+    index("twoFactor_userId_idx").on(table.userId),
+  ],
 );
 
 export const organization = pgTable(
@@ -135,11 +160,46 @@ export const invitation = pgTable(
   ],
 );
 
+export const apikey = pgTable(
+  "apikey",
+  {
+    id: text("id").primaryKey(),
+    name: text("name"),
+    start: text("start"),
+    prefix: text("prefix"),
+    key: text("key").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    refillInterval: integer("refill_interval"),
+    refillAmount: integer("refill_amount"),
+    lastRefillAt: timestamp("last_refill_at"),
+    enabled: boolean("enabled").default(true),
+    rateLimitEnabled: boolean("rate_limit_enabled").default(true),
+    rateLimitTimeWindow: integer("rate_limit_time_window").default(86400000),
+    rateLimitMax: integer("rate_limit_max").default(10),
+    requestCount: integer("request_count").default(0),
+    remaining: integer("remaining"),
+    lastRequest: timestamp("last_request"),
+    expiresAt: timestamp("expires_at"),
+    createdAt: timestamp("created_at").notNull(),
+    updatedAt: timestamp("updated_at").notNull(),
+    permissions: text("permissions"),
+    metadata: text("metadata"),
+  },
+  (table) => [
+    index("apikey_key_idx").on(table.key),
+    index("apikey_userId_idx").on(table.userId),
+  ],
+);
+
 export const userRelations = relations(user, ({ many }) => ({
   sessions: many(session),
   accounts: many(account),
+  twoFactors: many(twoFactor),
   members: many(member),
   invitations: many(invitation),
+  apikeys: many(apikey),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
@@ -152,6 +212,13 @@ export const sessionRelations = relations(session, ({ one }) => ({
 export const accountRelations = relations(account, ({ one }) => ({
   user: one(user, {
     fields: [account.userId],
+    references: [user.id],
+  }),
+}));
+
+export const twoFactorRelations = relations(twoFactor, ({ one }) => ({
+  user: one(user, {
+    fields: [twoFactor.userId],
     references: [user.id],
   }),
 }));
@@ -179,6 +246,13 @@ export const invitationRelations = relations(invitation, ({ one }) => ({
   }),
   user: one(user, {
     fields: [invitation.inviterId],
+    references: [user.id],
+  }),
+}));
+
+export const apikeyRelations = relations(apikey, ({ one }) => ({
+  user: one(user, {
+    fields: [apikey.userId],
     references: [user.id],
   }),
 }));
