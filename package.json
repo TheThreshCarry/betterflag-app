@@ -6,21 +6,35 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "ba-generate": "bun x @better-auth/cli@latest generate --config=lib/auth/index.ts > lib/auth/auth-schema.ts",
+    "better-auth-studio": "pnpm better-auth-studio start --config=lib/auth/index.ts",
+    "drizzle-studio": "bunx drizzle-kit studio",
+    "drizzle-migrate": "bunx drizzle-kit migrate",
+    "drizzle-generate": "bunx drizzle-kit generate",
+    "drizzle-push": "bunx drizzle-kit push"
   },
   "dependencies": {
+    "better-auth": "^1.4.7",
+    "dotenv": "^17.2.3",
+    "drizzle-orm": "^0.45.1",
     "next": "16.1.0",
+    "pg": "^8.16.3",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/pg": "^8.16.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "better-auth-studio": "^1.0.75",
+    "drizzle-kit": "^0.31.8",
     "eslint": "^9",
     "eslint-config-next": "16.1.0",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5"
   },
   "ignoreScripts": [
