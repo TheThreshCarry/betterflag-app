@@ -2,20 +2,22 @@
 
 import * as React from "react"
 import {
+  FileText,
   BookOpen,
-  Bot,
-  Command,
-  Frame,
-  LifeBuoy,
-  Map,
-  PieChart,
-  Send,
+  Mail,
+  Sparkles,
+  Flag,
+  Megaphone,
+  Image,
+  BarChart3,
   Settings2,
-  SquareTerminal,
+  Globe,
+  LifeBuoy,
+  Send,
+  Command,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
-import { NavProjects } from "@/components/nav-projects"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
 import {
@@ -31,118 +33,197 @@ import {
 const navData = {
   navMain: [
     {
-      title: "Playground",
-      url: "#",
-      icon: SquareTerminal,
+      title: "Blogs & CMS",
+      url: "/dashboard/blogs",
+      icon: FileText,
       isActive: true,
       items: [
         {
-          title: "History",
-          url: "#",
+          title: "All Posts",
+          url: "/dashboard/blogs",
         },
         {
-          title: "Starred",
-          url: "#",
+          title: "Categories",
+          url: "/dashboard/blogs/categories",
         },
         {
-          title: "Settings",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Models",
-      url: "#",
-      icon: Bot,
-      items: [
-        {
-          title: "Genesis",
-          url: "#",
-        },
-        {
-          title: "Explorer",
-          url: "#",
-        },
-        {
-          title: "Quantum",
-          url: "#",
+          title: "Authors",
+          url: "/dashboard/blogs/authors",
         },
       ],
     },
     {
       title: "Documentation",
-      url: "#",
+      url: "/dashboard/docs",
       icon: BookOpen,
       items: [
         {
-          title: "Introduction",
-          url: "#",
+          title: "Pages",
+          url: "/dashboard/docs",
         },
         {
-          title: "Get Started",
-          url: "#",
+          title: "Navigation",
+          url: "/dashboard/docs/navigation",
         },
         {
-          title: "Tutorials",
-          url: "#",
+          title: "Versions",
+          url: "/dashboard/docs/versions",
+        },
+      ],
+    },
+    {
+      title: "Newsletters",
+      url: "/dashboard/newsletters",
+      icon: Mail,
+      items: [
+        {
+          title: "Campaigns",
+          url: "/dashboard/newsletters",
         },
         {
-          title: "Changelog",
-          url: "#",
+          title: "Subscribers",
+          url: "/dashboard/newsletters/subscribers",
+        },
+        {
+          title: "Templates",
+          url: "/dashboard/newsletters/templates",
+        },
+      ],
+    },
+    {
+      title: "Changelogs",
+      url: "/dashboard/changelogs",
+      icon: Sparkles,
+      items: [
+        {
+          title: "All Releases",
+          url: "/dashboard/changelogs",
+        },
+        {
+          title: "Labels",
+          url: "/dashboard/changelogs/labels",
+        },
+      ],
+    },
+    {
+      title: "Feature Flags",
+      url: "/dashboard/flags",
+      icon: Flag,
+      items: [
+        {
+          title: "All Flags",
+          url: "/dashboard/flags",
+        },
+        {
+          title: "Environments",
+          url: "/dashboard/flags/environments",
+        },
+      ],
+    },
+    {
+      title: "Announcements",
+      url: "/dashboard/announcements",
+      icon: Megaphone,
+      items: [
+        {
+          title: "Banners",
+          url: "/dashboard/announcements/banners",
+        },
+        {
+          title: "Modals",
+          url: "/dashboard/announcements/modals",
+        },
+        {
+          title: "Toasts",
+          url: "/dashboard/announcements/toasts",
+        },
+      ],
+    },
+    {
+      title: "Media",
+      url: "/dashboard/media",
+      icon: Image,
+      items: [
+        {
+          title: "Images",
+          url: "/dashboard/media/images",
+        },
+        {
+          title: "Videos",
+          url: "/dashboard/media/videos",
+        },
+        {
+          title: "Files",
+          url: "/dashboard/media/files",
+        },
+      ],
+    },
+    {
+      title: "Analytics",
+      url: "/dashboard/analytics",
+      icon: BarChart3,
+      items: [
+        {
+          title: "Overview",
+          url: "/dashboard/analytics",
+        },
+        {
+          title: "Page Views",
+          url: "/dashboard/analytics/pages",
+        },
+        {
+          title: "Events",
+          url: "/dashboard/analytics/events",
         },
       ],
     },
     {
       title: "Settings",
-      url: "#",
+      url: "/dashboard/settings",
       icon: Settings2,
       items: [
         {
-          title: "General",
-          url: "#",
+          title: "Global Config",
+          url: "/dashboard/settings/config",
+        },
+        {
+          title: "Emails",
+          url: "/dashboard/settings/emails",
+        },
+        {
+          title: "Domains",
+          url: "/dashboard/settings/domains",
         },
         {
           title: "Team",
-          url: "#",
+          url: "/dashboard/settings/team",
+        },
+        {
+          title: "API Keys",
+          url: "/dashboard/settings/api-keys",
         },
         {
           title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
+          url: "/dashboard/settings/billing",
         },
       ],
     },
   ],
   navSecondary: [
     {
-      title: "Support",
-      url: "#",
+      title: "Help Center",
+      url: "/help",
       icon: LifeBuoy,
     },
     {
       title: "Feedback",
-      url: "#",
+      url: "/feedback",
       icon: Send,
     },
-  ],
-  projects: [
     {
-      name: "Design Engineering",
-      url: "#",
-      icon: Frame,
-    },
-    {
-      name: "Sales & Marketing",
-      url: "#",
-      icon: PieChart,
-    },
-    {
-      name: "Travel",
-      url: "#",
-      icon: Map,
+      title: "Public Site",
+      url: "/",
+      icon: Globe,
     },
   ],
 }
@@ -186,7 +267,6 @@ export function AppSidebar({ user, organization, ...props }: AppSidebarProps) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={navData.navMain} />
-        <NavProjects projects={navData.projects} />
         <NavSecondary items={navData.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
@@ -195,3 +275,4 @@ export function AppSidebar({ user, organization, ...props }: AppSidebarProps) {
     </Sidebar>
   )
 }
+

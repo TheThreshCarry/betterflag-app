@@ -1,0 +1,85 @@
+<mjml>
+  <mj-head>
+    <mj-title>Welcome to ShipOS!</mj-title>
+    <mj-preview>You're all set! Here's how to get started with ShipOS</mj-preview>
+    <mj-attributes>
+      <mj-all font-family="'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" />
+      <mj-text line-height="1.6" color="#1a1a1a" font-size="15px" />
+      <mj-button font-size="14px" font-weight="600" border-radius="8px" />
+    </mj-attributes>
+    <mj-style inline="inline">
+      .bold { font-weight: 600; }
+      .link-nostyle { color: #6b7280 !important; text-decoration: none !important; }
+    </mj-style>
+  </mj-head>
+  <mj-body background-color="#f9fafb" width="600px">
+    <mj-section padding="40px 20px 20px 20px">
+      <mj-column>
+        <mj-image
+          src="logo.png"
+          width="120px"
+          align="center"
+          alt="ShipOS"
+          border-radius="12%"
+        ></mj-image>
+      </mj-column>
+    </mj-section>
+    <mj-section padding="0 20px">
+      <mj-column
+        width="100%"
+        padding="1px"
+        background-color="#e5e7eb"
+        inner-background-color="#ffffff"
+        border-radius="12px"
+        inner-border-radius="12px"
+      >
+        <mj-text padding="32px 32px 0 32px" font-size="28px" font-weight="700" color="#0f172a" align="center">
+          Welcome aboard! 🎉
+        </mj-text>
+        <mj-text padding="16px 32px 0 32px" align="center">
+          Your ShipOS account is ready. It's time to start shipping faster than ever.
+        </mj-text>
+        <mj-button
+          align="center"
+          background-color="#10b981"
+          color="#ffffff"
+          padding="24px 32px"
+          inner-padding="14px 32px"
+          href="https://app.shipos.app/dashboard"
+        >Go to Dashboard →</mj-button>
+        <mj-divider border-color="#e5e7eb" border-width="1px" padding="16px 32px" />
+        <mj-text padding="16px 32px 8px 32px" font-size="16px" font-weight="600" color="#0f172a">
+          Get started in 3 steps
+        </mj-text>
+        <mj-text padding="8px 32px" font-size="14px">
+          <strong style="color: #10b981;">1.</strong> <strong>Create your first project</strong><br />
+          <span style="color: #6b7280;">Set up a project to organize your work and track progress.</span>
+        </mj-text>
+        <mj-text padding="8px 32px" font-size="14px">
+          <strong style="color: #10b981;">2.</strong> <strong>Invite your team</strong><br />
+          <span style="color: #6b7280;">Collaborate with teammates to ship even faster together.</span>
+        </mj-text>
+        <mj-text padding="8px 32px 24px 32px" font-size="14px">
+          <strong style="color: #10b981;">3.</strong> <strong>Start shipping</strong><br />
+          <span style="color: #6b7280;">Use our tools to streamline your workflow and deliver.</span>
+        </mj-text>
+        <mj-divider border-color="#e5e7eb" border-width="1px" padding="0 32px 16px 32px" />
+        <mj-text padding="16px 32px 8px 32px" font-size="16px" font-weight="600" color="#0f172a">
+          Need help?
+        </mj-text>
+        <mj-text padding="0 32px 32px 32px" font-size="13px" color="#6b7280">
+          Check out our <a href="https://docs.shipos.app" style="color: #3b82f6;">documentation</a> or reach out to us at <a href="mailto:support@shipos.app" style="color: #3b82f6;">support@shipos.app</a> — we're always happy to help!
+        </mj-text>
+      </mj-column>
+    </mj-section>
+    <mj-section padding="24px 20px 40px 20px">
+      <mj-column>
+        <mj-text align="center" font-size="12px" color="#9ca3af">
+          © 2025 ShipOS. All rights reserved.<br />
+          <a href="https://shipos.app" class="link-nostyle">shipos.app</a>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>
+

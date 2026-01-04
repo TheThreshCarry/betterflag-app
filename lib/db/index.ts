@@ -1,8 +1,12 @@
 import "dotenv/config";
 import { drizzle } from "drizzle-orm/node-postgres";
-import * as schema from "../../auth-schema";
+import * as authSchema from "../../auth-schema";
+import * as appSchema from "./schema";
+
+// Merge both schemas for the drizzle instance
+const schema = { ...authSchema, ...appSchema };
 
 const db = drizzle(process.env.DATABASE_URL!, { schema });
 
 export default db;
-export { schema };
+export { schema, authSchema, appSchema };
