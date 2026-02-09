@@ -6,6 +6,7 @@ import { controllerRegistry } from "../../controllers";
 // Import controllers to register them
 import "../../controllers/flags.controller";
 import "../../controllers/config.controller";
+import "../../controllers/customers.controller";
 // Placeholder controllers for future features
 import "../../controllers/blogs.controller";
 import "../../controllers/emails.controller";

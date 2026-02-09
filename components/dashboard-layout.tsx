@@ -1,3 +1,4 @@
+import React from "react"
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
@@ -77,14 +78,16 @@ export async function DashboardLayout({ children, breadcrumbs }: DashboardLayout
             <Breadcrumb>
               <BreadcrumbList>
                 {breadcrumbs.map((item, index) => (
-                  <BreadcrumbItem key={index} className={index === 0 ? "hidden md:block" : ""}>
+                  <React.Fragment key={index}>
                     {index > 0 && <BreadcrumbSeparator className="hidden md:block" />}
-                    {item.href ? (
-                      <BreadcrumbLink href={item.href}>{item.label}</BreadcrumbLink>
-                    ) : (
-                      <BreadcrumbPage>{item.label}</BreadcrumbPage>
-                    )}
-                  </BreadcrumbItem>
+                    <BreadcrumbItem className={index === 0 ? "hidden md:block" : ""}>
+                      {item.href ? (
+                        <BreadcrumbLink href={item.href}>{item.label}</BreadcrumbLink>
+                      ) : (
+                        <BreadcrumbPage>{item.label}</BreadcrumbPage>
+                      )}
+                    </BreadcrumbItem>
+                  </React.Fragment>
                 ))}
               </BreadcrumbList>
             </Breadcrumb>

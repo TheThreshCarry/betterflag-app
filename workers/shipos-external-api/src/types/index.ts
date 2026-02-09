@@ -69,6 +69,13 @@ export const KVKeys = {
    */
   config: (orgId: string, env: string, slug: string): string =>
     `v1::org_${orgId}::${env}::config::${slug}`,
+
+  /**
+   * Build the customer key (organization-scoped)
+   * Format: v1::org_{orgId}::customer::{externalId}
+   */
+  customer: (orgId: string, externalId: string): string =>
+    `v1::org_${orgId}::customer::${externalId}`,
 };
 
 /**

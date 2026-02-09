@@ -16,11 +16,13 @@ import {
   Send,
   Command,
   FileJson,
+  Users,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
+import { ThemeToggle } from "@/components/theme-toggle"
 import {
   Sidebar,
   SidebarContent,
@@ -65,6 +67,17 @@ const staticNavData = {
           }
         ],
       },
+    {
+      title: "Customers",
+      url: "/dashboard/customers",
+      icon: Users,
+      items: [
+        {
+          title: "All Customers",
+          url: "/dashboard/customers",
+        },
+      ],
+    },
     {
       title: "Documentation",
       url: "/dashboard/docs",
@@ -115,6 +128,10 @@ const staticNavData = {
         {
           title: "Labels",
           url: "/dashboard/changelogs/labels",
+        },
+        {
+          title: "Subscribers",
+          url: "/dashboard/changelogs/subscribers",
         },
       ],
     },
@@ -287,7 +304,14 @@ export function AppSidebar({ user, organization, ...props }: AppSidebarProps) {
         <NavSecondary items={staticNavData.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={user} />
+        <div className="flex items-center gap-0">
+          <div className="flex-1">
+            <NavUser user={user} />
+          </div>
+          <div className="flex items-center pr-1">
+            <ThemeToggle />
+          </div>
+        </div>
       </SidebarFooter>
     </Sidebar>
   );
