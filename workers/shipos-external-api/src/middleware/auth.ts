@@ -1,11 +1,12 @@
 import { createMiddleware } from "hono/factory";
-import type { AppEnv } from "../types";
+import type { AppEnv, ApiKeyData } from "../types";
+import { KVKeys } from "../types";
 
 /**
  * API Key Authentication Middleware
  *
- * Extracts and validates the API key from x-shipos-key header.
- * Sets the apiKey and environment in context variables.
+ * Validates the API key by looking it up in Cloudflare KV.
+ * Sets the apiKey, environment, and organizationId in context variables.
  *
  * Headers:
  * - x-shipos-key (required): Project API key
@@ -35,12 +36,52 @@ export const authMiddleware = createMiddleware<AppEnv>(async (c, next) => {
     );
   }
 
+  // Look up API key in KV
+  const kvKey = KVKeys.apiKey(apiKey);
+  const apiKeyData = await c.env.SHIPOS_KV.get<ApiKeyData>(kvKey, "json");
+
+  if (!apiKeyData) {
+    return c.json(
+      {
+        error: "Invalid API key",
+        code: "API_KEY_NOT_FOUND",
+      },
+      401
+    );
+  }
+
+  // Check if API key is enabled
+  if (!apiKeyData.enabled) {
+    return c.json(
+      {
+        error: "API key is disabled",
+        code: "API_KEY_DISABLED",
+      },
+      401
+    );
+  }
+
+  // Check if API key is expired
+  if (apiKeyData.expiresAt) {
+    const expiresAt = new Date(apiKeyData.expiresAt);
+    if (expiresAt < new Date()) {
+      return c.json(
+        {
+          error: "API key has expired",
+          code: "API_KEY_EXPIRED",
+        },
+        401
+      );
+    }
+  }
+
   // Extract environment, default to 'production'
   const environment = c.req.header("x-shipos-env") || "production";
 
   // Set context variables for downstream handlers
   c.set("apiKey", apiKey);
   c.set("environment", environment);
+  c.set("organizationId", apiKeyData.organizationId);
 
   await next();
 });

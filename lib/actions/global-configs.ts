@@ -4,14 +4,27 @@ import { revalidatePath } from "next/cache"
 import { headers } from "next/headers"
 import { eq, and } from "drizzle-orm"
 import db from "@/lib/db"
-import { globalConfigs, type NewGlobalConfig } from "@/lib/db/schema"
+import { globalConfigs, type NewGlobalConfig, type GlobalConfig } from "@/lib/db/schema"
 import { auth } from "@/lib/auth"
+import { syncConfig, deleteConfigFromKV } from "@/lib/sync/kv-sync"
 
 async function getOrganizationId() {
   const session = await auth.api.getSession({
     headers: await headers(),
   })
   return session?.session.activeOrganizationId || null
+}
+
+/**
+ * Sync a single config to KV
+ */
+async function syncConfigToKV(config: GlobalConfig) {
+  if (!config.organizationId || !config.slug) return
+  
+  const environment = config.environment || "production"
+  const data = (config.data as Record<string, unknown>) || {}
+  
+  await syncConfig(config.organizationId, environment, config.slug, data)
 }
 
 export async function getGlobalConfigs(environment?: string) {
@@ -52,7 +65,10 @@ export async function createGlobalConfig(
     })
     .returning()
 
-  revalidatePath("/dashboard/settings/config")
+  // Sync config to KV
+  await syncConfigToKV(config)
+
+  revalidatePath("/dashboard/configs")
   return config
 }
 
@@ -69,11 +85,26 @@ export async function updateGlobalConfig(
     .where(eq(globalConfigs.id, id))
     .returning()
 
-  revalidatePath("/dashboard/settings/config")
+  // Sync config to KV
+  await syncConfigToKV(config)
+
+  revalidatePath("/dashboard/configs")
   return config
 }
 
 export async function deleteGlobalConfig(id: string) {
+  // Get the config first to know the organization and slug
+  const config = await db.query.globalConfigs.findFirst({
+    where: eq(globalConfigs.id, id),
+  })
+  
   await db.delete(globalConfigs).where(eq(globalConfigs.id, id))
-  revalidatePath("/dashboard/settings/config")
+  
+  // Delete config from KV
+  if (config?.organizationId && config?.slug) {
+    const environment = config.environment || "production"
+    await deleteConfigFromKV(config.organizationId, environment, config.slug)
+  }
+  
+  revalidatePath("/dashboard/configs")
 }

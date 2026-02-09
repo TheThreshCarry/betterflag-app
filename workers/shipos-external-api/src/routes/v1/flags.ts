@@ -11,11 +11,11 @@ import { KVKeys } from "../../types";
 const flagsRoute = new Hono<AppEnv>();
 
 flagsRoute.get("/", async (c) => {
-  const apiKey = c.get("apiKey");
+  const organizationId = c.get("organizationId");
   const environment = c.get("environment");
 
-  // Build the KV key
-  const kvKey = KVKeys.flags(apiKey, environment);
+  // Build the KV key using organization ID
+  const kvKey = KVKeys.flags(organizationId, environment);
 
   try {
     // Fetch flags from KV

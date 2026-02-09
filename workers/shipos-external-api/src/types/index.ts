@@ -11,6 +11,22 @@ export type Bindings = {
 };
 
 /**
+ * API Key data stored in KV for validation
+ */
+export type ApiKeyData = {
+  /** Organization ID the API key belongs to */
+  organizationId: string;
+  /** User ID who created the API key */
+  userId: string;
+  /** Whether the API key is enabled */
+  enabled: boolean;
+  /** Expiration timestamp (ISO string) or null if no expiration */
+  expiresAt: string | null;
+  /** Optional permissions array */
+  permissions?: string[];
+};
+
+/**
  * Custom context variables added by middleware
  */
 export type Variables = {
@@ -18,6 +34,8 @@ export type Variables = {
   apiKey: string;
   /** Environment extracted from x-shipos-env header (defaults to 'production') */
   environment: string;
+  /** Organization ID extracted from API key validation */
+  organizationId: string;
 };
 
 /**
@@ -33,18 +51,24 @@ export type AppEnv = {
  */
 export const KVKeys = {
   /**
-   * Build the flags key
-   * Format: v1::project_{apiKey}::{env}::flags
+   * Build the API key lookup key
+   * Format: v1::apikey::{apiKey}
    */
-  flags: (apiKey: string, env: string): string =>
-    `v1::project_${apiKey}::${env}::flags`,
+  apiKey: (apiKey: string): string => `v1::apikey::${apiKey}`,
 
   /**
-   * Build the config key
-   * Format: v1::project_{apiKey}::{env}::config::{slug}
+   * Build the flags key (organization-scoped)
+   * Format: v1::org_{orgId}::{env}::flags
    */
-  config: (apiKey: string, env: string, slug: string): string =>
-    `v1::project_${apiKey}::${env}::config::${slug}`,
+  flags: (orgId: string, env: string): string =>
+    `v1::org_${orgId}::${env}::flags`,
+
+  /**
+   * Build the config key (organization-scoped)
+   * Format: v1::org_{orgId}::{env}::config::{slug}
+   */
+  config: (orgId: string, env: string, slug: string): string =>
+    `v1::org_${orgId}::${env}::config::${slug}`,
 };
 
 /**

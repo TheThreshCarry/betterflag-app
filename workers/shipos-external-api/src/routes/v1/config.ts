@@ -11,7 +11,7 @@ import { KVKeys } from "../../types";
 const configRoute = new Hono<AppEnv>();
 
 configRoute.get("/:slug", async (c) => {
-  const apiKey = c.get("apiKey");
+  const organizationId = c.get("organizationId");
   const environment = c.get("environment");
   const slug = c.req.param("slug");
 
@@ -34,8 +34,8 @@ configRoute.get("/:slug", async (c) => {
     return c.json(error, 400);
   }
 
-  // Build the KV key
-  const kvKey = KVKeys.config(apiKey, environment, slug);
+  // Build the KV key using organization ID
+  const kvKey = KVKeys.config(organizationId, environment, slug);
 
   try {
     // Fetch config from KV

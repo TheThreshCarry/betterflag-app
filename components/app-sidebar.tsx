@@ -15,6 +15,7 @@ import {
   LifeBuoy,
   Send,
   Command,
+  FileJson,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -30,7 +31,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 
-const navData = {
+const staticNavData = {
   navMain: [
     {
       title: "Blogs & CMS",
@@ -52,6 +53,18 @@ const navData = {
         },
       ],
     },
+    {
+        title: "Global Configs",
+        url: "/dashboard/configs",
+        icon: FileJson,
+        isActive: true,
+        items: [
+          {
+            title: "All Configs",
+            url: "/dashboard/configs",
+          }
+        ],
+      },
     {
       title: "Documentation",
       url: "/dashboard/docs",
@@ -183,10 +196,6 @@ const navData = {
       icon: Settings2,
       items: [
         {
-          title: "Global Config",
-          url: "/dashboard/settings/config",
-        },
-        {
           title: "Emails",
           url: "/dashboard/settings/emails",
         },
@@ -228,6 +237,13 @@ const navData = {
   ],
 }
 
+interface DynamicConfig {
+  id: string
+  slug: string
+  name: string
+  environment: string
+}
+
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   user: {
     name: string
@@ -239,6 +255,7 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
     slug?: string
     logo?: string | null
   } | null
+  configs?: DynamicConfig[]
 }
 
 export function AppSidebar({ user, organization, ...props }: AppSidebarProps) {
@@ -266,13 +283,13 @@ export function AppSidebar({ user, organization, ...props }: AppSidebarProps) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={navData.navMain} />
-        <NavSecondary items={navData.navSecondary} className="mt-auto" />
+        <NavMain items={staticNavData.navMain} />
+        <NavSecondary items={staticNavData.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={user} />
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }
 

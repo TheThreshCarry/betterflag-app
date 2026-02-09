@@ -2,6 +2,7 @@ import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { AppSidebar } from "@/components/app-sidebar"
+import { getGlobalConfigs } from "@/lib/actions/global-configs"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -53,9 +54,18 @@ export async function DashboardLayout({ children, breadcrumbs }: DashboardLayout
     })
   }
 
+  // Fetch global configs for dynamic sidebar
+  const configs = await getGlobalConfigs()
+  const simplifiedConfigs = configs.map((config) => ({
+    id: config.id,
+    slug: config.slug,
+    name: config.name,
+    environment: config.environment,
+  }))
+
   return (
     <SidebarProvider>
-      <AppSidebar user={user} organization={organization} />
+      <AppSidebar user={user} organization={organization} configs={simplifiedConfigs} />
       <SidebarInset>
         <header className="flex h-16 shrink-0 items-center gap-2">
           <div className="flex items-center gap-2 px-4">
