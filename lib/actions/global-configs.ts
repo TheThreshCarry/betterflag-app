@@ -1,19 +1,11 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { headers } from "next/headers"
 import { eq, and } from "drizzle-orm"
 import db from "@/lib/db"
 import { globalConfigs, type NewGlobalConfig, type GlobalConfig } from "@/lib/db/schema"
-import { auth } from "@/lib/auth"
 import { syncConfig, deleteConfigFromKV } from "@/lib/sync/kv-sync"
-
-async function getOrganizationId() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  })
-  return session?.session.activeOrganizationId || null
-}
+import { getOrganizationId } from "@/lib/actions/utils"
 
 /**
  * Sync a single config to KV

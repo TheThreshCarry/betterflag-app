@@ -1,12 +1,11 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { headers } from "next/headers"
 import { eq, and } from "drizzle-orm"
 import db from "@/lib/db"
 import { apikey } from "@/lib/auth/auth-schema"
-import { auth } from "@/lib/auth"
 import { syncApiKey, deleteApiKeyFromKV, type ApiKeyData } from "@/lib/sync/kv-sync"
+import { getSessionData } from "@/lib/actions/utils"
 
 /**
  * API Key type for the UI
@@ -20,16 +19,6 @@ export type ApiKey = {
   createdAt: Date
   expiresAt: Date | null
   lastRequest: Date | null
-}
-
-async function getSessionData() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  })
-  return {
-    userId: session?.user?.id || null,
-    organizationId: session?.session.activeOrganizationId || null,
-  }
 }
 
 /**

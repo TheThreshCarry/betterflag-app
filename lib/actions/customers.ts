@@ -1,18 +1,10 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { headers } from "next/headers"
 import { eq, desc, isNull } from "drizzle-orm"
 import db from "@/lib/db"
 import { customers, type NewCustomer } from "@/lib/db/schema"
-import { auth } from "@/lib/auth"
-
-async function getOrganizationId() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  })
-  return session?.session.activeOrganizationId || null
-}
+import { getOrganizationId } from "@/lib/actions/utils"
 
 export async function getCustomers() {
   const organizationId = await getOrganizationId()

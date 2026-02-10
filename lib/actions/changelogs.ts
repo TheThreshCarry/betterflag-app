@@ -1,7 +1,6 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { headers } from "next/headers"
 import { eq, and, desc, isNull, isNotNull, ne } from "drizzle-orm"
 import db from "@/lib/db"
 import {
@@ -9,17 +8,7 @@ import {
   changelogLabelAssignments,
   type NewChangelog,
 } from "@/lib/db/schema"
-import { auth } from "@/lib/auth"
-
-async function getSessionData() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  })
-  return {
-    organizationId: session?.session.activeOrganizationId || null,
-    userId: session?.user.id || null,
-  }
-}
+import { getSessionData } from "@/lib/actions/utils"
 
 export async function getChangelogs() {
   const { organizationId } = await getSessionData()

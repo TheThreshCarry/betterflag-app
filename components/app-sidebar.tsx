@@ -17,6 +17,7 @@ import {
   Command,
   FileJson,
   Users,
+  Search,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -215,6 +216,10 @@ const staticNavData = {
           url: "/dashboard/settings",
         },
         {
+          title: "Profile",
+          url: "/dashboard/settings/profile",
+        },
+        {
           title: "Emails",
           url: "/dashboard/settings/emails",
         },
@@ -300,6 +305,21 @@ export function AppSidebar({ user, organization, ...props }: AppSidebarProps) {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
+        <button
+          type="button"
+          onClick={() => {
+            document.dispatchEvent(
+              new KeyboardEvent("keydown", { key: "k", metaKey: true })
+            )
+          }}
+          className="flex h-8 w-full items-center gap-2 rounded-md border bg-background px-3 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+        >
+          <Search className="h-3.5 w-3.5 shrink-0" />
+          <span className="flex-1 text-left">Search...</span>
+          <kbd className="pointer-events-none hidden h-5 select-none items-center gap-0.5 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium sm:flex">
+            <span className="text-xs">⌘</span>K
+          </kbd>
+        </button>
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={staticNavData.navMain} />

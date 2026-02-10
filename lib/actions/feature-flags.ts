@@ -1,19 +1,11 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { headers } from "next/headers"
 import { eq, and } from "drizzle-orm"
 import db from "@/lib/db"
 import { featureFlags, type NewFeatureFlag } from "@/lib/db/schema"
-import { auth } from "@/lib/auth"
-import { syncFlags, KVKeys } from "@/lib/sync/kv-sync"
-
-async function getOrganizationId() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  })
-  return session?.session.activeOrganizationId || null
-}
+import { syncFlags } from "@/lib/sync/kv-sync"
+import { getOrganizationId } from "@/lib/actions/utils"
 
 /**
  * Sync all flags for an organization to KV

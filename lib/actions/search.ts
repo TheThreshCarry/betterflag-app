@@ -1,17 +1,9 @@
 "use server"
 
-import { headers } from "next/headers"
 import { eq, ilike, or, and, isNull } from "drizzle-orm"
 import db from "@/lib/db"
 import { featureFlags, changelogs, globalConfigs, customers } from "@/lib/db/schema"
-import { auth } from "@/lib/auth"
-
-async function getOrganizationId() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  })
-  return session?.session.activeOrganizationId || null
-}
+import { getOrganizationId } from "@/lib/actions/utils"
 
 export type SearchResult = {
   id: string
