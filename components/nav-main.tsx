@@ -19,6 +19,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
+import { Badge } from "@/components/ui/badge"
 
 export function NavMain({
   items,
@@ -28,9 +29,11 @@ export function NavMain({
     url: string
     icon: LucideIcon
     isActive?: boolean
+    comingSoon?: boolean
     items?: {
       title: string
       url: string
+      comingSoon?: boolean
     }[]
   }[]
 }) {
@@ -43,12 +46,34 @@ export function NavMain({
         {items.map((item) => {
           // Section is active if the current path starts with the section's url
           const isActive =
-            pathname === item.url ||
-            pathname.startsWith(item.url + "/") ||
-            item.items?.some(
-              (sub) =>
-                pathname === sub.url || pathname.startsWith(sub.url + "/")
+            !item.comingSoon &&
+            (pathname === item.url ||
+              pathname.startsWith(item.url + "/") ||
+              item.items?.some(
+                (sub) =>
+                  pathname === sub.url || pathname.startsWith(sub.url + "/")
+              ))
+
+          if (item.comingSoon) {
+            return (
+              <SidebarMenuItem key={item.title}>
+                <SidebarMenuButton
+                  tooltip={`${item.title} (Coming Soon)`}
+                  disabled
+                  className="opacity-50 cursor-not-allowed"
+                >
+                  <item.icon />
+                  <span>{item.title}</span>
+                  <Badge
+                    variant="secondary"
+                    className="ml-auto h-4 px-1 text-[9px] font-normal leading-none"
+                  >
+                    Soon
+                  </Badge>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             )
+          }
 
           return (
             <Collapsible key={item.title} asChild defaultOpen={isActive}>
@@ -70,6 +95,25 @@ export function NavMain({
                     <CollapsibleContent>
                       <SidebarMenuSub>
                         {item.items?.map((subItem) => {
+                          if (subItem.comingSoon) {
+                            return (
+                              <SidebarMenuSubItem key={subItem.title}>
+                                <SidebarMenuSubButton
+                                  disabled
+                                  className="opacity-50 cursor-not-allowed"
+                                >
+                                  <span>{subItem.title}</span>
+                                  <Badge
+                                    variant="secondary"
+                                    className="ml-auto h-4 px-1 text-[9px] font-normal leading-none"
+                                  >
+                                    Soon
+                                  </Badge>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            )
+                          }
+
                           const isSubActive =
                             pathname === subItem.url ||
                             pathname.startsWith(subItem.url + "/")

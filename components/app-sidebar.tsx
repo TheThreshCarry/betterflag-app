@@ -100,6 +100,7 @@ const staticNavData = {
       title: "Newsletters",
       url: "/dashboard/newsletters",
       icon: Mail,
+      comingSoon: true,
       items: [
         {
           title: "Campaigns",
@@ -191,6 +192,7 @@ const staticNavData = {
       title: "Analytics",
       url: "/dashboard/analytics",
       icon: BarChart3,
+      comingSoon: true,
       items: [
         {
           title: "Overview",
@@ -222,6 +224,7 @@ const staticNavData = {
         {
           title: "Emails",
           url: "/dashboard/settings/emails",
+          comingSoon: true,
         },
         {
           title: "Domains",

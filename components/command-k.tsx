@@ -44,6 +44,7 @@ type NavItem = {
   url: string
   icon: LucideIcon
   keywords?: string[]
+  comingSoon?: boolean
 }
 
 const navigationItems: NavItem[] = [
@@ -52,14 +53,14 @@ const navigationItems: NavItem[] = [
   { title: "Global Configs", url: "/dashboard/configs", icon: FileJson, keywords: ["configuration", "settings", "remote config"] },
   { title: "Customers", url: "/dashboard/customers", icon: Users, keywords: ["users", "people"] },
   { title: "Documentation", url: "/dashboard/docs", icon: BookOpen, keywords: ["docs", "pages", "api docs"] },
-  { title: "Newsletters", url: "/dashboard/newsletters", icon: Mail, keywords: ["email", "campaigns"] },
+  { title: "Newsletters", url: "/dashboard/newsletters", icon: Mail, keywords: ["email", "campaigns"], comingSoon: true },
   { title: "Changelogs", url: "/dashboard/changelogs", icon: Sparkles, keywords: ["releases", "changelog", "versions", "updates"] },
   { title: "Changelog Labels", url: "/dashboard/changelogs/labels", icon: Sparkles, keywords: ["tags", "categories"] },
   { title: "Changelog Subscribers", url: "/dashboard/changelogs/subscribers", icon: Sparkles, keywords: ["followers"] },
   { title: "Feature Flags", url: "/dashboard/flags", icon: Flag, keywords: ["flags", "toggles", "feature toggles", "feature flags"] },
   { title: "Announcements", url: "/dashboard/announcements", icon: Megaphone, keywords: ["banners", "modals", "toasts"] },
   { title: "Media", url: "/dashboard/media", icon: Image, keywords: ["images", "videos", "files", "uploads"] },
-  { title: "Analytics", url: "/dashboard/analytics", icon: BarChart3, keywords: ["stats", "metrics", "page views", "events"] },
+  { title: "Analytics", url: "/dashboard/analytics", icon: BarChart3, keywords: ["stats", "metrics", "page views", "events"], comingSoon: true },
   { title: "Settings", url: "/dashboard/settings", icon: Settings2, keywords: ["preferences", "configuration"] },
   { title: "API Keys", url: "/dashboard/settings/api-keys", icon: Settings2, keywords: ["api", "keys", "tokens"] },
   { title: "Team", url: "/dashboard/settings/team", icon: Users, keywords: ["members", "roles", "team"] },
@@ -262,13 +263,25 @@ export function CommandK() {
             <CommandItem
               key={item.url}
               value={`${item.title} ${(item.keywords || []).join(" ")}`}
-              onSelect={() => runCommand(() => router.push(item.url))}
+              onSelect={() => {
+                if (!item.comingSoon) {
+                  runCommand(() => router.push(item.url))
+                }
+              }}
+              disabled={item.comingSoon}
+              className={item.comingSoon ? "opacity-50" : ""}
             >
               <item.icon className="mr-2 size-4 shrink-0" />
               <span>{item.title}</span>
-              <CommandShortcut>
-                <ArrowRight className="size-3" />
-              </CommandShortcut>
+              {item.comingSoon ? (
+                <Badge variant="secondary" className="ml-auto shrink-0 text-[10px] font-normal">
+                  Coming Soon
+                </Badge>
+              ) : (
+                <CommandShortcut>
+                  <ArrowRight className="size-3" />
+                </CommandShortcut>
+              )}
             </CommandItem>
           ))}
         </CommandGroup>
