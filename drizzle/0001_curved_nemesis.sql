@@ -1,4 +1,4 @@
-CREATE TABLE "feature_flags" (
+CREATE TABLE IF NOT EXISTS "feature_flags" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"key" varchar(255) NOT NULL,
 	"name" varchar(255) NOT NULL,
@@ -10,7 +10,7 @@ CREATE TABLE "feature_flags" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "global_configs" (
+CREATE TABLE IF NOT EXISTS "global_configs" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"slug" varchar(255) NOT NULL,
 	"name" varchar(255) NOT NULL,
@@ -22,7 +22,7 @@ CREATE TABLE "global_configs" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "apikey" (
+CREATE TABLE IF NOT EXISTS "apikey" (
 	"id" text PRIMARY KEY NOT NULL,
 	"name" text,
 	"start" text,
@@ -46,7 +46,7 @@ CREATE TABLE "apikey" (
 	"metadata" text
 );
 --> statement-breakpoint
-CREATE TABLE "two_factor" (
+CREATE TABLE IF NOT EXISTS "two_factor" (
 	"id" text PRIMARY KEY NOT NULL,
 	"secret" text NOT NULL,
 	"backup_codes" text NOT NULL,

@@ -2,7 +2,9 @@
 import { betterAuth, User } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
+import { eq } from "drizzle-orm";
 import db, { schema } from "../../lib/db";
+import { user as userTable } from "../auth/auth-schema";
 import {
   lastLoginMethod,
   organization,
@@ -71,6 +73,43 @@ export const auth = betterAuth({
       console.log(`Password for user ${user.email} has been reset.`);
     },
   },
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (user) => {
+          // Create a Polar customer for the new user.
+          // If this fails, rollback by deleting the user so we don't end up
+          // with a local user that has no billing customer.
+          try {
+            await polarClient.customers.create({
+              email: user.email,
+              name: user.name,
+              externalId: user.id,
+            });
+          } catch (error) {
+            console.error(
+              `[Polar] Failed to create customer for user ${user.id}:`,
+              error
+            );
+
+            // Rollback: delete the user (cascade removes account, session, etc.)
+            try {
+              await db.delete(userTable).where(eq(userTable.id, user.id));
+            } catch (deleteError) {
+              console.error(
+                `[Polar] Failed to rollback user ${user.id}:`,
+                deleteError
+              );
+            }
+
+            throw new Error(
+              "Unable to complete sign-up. Please try again later."
+            );
+          }
+        },
+      },
+    },
+  },
   plugins: [
     multiSession(),
     twoFactor(),
@@ -91,7 +130,9 @@ export const auth = betterAuth({
     }),
     polar({
       client: polarClient,
-      createCustomerOnSignUp: true, 
+      // We handle customer creation ourselves in databaseHooks above
+      // so we can rollback the user if Polar fails.
+      createCustomerOnSignUp: false,
       use: [
         checkout({
           products: [

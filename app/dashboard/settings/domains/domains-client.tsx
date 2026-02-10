@@ -108,7 +108,7 @@ function generateDnsRecords(domain: string): DnsRecord[] {
     {
       type: "CNAME",
       name: domain,
-      value: "cname.shipos.dev",
+      value: "cname.shipos.app",
     },
     {
       type: "TXT",

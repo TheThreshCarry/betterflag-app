@@ -188,7 +188,7 @@ export function OnboardingForm({
                 <FieldLabel htmlFor="org-slug">Slug</FieldLabel>
                 <div className="flex items-center gap-0">
                   <span className="flex h-9 items-center rounded-l-md border border-r-0 bg-muted px-3 text-sm text-muted-foreground">
-                    shipos.dev/
+                    shipos.app/
                   </span>
                   <Input
                     id="org-slug"
