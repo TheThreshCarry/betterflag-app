@@ -39,7 +39,6 @@ const staticNavData = {
       title: "Blogs & CMS",
       url: "/dashboard/blogs",
       icon: FileText,
-      isActive: true,
       items: [
         {
           title: "All Posts",
@@ -59,7 +58,6 @@ const staticNavData = {
         title: "Global Configs",
         url: "/dashboard/configs",
         icon: FileJson,
-        isActive: true,
         items: [
           {
             title: "All Configs",
@@ -212,6 +210,10 @@ const staticNavData = {
       url: "/dashboard/settings",
       icon: Settings2,
       items: [
+        {
+          title: "General",
+          url: "/dashboard/settings",
+        },
         {
           title: "Emails",
           url: "/dashboard/settings/emails",

@@ -52,7 +52,7 @@ export function SignupForm({
       name,
       email,
       password,
-      callbackURL: "/dashboard",
+      callbackURL: "/onboarding",
     })
 
     setIsLoading(false)

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache"
 import { headers } from "next/headers"
 import { eq, and } from "drizzle-orm"
 import db from "@/lib/db"
-import { apikey } from "@/auth-schema"
+import { apikey } from "@/lib/auth/auth-schema"
 import { auth } from "@/lib/auth"
 import { syncApiKey, deleteApiKeyFromKV, type ApiKeyData } from "@/lib/sync/kv-sync"
 

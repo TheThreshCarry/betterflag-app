@@ -55,6 +55,28 @@ export async function DashboardLayout({ children, breadcrumbs }: DashboardLayout
     })
   }
 
+  // If no active org, check if user has any orgs at all
+  if (!organization) {
+    const orgs = await auth.api.listOrganizations({
+      headers: await headers(),
+    })
+
+    if (!orgs || orgs.length === 0) {
+      // No orgs at all — redirect to onboarding
+      redirect("/onboarding")
+    }
+
+    // Has orgs but none active — set the first one as active
+    await auth.api.setActiveOrganization({
+      headers: await headers(),
+      body: { organizationId: orgs[0].id },
+    })
+    organization = await auth.api.getFullOrganization({
+      headers: await headers(),
+      query: { organizationId: orgs[0].id },
+    })
+  }
+
   // Fetch global configs for dynamic sidebar
   const configs = await getGlobalConfigs()
   const simplifiedConfigs = configs.map((config) => ({
