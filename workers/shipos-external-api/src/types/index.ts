@@ -6,6 +6,8 @@ export type Bindings = {
   SHIPOS_KV: KVNamespace;
   /** R2 bucket for profile pictures */
   PROFILE_PICTURES: R2Bucket;
+  /** R2 bucket for media assets */
+  MEDIA_ASSETS: R2Bucket;
   /** Static assets binding */
   ASSETS: Fetcher;
   /** Polar access token for usage event ingestion */

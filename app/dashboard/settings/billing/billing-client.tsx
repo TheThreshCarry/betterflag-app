@@ -41,6 +41,8 @@ const PLANS = {
       flags: 5,
       configs: 2,
       changelogs: 1,
+      mediaMaxFileSize: 5 * 1024 * 1024,
+      mediaStorage: 100 * 1024 * 1024,
     },
   },
   pro: {
@@ -53,6 +55,8 @@ const PLANS = {
       flags: Infinity,
       configs: Infinity,
       changelogs: Infinity,
+      mediaMaxFileSize: 100 * 1024 * 1024,
+      mediaStorage: 10 * 1024 * 1024 * 1024,
     },
   },
   team: {
@@ -65,6 +69,8 @@ const PLANS = {
       flags: Infinity,
       configs: Infinity,
       changelogs: Infinity,
+      mediaMaxFileSize: 100 * 1024 * 1024,
+      mediaStorage: 50 * 1024 * 1024 * 1024,
     },
   },
 } as const
@@ -152,6 +158,13 @@ function formatNumber(num: number): string {
   if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1)}M`
   if (num >= 1_000) return `${(num / 1_000).toFixed(0)}K`
   return num.toLocaleString()
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes >= 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024 * 1024)).toFixed(0)} GB`
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(0)} MB`
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(0)} KB`
+  return `${bytes} B`
 }
 
 function formatDate(dateStr: string | null): string {
@@ -418,6 +431,14 @@ export function BillingClient({ productIds }: BillingClientProps) {
                     <li className="flex items-center gap-2">
                       <Zap className="h-3.5 w-3.5 text-muted-foreground" />
                       {formatNumber(plan.limits.changelogs)} Changelogs
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Zap className="h-3.5 w-3.5 text-muted-foreground" />
+                      {formatBytes(plan.limits.mediaStorage)} Media Storage
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Zap className="h-3.5 w-3.5 text-muted-foreground" />
+                      {formatBytes(plan.limits.mediaMaxFileSize)} max upload
                     </li>
                   </ul>
                   <div className="mt-4">

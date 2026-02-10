@@ -1,4 +1,4 @@
-import { pgTable, text, boolean, timestamp, jsonb, uuid, varchar, index } from "drizzle-orm/pg-core";
+import { pgTable, text, boolean, timestamp, jsonb, uuid, varchar, index, integer } from "drizzle-orm/pg-core";
 
 // ============================================
 // Feature Flags
@@ -172,3 +172,57 @@ export const changelogSubscriptions = pgTable(
 
 export type ChangelogSubscription = typeof changelogSubscriptions.$inferSelect;
 export type NewChangelogSubscription = typeof changelogSubscriptions.$inferInsert;
+
+// ============================================
+// Media Assets
+// ============================================
+
+export const mediaAssets = pgTable(
+  "media_assets",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    name: varchar("name", { length: 255 }).notNull(),
+    key: varchar("key", { length: 512 }).notNull(),
+    url: text("url").notNull(),
+    folder: varchar("folder", { length: 512 }).default("/").notNull(),
+    type: varchar("type", { length: 20 }).notNull(),
+    mimeType: varchar("mime_type", { length: 100 }).notNull(),
+    size: integer("size").notNull(),
+    organizationId: text("organization_id"),
+    uploadedBy: text("uploaded_by"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("media_assets_org_idx").on(table.organizationId),
+    index("media_assets_type_idx").on(table.type),
+    index("media_assets_folder_idx").on(table.organizationId, table.folder),
+  ]
+);
+
+export type MediaAsset = typeof mediaAssets.$inferSelect;
+export type NewMediaAsset = typeof mediaAssets.$inferInsert;
+
+// ============================================
+// Media Folders
+// ============================================
+
+export const mediaFolders = pgTable(
+  "media_folders",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    name: varchar("name", { length: 255 }).notNull(),
+    path: varchar("path", { length: 512 }).notNull(),
+    parentPath: varchar("parent_path", { length: 512 }).default("/").notNull(),
+    organizationId: text("organization_id"),
+    createdBy: text("created_by"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("media_folders_org_parent_idx").on(table.organizationId, table.parentPath),
+    index("media_folders_org_path_idx").on(table.organizationId, table.path),
+  ]
+);
+
+export type MediaFolder = typeof mediaFolders.$inferSelect;
+export type NewMediaFolder = typeof mediaFolders.$inferInsert;

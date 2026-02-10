@@ -175,16 +175,8 @@ const staticNavData = {
       icon: Image,
       items: [
         {
-          title: "Images",
-          url: "/dashboard/media/images",
-        },
-        {
-          title: "Videos",
-          url: "/dashboard/media/videos",
-        },
-        {
-          title: "Files",
-          url: "/dashboard/media/files",
+          title: "All Files",
+          url: "/dashboard/media",
         },
       ],
     },

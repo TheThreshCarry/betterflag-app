@@ -16,6 +16,11 @@
 			"binding": "PROFILE_PICTURES",
 			"bucket_name": "shipos-profile-pictures",
 			"preview_bucket_name": "shipos-profile-pictures-dev"
+		},
+		{
+			"binding": "MEDIA_ASSETS",
+			"bucket_name": "shipos-media",
+			"preview_bucket_name": "shipos-media-dev"
 		}
 	],
 	"kv_namespaces": [

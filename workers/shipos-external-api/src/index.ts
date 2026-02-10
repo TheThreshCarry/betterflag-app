@@ -13,7 +13,7 @@ app.use(
   "/*",
   cors({
     origin: "*",
-    allowMethods: ["GET", "POST", "OPTIONS"],
+    allowMethods: ["GET", "POST", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "x-shipos-key", "x-shipos-env", "x-shipos-customer-id"],
     exposeHeaders: ["Content-Type"],
     maxAge: 86400, // 24 hours
@@ -37,6 +37,118 @@ app.get("/health", (c) => {
  * All routes under /v1 are protected by API key authentication
  */
 app.route("/v1", v1Routes);
+
+// ============================================
+// Media Asset Routes (internal — called by Next.js API)
+// ============================================
+
+/**
+ * Upload a media asset
+ * POST /media/upload
+ */
+app.post("/media/upload", async (c) => {
+  try {
+    const formData = await c.req.formData();
+    const file = formData.get("file") as File;
+    const organizationId = formData.get("organizationId") as string;
+    const userId = formData.get("userId") as string;
+    const folder = (formData.get("folder") as string) || "/";
+
+    if (!file || !organizationId) {
+      return c.json({ error: "File and organizationId are required" }, 400);
+    }
+
+    const fileExtension = file.name.split(".").pop() || "bin";
+    const uniqueId = crypto.randomUUID();
+    const folderPath = folder === "/" ? "" : folder.slice(1);
+    const key = `media/${organizationId}/${folderPath}${uniqueId}.${fileExtension}`;
+
+    const arrayBuffer = await file.arrayBuffer();
+    await c.env.MEDIA_ASSETS.put(key, arrayBuffer, {
+      httpMetadata: {
+        contentType: file.type || "application/octet-stream",
+      },
+      customMetadata: {
+        organizationId,
+        userId: userId || "",
+        originalName: file.name,
+        folder,
+        uploadedAt: new Date().toISOString(),
+      },
+    });
+
+    return c.json({
+      success: true,
+      key,
+      name: file.name,
+      size: file.size,
+      mimeType: file.type || "application/octet-stream",
+    });
+  } catch (error) {
+    console.error("Media upload error:", error);
+    return c.json({ error: "Failed to upload file" }, 500);
+  }
+});
+
+/**
+ * Serve a media asset (public URL)
+ * GET /media/serve/:orgId/*
+ */
+app.get("/media/serve/:orgId/*", async (c) => {
+  try {
+    const orgId = c.req.param("orgId");
+    const restPath = c.req.param("*") || "";
+    const key = `media/${orgId}/${restPath}`;
+
+    const object = await c.env.MEDIA_ASSETS.get(key);
+
+    if (!object) {
+      return c.json({ error: "File not found" }, 404);
+    }
+
+    const contentType = object.httpMetadata?.contentType || "application/octet-stream";
+    const isInline = contentType.startsWith("image/") || contentType.startsWith("video/");
+
+    return new Response(object.body, {
+      headers: {
+        "Content-Type": contentType,
+        "Cache-Control": "public, max-age=31536000, immutable",
+        "Content-Disposition": isInline
+          ? "inline"
+          : `attachment; filename="${object.customMetadata?.originalName || "download"}"`,
+      },
+    });
+  } catch (error) {
+    console.error("Media serve error:", error);
+    return c.json({ error: "Failed to retrieve file" }, 500);
+  }
+});
+
+/**
+ * Delete a media asset
+ * POST /media/delete
+ */
+app.post("/media/delete", async (c) => {
+  try {
+    const { key } = await c.req.json();
+
+    if (!key) {
+      return c.json({ error: "Key is required" }, 400);
+    }
+
+    const object = await c.env.MEDIA_ASSETS.head(key);
+    if (!object) {
+      return c.json({ error: "File not found" }, 404);
+    }
+
+    await c.env.MEDIA_ASSETS.delete(key);
+
+    return c.json({ success: true, message: "File deleted" });
+  } catch (error) {
+    console.error("Media delete error:", error);
+    return c.json({ error: "Failed to delete file" }, 500);
+  }
+});
 
 // ============================================
 // Legacy Profile Picture Routes (existing)

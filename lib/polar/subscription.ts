@@ -18,6 +18,8 @@ export const PLAN_LIMITS = {
     configs: 2,
     changelogs: 1,
     customers: 100,
+    mediaMaxFileSize: 5 * 1024 * 1024,         // 5 MB
+    mediaStorage: 100 * 1024 * 1024,            // 100 MB
   },
   pro: {
     name: "Pro",
@@ -27,6 +29,8 @@ export const PLAN_LIMITS = {
     configs: Infinity,
     changelogs: Infinity,
     customers: 10_000,
+    mediaMaxFileSize: 100 * 1024 * 1024,        // 100 MB
+    mediaStorage: 10 * 1024 * 1024 * 1024,      // 10 GB
   },
   team: {
     name: "Team",
@@ -36,12 +40,14 @@ export const PLAN_LIMITS = {
     configs: Infinity,
     changelogs: Infinity,
     customers: 50_000,
+    mediaMaxFileSize: 100 * 1024 * 1024,        // 100 MB
+    mediaStorage: 50 * 1024 * 1024 * 1024,      // 50 GB
   },
 } as const;
 
 export type PlanSlug = keyof typeof PLAN_LIMITS;
 
-export type ResourceKey = "apiCalls" | "flags" | "configs" | "changelogs" | "customers";
+export type ResourceKey = "apiCalls" | "flags" | "configs" | "changelogs" | "customers" | "mediaMaxFileSize" | "mediaStorage";
 
 // ---------------------------------------------------------------------------
 // Customer state helpers
@@ -147,6 +153,8 @@ export function limitReachedMessage(plan: PlanSlug, resource: ResourceKey): stri
     configs: "global configs",
     changelogs: "changelogs",
     customers: "customers",
+    mediaMaxFileSize: "file upload size",
+    mediaStorage: "media storage",
   };
 
   return `You've reached the ${resourceLabels[resource]} limit (${limit.toLocaleString()}) on the ${planName} plan. Upgrade to increase your limit.`;
