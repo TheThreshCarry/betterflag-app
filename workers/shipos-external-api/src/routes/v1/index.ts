@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { AppEnv } from "../../types";
 import { authMiddleware } from "../../middleware/auth";
+import { usageMiddleware } from "../../middleware/usage";
 import { controllerRegistry } from "../../controllers";
 
 // Import controllers to register them
@@ -23,6 +24,9 @@ const v1Routes = new Hono<AppEnv>();
 
 // Apply auth middleware to all v1 routes
 v1Routes.use("/*", authMiddleware);
+
+// Track API usage for billing (runs after response, non-blocking)
+v1Routes.use("/*", usageMiddleware);
 
 // Mount all v1 controllers from the registry
 controllerRegistry.mountVersion(v1Routes, "v1");

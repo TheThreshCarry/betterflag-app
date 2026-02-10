@@ -332,6 +332,7 @@ export function ChangelogEditor({
           content,
           status: "draft",
         })
+        // test this is so good ( -> {} -> {}ø )
         await assignLabelsToChangelog(entry.id, selectedLabelIds)
         toast.success("Changelog created")
         router.push(`/dashboard/changelogs/${entry.id}/edit`)

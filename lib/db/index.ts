@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { drizzle } from "drizzle-orm/node-postgres";
-import * as authSchema from "../../auth-schema";
+import * as authSchema from "../auth/auth-schema";
 import * as appSchema from "./schema";
 
 // Merge both schemas for the drizzle instance

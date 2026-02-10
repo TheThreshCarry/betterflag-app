@@ -14,6 +14,21 @@ import {
   multiSession,
   twoFactor,
 } from "better-auth/plugins";
+import {
+  polar,
+  checkout,
+  portal,
+  usage,
+  webhooks,
+} from "@polar-sh/better-auth";
+import { polarClient } from "../polar";
+import {
+  onCustomerStateChanged,
+  onOrderPaid,
+  onSubscriptionCreated,
+  onSubscriptionCanceled,
+  onSubscriptionRevoked,
+} from "../polar/webhook-handlers";
 import { sendMagicLinkEmail, sendOTPEmail, sendVerificationEmail } from "../email";
 
 export const auth = betterAuth({
@@ -73,6 +88,36 @@ export const auth = betterAuth({
       async sendVerificationOTP({ email, otp, type }) {
         await sendOTPEmail({ email, otp, type });
       },
+    }),
+    polar({
+      client: polarClient,
+      createCustomerOnSignUp: true, 
+      use: [
+        checkout({
+          products: [
+            {
+              productId: process.env.POLAR_PRO_PRODUCT_ID!,
+              slug: "pro",
+            },
+            {
+              productId: process.env.POLAR_TEAM_PRODUCT_ID!,
+              slug: "team",
+            },
+          ],
+          successUrl: "/dashboard/settings/billing?checkout_id={CHECKOUT_ID}",
+          authenticatedUsersOnly: true,
+        }),
+        portal(),
+        usage(),
+        webhooks({
+          secret: process.env.POLAR_WEBHOOK_SECRET!,
+          onCustomerStateChanged,
+          onOrderPaid,
+          onSubscriptionCreated,
+          onSubscriptionCanceled,
+          onSubscriptionRevoked,
+        }),
+      ],
     }),
     nextCookies(), // must be the last plugin
   ],

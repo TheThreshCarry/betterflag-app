@@ -10,6 +10,7 @@ import {
   organizationClient,
   apiKeyClient,
 } from "better-auth/client/plugins";
+import { polarClient } from "@polar-sh/better-auth/client";
 
 export const authClient = createAuthClient({
   // No baseURL needed - uses the same domain by default
@@ -23,5 +24,6 @@ export const authClient = createAuthClient({
     adminClient(),
     organizationClient(),
     apiKeyClient(),
+    polarClient(),
   ],
 });

@@ -8,6 +8,8 @@ export type Bindings = {
   PROFILE_PICTURES: R2Bucket;
   /** Static assets binding */
   ASSETS: Fetcher;
+  /** Polar access token for usage event ingestion */
+  POLAR_ACCESS_TOKEN: string;
 };
 
 /**
