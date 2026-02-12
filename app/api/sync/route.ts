@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const CLOUDFLARE_ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID;
-const CLOUDFLARE_KV_NAMESPACE_ID = process.env.CLOUDFLARE_KV_NAMESPACE_ID;
-const CLOUDFLARE_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
+const WORKER_API_URL = process.env.WORKER_API_URL;
+const SERVICE_SECRET = process.env.SERVICE_SECRET;
 const SYNC_WEBHOOK_SECRET = process.env.SYNC_WEBHOOK_SECRET;
 
 type SyncPayload = {
@@ -17,7 +16,8 @@ type SyncPayload = {
  *
  * POST /api/sync
  *
- * Accepts sync requests from server actions to update Cloudflare KV.
+ * Accepts sync requests from server actions to update Cloudflare KV
+ * via the Worker's internal service routes.
  * Protected by service-level secret (x-sync-secret header).
  */
 export async function POST(request: NextRequest) {
@@ -30,10 +30,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Validate Cloudflare configuration
-  if (!CLOUDFLARE_ACCOUNT_ID || !CLOUDFLARE_KV_NAMESPACE_ID || !CLOUDFLARE_API_TOKEN) {
+  // Validate Worker configuration
+  if (!WORKER_API_URL || !SERVICE_SECRET) {
     return NextResponse.json(
-      { error: "Cloudflare KV not configured", code: "KV_NOT_CONFIGURED" },
+      { error: "Worker KV sync not configured", code: "KV_NOT_CONFIGURED" },
       { status: 500 }
     );
   }
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const baseUrl = `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/storage/kv/namespaces/${CLOUDFLARE_KV_NAMESPACE_ID}/values/${encodeURIComponent(payload.key)}`;
+    const kvUrl = `${WORKER_API_URL}/internal/kv/${encodeURIComponent(payload.key)}`;
 
     if (payload.action === "upsert") {
       if (payload.value === undefined) {
@@ -59,10 +59,10 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const response = await fetch(baseUrl, {
+      const response = await fetch(kvUrl, {
         method: "PUT",
         headers: {
-          Authorization: `Bearer ${CLOUDFLARE_API_TOKEN}`,
+          "x-service-secret": SERVICE_SECRET,
           "Content-Type": "application/json",
         },
         body: JSON.stringify(payload.value),
@@ -81,10 +81,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (payload.action === "delete") {
-      const response = await fetch(baseUrl, {
+      const response = await fetch(kvUrl, {
         method: "DELETE",
         headers: {
-          Authorization: `Bearer ${CLOUDFLARE_API_TOKEN}`,
+          "x-service-secret": SERVICE_SECRET,
         },
       });
 
@@ -130,10 +130,10 @@ export async function PUT(request: NextRequest) {
     );
   }
 
-  // Validate Cloudflare configuration
-  if (!CLOUDFLARE_ACCOUNT_ID || !CLOUDFLARE_KV_NAMESPACE_ID || !CLOUDFLARE_API_TOKEN) {
+  // Validate Worker configuration
+  if (!WORKER_API_URL || !SERVICE_SECRET) {
     return NextResponse.json(
-      { error: "Cloudflare KV not configured", code: "KV_NOT_CONFIGURED" },
+      { error: "Worker KV sync not configured", code: "KV_NOT_CONFIGURED" },
       { status: 500 }
     );
   }
@@ -150,14 +150,14 @@ export async function PUT(request: NextRequest) {
 
     const results = await Promise.all(
       payloads.map(async (payload) => {
-        const baseUrl = `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/storage/kv/namespaces/${CLOUDFLARE_KV_NAMESPACE_ID}/values/${encodeURIComponent(payload.key)}`;
+        const kvUrl = `${WORKER_API_URL}/internal/kv/${encodeURIComponent(payload.key)}`;
 
         try {
           if (payload.action === "upsert" && payload.value !== undefined) {
-            const response = await fetch(baseUrl, {
+            const response = await fetch(kvUrl, {
               method: "PUT",
               headers: {
-                Authorization: `Bearer ${CLOUDFLARE_API_TOKEN}`,
+                "x-service-secret": SERVICE_SECRET!,
                 "Content-Type": "application/json",
               },
               body: JSON.stringify(payload.value),
@@ -166,10 +166,10 @@ export async function PUT(request: NextRequest) {
           }
 
           if (payload.action === "delete") {
-            const response = await fetch(baseUrl, {
+            const response = await fetch(kvUrl, {
               method: "DELETE",
               headers: {
-                Authorization: `Bearer ${CLOUDFLARE_API_TOKEN}`,
+                "x-service-secret": SERVICE_SECRET!,
               },
             });
             return { key: payload.key, success: response.ok };

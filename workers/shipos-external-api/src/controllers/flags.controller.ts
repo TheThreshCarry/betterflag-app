@@ -2,6 +2,8 @@ import type { FlagsResponse, ApiError } from "../types";
 import { KVKeys } from "../types";
 import { createController, controllerRegistry } from "./index";
 import { flagAnalyticsMiddleware } from "../middleware/flag-analytics";
+import db, { DrizzleORM } from "../../../../lib/db";
+import { featureFlags as featureFlagsTable } from "../../../../lib/db/schema";
 
 /**
  * Feature Flags Controller
@@ -31,13 +33,30 @@ const flagsController = createController(
       const environment = c.get("environment");
 
       // Build the KV key using organization ID
+      console.log("organizationId", organizationId);
+      console.log("environment", environment);
       const kvKey = KVKeys.flags(organizationId, environment);
+      console.log("kvKey", kvKey);
 
       try {
         // Fetch flags from KV
         const flags = await c.env.SHIPOS_KV.get<FlagsResponse>(kvKey, "json");
 
         if (flags === null) {
+          // check flags in database
+          const flagsInDatabase = await db.select().from(featureFlagsTable).where(DrizzleORM.and(DrizzleORM.eq(featureFlagsTable.organizationId, organizationId), DrizzleORM.eq(featureFlagsTable.environment, environment)));
+          console.log("flagsInDatabase", flagsInDatabase);
+          if (flagsInDatabase.length > 0) {
+            // store them in KV
+            await c.env.SHIPOS_KV.put(kvKey, JSON.stringify(flagsInDatabase.reduce((acc, flag) => {
+              acc[flag.key] = flag.enabled ?? false;
+              return acc;
+            }, {} as Record<string, boolean>)));
+            return c.json(flagsInDatabase.reduce((acc, flag) => {
+              acc[flag.key] = flag.enabled ?? false;
+              return acc;
+            }, {} as Record<string, boolean>), 200);
+          }
           // Return empty object if no flags found (not an error)
           return c.json({});
         }

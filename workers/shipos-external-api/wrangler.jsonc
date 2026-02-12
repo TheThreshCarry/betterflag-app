@@ -7,6 +7,7 @@
 	"name": "shipos-external-api",
 	"main": "src/index.ts",
 	"compatibility_date": "2026-01-03",
+	"compatibility_flags": ["nodejs_compat"],
 	"assets": {
 		"binding": "ASSETS",
 		"directory": "./public"
@@ -34,12 +35,11 @@
 		"enabled": true
 	},
 	/**
-	 * ClickHouse Analytics
-	 * CLICKHOUSE_PASSWORD should be set via: wrangler secret put CLICKHOUSE_PASSWORD
+	 * Secrets (set via: wrangler secret put <NAME>)
+	 * - SERVICE_SECRET: shared secret for internal service-to-service KV sync
+	 * - CLICKHOUSE_PASSWORD: ClickHouse analytics password
 	 */
 	"vars": {
-		"CLICKHOUSE_URL": "http://localhost:8123",
-		"CLICKHOUSE_USER": "default",
 		"CLICKHOUSE_DATABASE": "shipos_analytics"
 	},
 	/**

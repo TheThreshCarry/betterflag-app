@@ -24,6 +24,15 @@ export interface FlagSummaryStats {
   avg_daily_evaluations: number
 }
 
+export interface GeoPoint {
+  city: string
+  country: string
+  latitude: number
+  longitude: number
+  evaluations: number
+  unique_users: number
+}
+
 // ─── Queries ────────────────────────────────────────────────────────────────
 
 /**
@@ -54,7 +63,7 @@ export async function getFlagEvaluationsTimeseries(
     query_params: { org_id: orgId, flag_key: flagKey },
   })
 
-  const rows = await result.json<TimeseriesPoint[]>()
+  const rows = await result.json()
 
   // ClickHouse returns numbers as strings in JSON — cast them
   return rows.map((r) => ({
@@ -166,4 +175,51 @@ export async function getFlagSummaryStats(
     top_country: topCountryRow?.country || "-",
     avg_daily_evaluations: Number(summary.avg_daily_evaluations),
   }
+}
+
+/**
+ * Geo-aggregated evaluation points for a specific flag (last 30 days).
+ * Groups by city + country and returns average coordinates with counts.
+ * Used by the map visualization on the flag detail page.
+ */
+export async function getFlagGeoPoints(
+  flagKey: string
+): Promise<GeoPoint[]> {
+  const orgId = await getOrganizationId()
+  if (!orgId) return []
+
+  const client = getClickHouseClient()
+  const result = await client.query({
+    query: `
+      SELECT
+        city,
+        country,
+        round(avg(latitude), 4)  AS lat,
+        round(avg(longitude), 4) AS lng,
+        count()                  AS evaluations,
+        uniq(customer_id)        AS unique_users
+      FROM feature_flag_evaluations
+      WHERE organization_id = {org_id:String}
+        AND flag_key         = {flag_key:String}
+        AND timestamp       >= now() - INTERVAL 30 DAY
+        AND latitude         != 0
+        AND longitude        != 0
+      GROUP BY city, country
+      ORDER BY evaluations DESC
+      LIMIT 500
+    `,
+    format: "JSONEachRow",
+    query_params: { org_id: orgId, flag_key: flagKey },
+  })
+
+  const rows = await result.json();
+  console.log("rows ( from getFlagGeoPoints )", rows);
+  return rows.map((r: any) => ({
+    city: r.city,
+    country: r.country,
+    latitude: Number(r.lat),
+    longitude: Number(r.lng),
+    evaluations: Number(r.evaluations),
+    unique_users: Number(r.unique_users),
+  }))
 }

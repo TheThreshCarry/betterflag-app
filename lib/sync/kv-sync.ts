@@ -1,13 +1,13 @@
 /**
  * KV Sync Utility
  *
- * Syncs data from PostgreSQL to Cloudflare KV via the REST API.
+ * Syncs data from PostgreSQL to Cloudflare KV via the Worker's
+ * internal service routes (protected by SERVICE_SECRET).
  * This is called from server actions after CRUD operations.
  */
 
-const CLOUDFLARE_ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID;
-const CLOUDFLARE_KV_NAMESPACE_ID = process.env.CLOUDFLARE_KV_NAMESPACE_ID;
-const CLOUDFLARE_API_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
+const WORKER_API_URL = process.env.WORKER_API_URL;
+const SERVICE_SECRET = process.env.SERVICE_SECRET;
 
 /**
  * KV Key builders (must match the Worker's KVKeys)
@@ -32,21 +32,21 @@ export type ApiKeyData = {
 };
 
 /**
- * Write a single key-value pair to Cloudflare KV
+ * Write a single key-value pair to KV via the Worker
  */
 async function writeToKV(key: string, value: unknown): Promise<boolean> {
-  if (!CLOUDFLARE_ACCOUNT_ID || !CLOUDFLARE_KV_NAMESPACE_ID || !CLOUDFLARE_API_TOKEN) {
-    console.error("Missing Cloudflare KV configuration");
+  if (!WORKER_API_URL || !SERVICE_SECRET) {
+    console.error("Missing WORKER_API_URL or SERVICE_SECRET configuration");
     return false;
   }
 
-  const url = `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/storage/kv/namespaces/${CLOUDFLARE_KV_NAMESPACE_ID}/values/${encodeURIComponent(key)}`;
+  const url = `${WORKER_API_URL}/internal/kv/${encodeURIComponent(key)}`;
 
   try {
     const response = await fetch(url, {
       method: "PUT",
       headers: {
-        Authorization: `Bearer ${CLOUDFLARE_API_TOKEN}`,
+        "x-service-secret": SERVICE_SECRET,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(value),
@@ -66,21 +66,21 @@ async function writeToKV(key: string, value: unknown): Promise<boolean> {
 }
 
 /**
- * Delete a key from Cloudflare KV
+ * Delete a key from KV via the Worker
  */
 async function deleteFromKV(key: string): Promise<boolean> {
-  if (!CLOUDFLARE_ACCOUNT_ID || !CLOUDFLARE_KV_NAMESPACE_ID || !CLOUDFLARE_API_TOKEN) {
-    console.error("Missing Cloudflare KV configuration");
+  if (!WORKER_API_URL || !SERVICE_SECRET) {
+    console.error("Missing WORKER_API_URL or SERVICE_SECRET configuration");
     return false;
   }
 
-  const url = `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/storage/kv/namespaces/${CLOUDFLARE_KV_NAMESPACE_ID}/values/${encodeURIComponent(key)}`;
+  const url = `${WORKER_API_URL}/internal/kv/${encodeURIComponent(key)}`;
 
   try {
     const response = await fetch(url, {
       method: "DELETE",
       headers: {
-        Authorization: `Bearer ${CLOUDFLARE_API_TOKEN}`,
+        "x-service-secret": SERVICE_SECRET,
       },
     });
 

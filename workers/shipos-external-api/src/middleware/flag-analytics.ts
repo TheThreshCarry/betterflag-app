@@ -27,6 +27,7 @@ export const flagAnalyticsMiddleware = createMiddleware<AppEnv>(
     let flags: Record<string, boolean>;
     try {
       flags = await clonedRes.json();
+      console.log("flags ( from analytics middleware )", flags);
     } catch {
       return; // Not valid JSON, skip
     }
@@ -34,11 +35,13 @@ export const flagAnalyticsMiddleware = createMiddleware<AppEnv>(
     if (!flags || typeof flags !== "object" || Object.keys(flags).length === 0) {
       return;
     }
+    console.log("flags ( from analytics middleware ) after all checks", flags);
 
     // Extract Cloudflare geo data from the request
     const cf = (c.req.raw as any).cf || {};
     const requestId = crypto.randomUUID();
-    const now = new Date().toISOString();
+    // ClickHouse DateTime64 expects 'YYYY-MM-DD HH:MM:SS.sss' — no T, no Z
+    const now = new Date().toISOString().replace("T", " ").replace("Z", "");
 
     const organizationId = c.get("organizationId");
     const environment = c.get("environment");
@@ -66,18 +69,28 @@ export const flagAnalyticsMiddleware = createMiddleware<AppEnv>(
       request_id: requestId,
     }));
 
+    console.log("rows ( from analytics middleware )", rows);
+
     // Fire-and-forget: insert into ClickHouse without blocking the response
-    const client = createClickHouseClient(c.env);
-    c.executionCtx.waitUntil(
-      client
-        .insert({
-          table: "feature_flag_evaluations",
-          values: rows,
-          format: "JSONEachRow",
-        })
-        .catch((err) => {
-          console.error("[FlagAnalytics] Insert failed:", err);
-        })
-    );
+    let client: ReturnType<typeof createClickHouseClient> | null = null;
+    try {
+      client = createClickHouseClient(c.env);
+    } catch (err) {
+      console.error("[FlagAnalytics] Error creating ClickHouse client:", err);
+    }
+    if (!client) {
+      console.error("[FlagAnalytics] No ClickHouse client found");
+      return;
+    }
+    try {
+      const result = await client.insert({
+        table: "feature_flag_evaluations",
+        values: rows,
+        format: "JSONEachRow",
+      });
+      console.log("[FlagAnalytics] Insert result:", result);
+    } catch (err: any) {
+      console.error("[FlagAnalytics] Insert failed:", err?.message || err);
+    }
   }
 );

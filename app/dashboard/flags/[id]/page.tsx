@@ -5,6 +5,7 @@ import {
   getFlagEvaluationsTimeseries,
   getFlagSummaryStats,
   getFlagCountryBreakdown,
+  getFlagGeoPoints,
 } from "@/lib/actions/flag-analytics"
 import { FlagDetailClient } from "./flag-detail-client"
 
@@ -19,11 +20,13 @@ export default async function FlagDetailPage({
   if (!flag) notFound()
 
   // Fetch analytics data in parallel
-  const [timeseries, summary, countries] = await Promise.all([
+  const [timeseries, summary, countries, geoPoints] = await Promise.all([
     getFlagEvaluationsTimeseries(flag.key),
     getFlagSummaryStats(flag.key),
     getFlagCountryBreakdown(flag.key),
+    getFlagGeoPoints(flag.key),
   ])
+  console.log("geoPoints ( from page )", geoPoints);
 
   return (
     <DashboardLayout
@@ -38,6 +41,7 @@ export default async function FlagDetailPage({
         timeseries={timeseries}
         summary={summary}
         countries={countries}
+        geoPoints={geoPoints}
       />
     </DashboardLayout>
   )

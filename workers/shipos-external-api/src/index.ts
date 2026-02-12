@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import type { AppEnv, Bindings } from "./types";
 import { v1Routes } from "./routes/v1";
+import { kvRoutes } from "./routes/internal/kv";
 
 const app = new Hono<AppEnv>();
 
@@ -37,6 +38,13 @@ app.get("/health", (c) => {
  * All routes under /v1 are protected by API key authentication
  */
 app.route("/v1", v1Routes);
+
+/**
+ * Internal Service Routes
+ * /internal/kv — KV sync operations called by Next.js server actions
+ * Protected by SERVICE_SECRET (not API key auth)
+ */
+app.route("/internal/kv", kvRoutes);
 
 // ============================================
 // Media Asset Routes (internal — called by Next.js API)

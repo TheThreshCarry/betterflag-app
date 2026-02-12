@@ -9,6 +9,7 @@
 	"dependencies": {
 		"@clickhouse/client-web": "^1.17.0",
 		"@polar-sh/sdk": "^0.42.5",
+		"drizzle-orm": "^0.39.2",
 		"hono": "^4.11.3"
 	},
 	"devDependencies": {

@@ -26,7 +26,9 @@ const v1Routes = new Hono<AppEnv>();
 v1Routes.use("/*", authMiddleware);
 
 // Track API usage for billing (runs after response, non-blocking)
-v1Routes.use("/*", usageMiddleware);
+
+//TODO: put this back later
+// v1Routes.use("/*", usageMiddleware);
 
 // Mount all v1 controllers from the registry
 controllerRegistry.mountVersion(v1Routes, "v1");

@@ -1,11 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import {
   ArrowLeft,
   Flag,
   Globe,
+  MapPin,
   Users,
   BarChart3,
   TrendingUp,
@@ -65,12 +66,18 @@ import type {
   TimeseriesPoint,
   FlagSummaryStats,
   CountryBreakdown,
+  GeoPoint,
 } from "@/lib/actions/flag-analytics"
 import {
   updateFeatureFlag,
   deleteFeatureFlag,
   toggleFeatureFlag,
 } from "@/lib/actions/feature-flags"
+import {
+  Map,
+  MapClusterLayer,
+  MapControls,
+} from "@/components/ui/map"
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -94,6 +101,7 @@ interface FlagDetailClientProps {
   timeseries: TimeseriesPoint[]
   summary: FlagSummaryStats
   countries: CountryBreakdown[]
+  geoPoints: GeoPoint[]
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -103,6 +111,7 @@ export function FlagDetailClient({
   timeseries,
   summary,
   countries,
+  geoPoints,
 }: FlagDetailClientProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
@@ -115,6 +124,33 @@ export function FlagDetailClient({
     description: flag.description || "",
     environment: flag.environment,
   })
+
+  // Convert geo points to GeoJSON FeatureCollection for the map cluster layer
+  const geoJsonData = useMemo<
+    GeoJSON.FeatureCollection<GeoJSON.Point>
+  >(() => {
+    const features: GeoJSON.Feature<GeoJSON.Point>[] = geoPoints.flatMap(
+      (pt) => {
+        // Repeat the feature based on evaluation count so clustering reflects volume
+        const feature: GeoJSON.Feature<GeoJSON.Point> = {
+          type: "Feature",
+          properties: {
+            city: pt.city,
+            country: pt.country,
+            evaluations: pt.evaluations,
+            unique_users: pt.unique_users,
+          },
+          geometry: {
+            type: "Point",
+            coordinates: [pt.longitude, pt.latitude],
+          },
+        }
+        return [feature]
+      }
+    )
+    console.log("geoJsonData ( from flag-detail-client )", features);
+    return { type: "FeatureCollection", features }
+  }, [geoPoints])
 
   const handleSave = async () => {
     if (!formData.key || !formData.name) {
@@ -459,45 +495,89 @@ export function FlagDetailClient({
         </CardContent>
       </Card>
 
-      {/* Country breakdown table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Country Breakdown</CardTitle>
-          <CardDescription>
-            Top countries by evaluation count (last 30 days)
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {countries.length === 0 ? (
-            <div className="flex h-[120px] items-center justify-center text-sm text-muted-foreground">
-              No geographic data yet.
+      {/* Geographic breakdown — map + table */}
+      <div className="grid gap-4 lg:grid-cols-5">
+        {/* Map */}
+        <Card className="lg:col-span-3 p-0 overflow-hidden">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-muted-foreground" />
+              <CardTitle>Geographic Distribution</CardTitle>
             </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Country</TableHead>
-                  <TableHead className="text-right">Evaluations</TableHead>
-                  <TableHead className="text-right">Unique Users</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {countries.map((row) => (
-                  <TableRow key={row.country}>
-                    <TableCell className="font-medium">{row.country}</TableCell>
-                    <TableCell className="text-right">
-                      {row.evaluations.toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {row.unique_users.toLocaleString()}
-                    </TableCell>
+            <CardDescription>
+              Evaluation locations over the last 30 days
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            {geoPoints.length === 0 ? (
+              <div className="flex h-[350px] items-center justify-center text-sm text-muted-foreground">
+                No geographic data yet. Data will appear once the SDK starts
+                requesting flags.
+              </div>
+            ) : (
+              <div className="h-[350px]">
+                <Map
+                  center={[
+                    Number.isFinite(geoPoints[0]?.longitude) ? geoPoints[0].longitude : 0,
+                    Number.isFinite(geoPoints[0]?.latitude) ? geoPoints[0].latitude : 20,
+                  ]}
+                  zoom={1.5}
+                >
+                  <MapClusterLayer
+                    data={geoJsonData}
+                    clusterRadius={40}
+                    clusterMaxZoom={12}
+                    clusterColors={["#22c55e", "#eab308", "#ef4444"]}
+                    clusterThresholds={[10, 50]}
+                    pointColor="#3b82f6"
+                  />
+                  <MapControls showZoom showFullscreen position="bottom-right" />
+                </Map>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Country table */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Country Breakdown</CardTitle>
+            <CardDescription>
+              Top countries (last 30 days)
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {countries.length === 0 ? (
+              <div className="flex h-[120px] items-center justify-center text-sm text-muted-foreground">
+                No geographic data yet.
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Country</TableHead>
+                    <TableHead className="text-right">Evaluations</TableHead>
+                    <TableHead className="text-right">Users</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                </TableHeader>
+                <TableBody>
+                  {countries.map((row) => (
+                    <TableRow key={row.country}>
+                      <TableCell className="font-medium">{row.country}</TableCell>
+                      <TableCell className="text-right">
+                        {row.evaluations.toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {row.unique_users.toLocaleString()}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* ── Delete Confirmation ──────────────────────────────────────── */}
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>

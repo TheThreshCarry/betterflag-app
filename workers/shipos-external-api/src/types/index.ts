@@ -12,6 +12,8 @@ export type Bindings = {
   ASSETS: Fetcher;
   /** Polar access token for usage event ingestion */
   POLAR_ACCESS_TOKEN: string;
+  /** Shared secret for internal service-to-service calls (e.g. KV sync from Next.js) */
+  SERVICE_SECRET: string;
   /** ClickHouse connection URL (e.g. https://your-ch-host:8443) */
   CLICKHOUSE_URL: string;
   /** ClickHouse username (e.g. default) */
