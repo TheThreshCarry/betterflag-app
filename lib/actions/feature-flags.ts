@@ -97,6 +97,7 @@ export async function updateFeatureFlag(
   }
 
   revalidatePath("/dashboard/flags")
+  revalidatePath(`/dashboard/flags/${id}`)
   return flag
 }
 

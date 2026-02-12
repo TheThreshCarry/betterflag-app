@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Plus, Pencil, Trash2, Flag } from "lucide-react"
 import { toast } from "sonner"
 
@@ -60,6 +61,7 @@ interface FeatureFlagsClientProps {
 const ENVIRONMENTS = ["production", "staging", "development"] as const
 
 export function FeatureFlagsClient({ initialFlags }: FeatureFlagsClientProps) {
+  const router = useRouter()
   const [flags, setFlags] = useState<FeatureFlag[]>(initialFlags)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
@@ -219,8 +221,12 @@ export function FeatureFlagsClient({ initialFlags }: FeatureFlagsClientProps) {
               </TableHeader>
               <TableBody>
                 {flags.map((flag) => (
-                  <TableRow key={flag.id}>
-                    <TableCell>
+                  <TableRow
+                    key={flag.id}
+                    className="cursor-pointer"
+                    onClick={() => router.push(`/dashboard/flags/${flag.id}`)}
+                  >
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       <Switch
                         checked={flag.enabled}
                         onCheckedChange={(checked) => handleToggle(flag, checked)}
@@ -253,7 +259,7 @@ export function FeatureFlagsClient({ initialFlags }: FeatureFlagsClientProps) {
                     <TableCell className="text-muted-foreground">
                       {new Date(flag.updatedAt).toLocaleDateString()}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex justify-end gap-2">
                         <Button
                           variant="ghost"

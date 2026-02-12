@@ -5,6 +5,7 @@
     "": {
       "name": "shipos-external-api",
       "dependencies": {
+        "@clickhouse/client-web": "^1.17.0",
         "@polar-sh/sdk": "^0.42.5",
         "hono": "^4.11.3",
       },
@@ -14,6 +15,10 @@
     },
   },
   "packages": {
+    "@clickhouse/client-common": ["@clickhouse/client-common@1.17.0", "", {}, "sha512-MiwwgXViFAQA2YZkN4ymF1ynzG0K49KeSX9/iOcmJetWkxqSekDdpyp1GjwATWa9R215uQ+hGzJtJujeQVZZIw=="],
+
+    "@clickhouse/client-web": ["@clickhouse/client-web@1.17.0", "", { "dependencies": { "@clickhouse/client-common": "1.17.0" } }, "sha512-rady6FKTSKfB4DL3dO1Y9R4XMykc0WxY8Yex4RWYgsNuYWkvP8WQqQjEgHQZqVUYvIA6jth6AMBSKAnZLo4p7A=="],
+
     "@cloudflare/kv-asset-handler": ["@cloudflare/kv-asset-handler@0.4.1", "", { "dependencies": { "mime": "3.0.0" } }, "sha512-Nu8ahitGFFJztxUml9oD/DLb7Z28C8cd8F46IVQ7y5Btz575pvMY8AqZsXkX7Gds29eCKdMgIHjIvzskHgPSFg=="],
 
     "@cloudflare/unenv-preset": ["@cloudflare/unenv-preset@2.7.13", "", { "optionalDependencies": { "workerd": "1.20251210.0" }, "peerDependencies": { "unenv": "2.0.0-rc.24" } }, "sha512-NulO1H8R/DzsJguLC0ndMuk4Ufv0KSlN+E54ay9rn9ZCQo0kpAPwwh3LhgpZ96a3Dr6L9LqW57M4CqC34iLOvw=="],

@@ -12,6 +12,14 @@ export type Bindings = {
   ASSETS: Fetcher;
   /** Polar access token for usage event ingestion */
   POLAR_ACCESS_TOKEN: string;
+  /** ClickHouse connection URL (e.g. https://your-ch-host:8443) */
+  CLICKHOUSE_URL: string;
+  /** ClickHouse username (e.g. default) */
+  CLICKHOUSE_USER: string;
+  /** ClickHouse password (stored as a Worker secret) */
+  CLICKHOUSE_PASSWORD: string;
+  /** ClickHouse database name (e.g. shipos_analytics) */
+  CLICKHOUSE_DATABASE: string;
 };
 
 /**

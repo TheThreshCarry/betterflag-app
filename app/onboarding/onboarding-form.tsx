@@ -1,8 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { Building2, ImageIcon, Loader2, ArrowRight } from "lucide-react"
+import { ImageIcon, Loader2, ArrowRight } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -26,13 +25,14 @@ import { authClient } from "@/lib/auth/auth-client"
 interface OnboardingFormProps {
   userName: string
   className?: string
+  onOrgCreated?: (orgId: string, description: string) => void
 }
 
 export function OnboardingForm({
   userName,
   className,
+  onOrgCreated,
 }: OnboardingFormProps) {
-  const router = useRouter()
   const [name, setName] = useState("")
   const [slug, setSlug] = useState("")
   const [logo, setLogo] = useState("")
@@ -107,9 +107,12 @@ export function OnboardingForm({
         await authClient.organization.setActive({
           organizationId: result.data.id,
         })
-      }
 
-      router.push("/dashboard")
+        // Call the callback if provided (wizard mode)
+        if (onOrgCreated) {
+          onOrgCreated(result.data.id, description.trim())
+        }
+      }
     } catch {
       setError("Something went wrong. Please try again.")
       setIsLoading(false)
@@ -234,7 +237,7 @@ export function OnboardingForm({
                     </>
                   ) : (
                     <>
-                      Get Started
+                      Continue
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </>
                   )}

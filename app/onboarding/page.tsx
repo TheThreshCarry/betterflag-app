@@ -1,9 +1,7 @@
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
-import { GalleryVerticalEnd } from "lucide-react"
-import Link from "next/link"
-import { OnboardingForm } from "./onboarding-form"
+import { OnboardingWizard } from "./onboarding-wizard"
 
 export default async function OnboardingPage() {
   const session = await auth.api.getSession({
@@ -19,32 +17,50 @@ export default async function OnboardingPage() {
     headers: await headers(),
   })
 
-  // If user already has an org, redirect to dashboard
   if (orgs && orgs.length > 0) {
-    // Set the first org as active if none is active
+    // Parse org metadata to check onboarding status
+    const activeOrgId =
+      session.session.activeOrganizationId || orgs[0].id
+    const activeOrg = orgs.find((o) => o.id === activeOrgId) || orgs[0]
+
+    let metadata: Record<string, unknown> = {}
+    try {
+      metadata = JSON.parse(activeOrg.metadata || "{}")
+    } catch {
+      metadata = {}
+    }
+
+    // If onboarding is completed, go to dashboard
+    if (metadata.onboardingCompleted === true) {
+      // Set active org if not already
+      if (!session.session.activeOrganizationId) {
+        await auth.api.setActiveOrganization({
+          headers: await headers(),
+          body: { organizationId: activeOrg.id },
+        })
+      }
+      redirect("/dashboard")
+    }
+
+    // Onboarding NOT completed — set org active and resume at module selection
     if (!session.session.activeOrganizationId) {
       await auth.api.setActiveOrganization({
         headers: await headers(),
-        body: { organizationId: orgs[0].id },
+        body: { organizationId: activeOrg.id },
       })
     }
-    redirect("/dashboard")
+
+    return (
+      <OnboardingWizard
+        userName={session.user.name}
+        initialStep="select-modules"
+        organizationId={activeOrg.id}
+      />
+    )
   }
 
+  // No orgs — start from the beginning
   return (
-    <main className="bg-muted flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
-      <div className="flex w-full max-w-lg flex-col gap-6">
-        <Link
-          href="/"
-          className="flex items-center gap-2 self-center font-medium"
-        >
-          <div className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-md">
-            <GalleryVerticalEnd className="size-4" />
-          </div>
-          ShipOS
-        </Link>
-        <OnboardingForm userName={session.user.name} />
-      </div>
-    </main>
+    <OnboardingWizard userName={session.user.name} initialStep="create-org" />
   )
 }

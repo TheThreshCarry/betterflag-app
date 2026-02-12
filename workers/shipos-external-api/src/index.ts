@@ -14,7 +14,7 @@ app.use(
   cors({
     origin: "*",
     allowMethods: ["GET", "POST", "DELETE", "OPTIONS"],
-    allowHeaders: ["Content-Type", "x-shipos-key", "x-shipos-env", "x-shipos-customer-id"],
+    allowHeaders: ["Content-Type", "x-shipos-key", "x-shipos-env", "x-shipos-customer-id", "x-shipos-sdk-version"],
     exposeHeaders: ["Content-Type"],
     maxAge: 86400, // 24 hours
   })

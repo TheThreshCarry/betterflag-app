@@ -1,6 +1,7 @@
 import type { FlagsResponse, ApiError } from "../types";
 import { KVKeys } from "../types";
 import { createController, controllerRegistry } from "./index";
+import { flagAnalyticsMiddleware } from "../middleware/flag-analytics";
 
 /**
  * Feature Flags Controller
@@ -18,6 +19,9 @@ const flagsController = createController(
     description: "Feature flags management - retrieve feature flags for your organization",
   },
   (router) => {
+    // Track flag evaluations in ClickHouse (non-blocking, via waitUntil)
+    router.use("/*", flagAnalyticsMiddleware);
+
     /**
      * GET /flags
      * Returns all feature flags for the authenticated organization and environment.

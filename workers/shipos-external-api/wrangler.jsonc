@@ -32,7 +32,16 @@
 	],
 	"observability": {
 		"enabled": true
-	}
+	},
+	/**
+	 * ClickHouse Analytics
+	 * CLICKHOUSE_PASSWORD should be set via: wrangler secret put CLICKHOUSE_PASSWORD
+	 */
+	"vars": {
+		"CLICKHOUSE_URL": "http://localhost:8123",
+		"CLICKHOUSE_USER": "default",
+		"CLICKHOUSE_DATABASE": "shipos_analytics"
+	},
 	/**
 	 * Smart Placement
 	 * https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement

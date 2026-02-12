@@ -16,8 +16,9 @@ import {
   Trash2,
   ChevronRight,
   HardDrive,
-  X,
   Loader2,
+  Eye,
+  FolderOpen,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -46,6 +47,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu"
 import {
   Dialog,
   DialogContent,
@@ -162,6 +170,8 @@ export function MediaClient({
   const [deleteFolderOpen, setDeleteFolderOpen] = useState(false)
   const [deletingFolder, setDeletingFolder] = useState(false)
   const [selectedFolder, setSelectedFolder] = useState<MediaFolder | null>(null)
+
+  const [detailAsset, setDetailAsset] = useState<MediaAsset | null>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -508,6 +518,7 @@ export function MediaClient({
             assets={assets}
             onNavigateFolder={navigateToFolder}
             onCopyUrl={copyUrl}
+            onViewDetails={setDetailAsset}
             onDeleteAsset={(asset) => {
               setSelectedAsset(asset)
               setDeleteAssetOpen(true)
@@ -523,6 +534,7 @@ export function MediaClient({
             assets={assets}
             onNavigateFolder={navigateToFolder}
             onCopyUrl={copyUrl}
+            onViewDetails={setDetailAsset}
             onDeleteAsset={(asset) => {
               setSelectedAsset(asset)
               setDeleteAssetOpen(true)
@@ -638,6 +650,126 @@ export function MediaClient({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* View details dialog */}
+      <Dialog open={!!detailAsset} onOpenChange={(open) => { if (!open) setDetailAsset(null) }}>
+        <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-lg">
+          {detailAsset && (
+            <>
+              {/* Preview area */}
+              <div className="relative flex items-center justify-center bg-muted/50">
+                {detailAsset.type === "image" ? (
+                  <img
+                    src={detailAsset.url}
+                    alt={detailAsset.name}
+                    className="max-h-64 w-full object-contain"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center gap-3 py-12">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-background shadow-sm">
+                      {detailAsset.type === "video" ? (
+                        <Video className="h-8 w-8 text-muted-foreground" />
+                      ) : (
+                        <FileText className="h-8 w-8 text-muted-foreground" />
+                      )}
+                    </div>
+                    <Badge variant={getTypeBadgeVariant(detailAsset.type)} className="text-xs">
+                      {detailAsset.mimeType.split("/")[1]?.toUpperCase() || detailAsset.type.toUpperCase()}
+                    </Badge>
+                  </div>
+                )}
+              </div>
+
+              {/* Content */}
+              <div className="space-y-5 p-6">
+                {/* Header */}
+                <div>
+                  <DialogHeader>
+                    <DialogTitle className="truncate text-base" title={detailAsset.name}>
+                      {detailAsset.name}
+                    </DialogTitle>
+                    <DialogDescription>
+                      {formatFileSize(detailAsset.size)} · {detailAsset.mimeType} · Uploaded {formatDate(detailAsset.createdAt)}
+                    </DialogDescription>
+                  </DialogHeader>
+                </div>
+
+                {/* Metadata grid */}
+                <div className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-lg border bg-muted/30 p-4 text-sm">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">Type</p>
+                    <div className="mt-1">
+                      <Badge variant={getTypeBadgeVariant(detailAsset.type)} className="text-xs">
+                        {detailAsset.type}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">Size</p>
+                    <p className="mt-1 font-medium">{formatFileSize(detailAsset.size)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">Folder</p>
+                    <p className="mt-1 font-mono text-xs">{detailAsset.folder}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">Uploaded</p>
+                    <p className="mt-1">{formatDate(detailAsset.createdAt)}</p>
+                  </div>
+                </div>
+
+                {/* Public URL */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground">Public URL</Label>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 overflow-hidden rounded-md border bg-muted/50 px-3 py-2">
+                      <code className="block truncate text-xs text-muted-foreground">
+                        {detailAsset.url}
+                      </code>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0 gap-1.5"
+                      onClick={() => copyUrl(detailAsset.url)}
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                      Copy
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-2 pt-1">
+                  <Button variant="outline" className="flex-1" asChild>
+                    <a href={detailAsset.url} download={detailAsset.name} target="_blank" rel="noopener noreferrer">
+                      <Download className="mr-2 h-4 w-4" />
+                      Download
+                    </a>
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    className="flex-1"
+                    onClick={() => {
+                      if (detailAsset) {
+                        const asset = detailAsset
+                        setDetailAsset(null)
+                        setTimeout(() => {
+                          setSelectedAsset(asset)
+                          setDeleteAssetOpen(true)
+                        })
+                      }
+                    }}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
@@ -686,6 +818,7 @@ function GridView({
   assets,
   onNavigateFolder,
   onCopyUrl,
+  onViewDetails,
   onDeleteAsset,
   onDeleteFolder,
 }: {
@@ -693,6 +826,7 @@ function GridView({
   assets: MediaAsset[]
   onNavigateFolder: (path: string) => void
   onCopyUrl: (url: string) => void
+  onViewDetails: (asset: MediaAsset) => void
   onDeleteAsset: (asset: MediaAsset) => void
   onDeleteFolder: (folder: MediaFolder) => void
 }) {
@@ -700,105 +834,161 @@ function GridView({
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
       {/* Folders first */}
       {folders.map((folder) => (
-        <div
-          key={folder.id}
-          className="group relative flex cursor-pointer flex-col items-center rounded-lg border bg-card p-4 transition-colors hover:bg-accent"
-          onClick={() => onNavigateFolder(folder.path)}
-        >
-          <div className="absolute right-2 top-2 opacity-0 transition-opacity group-hover:opacity-100">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                <Button variant="ghost" size="icon" className="h-7 w-7">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onDeleteFolder(folder)
-                  }}
-                  className="text-destructive"
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-          <Folder className="h-12 w-12 text-muted-foreground" />
-          <span className="mt-2 max-w-full truncate text-sm font-medium">
-            {folder.name}
-          </span>
-        </div>
+        <ContextMenu key={folder.id}>
+          <ContextMenuTrigger asChild>
+            <div
+              className="group relative flex cursor-pointer flex-col items-center rounded-lg border bg-card p-4 transition-colors hover:bg-accent"
+              onClick={() => onNavigateFolder(folder.path)}
+            >
+              <div className="absolute right-2 top-2 opacity-0 transition-opacity group-hover:opacity-100">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                    <Button variant="ghost" size="icon" className="h-7 w-7">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onNavigateFolder(folder.path)
+                      }}
+                    >
+                      <FolderOpen className="mr-2 h-4 w-4" />
+                      Open
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onDeleteFolder(folder)
+                      }}
+                      className="text-destructive"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              <Folder className="h-12 w-12 text-muted-foreground" />
+              <span className="mt-2 max-w-full truncate text-sm font-medium">
+                {folder.name}
+              </span>
+            </div>
+          </ContextMenuTrigger>
+          <ContextMenuContent>
+            <ContextMenuItem onSelect={() => onNavigateFolder(folder.path)}>
+              <FolderOpen className="mr-2 h-4 w-4" />
+              Open
+            </ContextMenuItem>
+            <ContextMenuSeparator />
+            <ContextMenuItem
+              onSelect={() => setTimeout(() => onDeleteFolder(folder))}
+              className="text-destructive"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </ContextMenuItem>
+          </ContextMenuContent>
+        </ContextMenu>
       ))}
 
       {/* Assets */}
       {assets.map((asset) => (
-        <div
-          key={asset.id}
-          className="group relative flex flex-col rounded-lg border bg-card transition-colors hover:bg-accent"
-        >
-          {/* Thumbnail / icon area */}
-          <div className="relative flex h-32 items-center justify-center overflow-hidden rounded-t-lg bg-muted">
-            {asset.type === "image" ? (
-              <img
-                src={asset.url}
-                alt={asset.name}
-                className="h-full w-full object-cover"
-                loading="lazy"
-              />
-            ) : (
-              <div className="flex flex-col items-center gap-2">
-                {getTypeIcon(asset.type)}
-                <Badge variant={getTypeBadgeVariant(asset.type)} className="text-xs">
-                  {asset.mimeType.split("/")[1]?.toUpperCase() || asset.type.toUpperCase()}
-                </Badge>
+        <ContextMenu key={asset.id}>
+          <ContextMenuTrigger asChild>
+            <div
+              className="group relative flex flex-col rounded-lg border bg-card transition-colors hover:bg-accent"
+            >
+              {/* Thumbnail / icon area */}
+              <div className="relative flex h-32 items-center justify-center overflow-hidden rounded-t-lg bg-muted">
+                {asset.type === "image" ? (
+                  <img
+                    src={asset.url}
+                    alt={asset.name}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center gap-2">
+                    {getTypeIcon(asset.type)}
+                    <Badge variant={getTypeBadgeVariant(asset.type)} className="text-xs">
+                      {asset.mimeType.split("/")[1]?.toUpperCase() || asset.type.toUpperCase()}
+                    </Badge>
+                  </div>
+                )}
+
+                {/* Actions overlay */}
+                <div className="absolute right-2 top-2 opacity-0 transition-opacity group-hover:opacity-100">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="secondary" size="icon" className="h-7 w-7">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => onViewDetails(asset)}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        View Details
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onCopyUrl(asset.url)}>
+                        <Copy className="mr-2 h-4 w-4" />
+                        Copy URL
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <a href={asset.url} download={asset.name} target="_blank" rel="noopener noreferrer">
+                          <Download className="mr-2 h-4 w-4" />
+                          Download
+                        </a>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => onDeleteAsset(asset)}
+                        className="text-destructive"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
-            )}
 
-            {/* Actions overlay */}
-            <div className="absolute right-2 top-2 opacity-0 transition-opacity group-hover:opacity-100">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="secondary" size="icon" className="h-7 w-7">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => onCopyUrl(asset.url)}>
-                    <Copy className="mr-2 h-4 w-4" />
-                    Copy URL
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <a href={asset.url} download={asset.name} target="_blank" rel="noopener noreferrer">
-                      <Download className="mr-2 h-4 w-4" />
-                      Download
-                    </a>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => onDeleteAsset(asset)}
-                    className="text-destructive"
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Delete
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {/* Info */}
+              <div className="p-3">
+                <p className="truncate text-sm font-medium" title={asset.name}>
+                  {asset.name}
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {formatFileSize(asset.size)}
+                </p>
+              </div>
             </div>
-          </div>
-
-          {/* Info */}
-          <div className="p-3">
-            <p className="truncate text-sm font-medium" title={asset.name}>
-              {asset.name}
-            </p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              {formatFileSize(asset.size)}
-            </p>
-          </div>
-        </div>
+          </ContextMenuTrigger>
+          <ContextMenuContent>
+            <ContextMenuItem onSelect={() => setTimeout(() => onViewDetails(asset))}>
+              <Eye className="mr-2 h-4 w-4" />
+              View Details
+            </ContextMenuItem>
+            <ContextMenuItem onSelect={() => onCopyUrl(asset.url)}>
+              <Copy className="mr-2 h-4 w-4" />
+              Copy URL
+            </ContextMenuItem>
+            <ContextMenuItem onSelect={() => window.open(asset.url, "_blank")}>
+              <Download className="mr-2 h-4 w-4" />
+              Download
+            </ContextMenuItem>
+            <ContextMenuSeparator />
+            <ContextMenuItem
+              onSelect={() => setTimeout(() => onDeleteAsset(asset))}
+              className="text-destructive"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </ContextMenuItem>
+          </ContextMenuContent>
+        </ContextMenu>
       ))}
     </div>
   )
@@ -813,6 +1003,7 @@ function ListView({
   assets,
   onNavigateFolder,
   onCopyUrl,
+  onViewDetails,
   onDeleteAsset,
   onDeleteFolder,
 }: {
@@ -820,6 +1011,7 @@ function ListView({
   assets: MediaAsset[]
   onNavigateFolder: (path: string) => void
   onCopyUrl: (url: string) => void
+  onViewDetails: (asset: MediaAsset) => void
   onDeleteAsset: (asset: MediaAsset) => void
   onDeleteFolder: (folder: MediaFolder) => void
 }) {
@@ -838,111 +1030,168 @@ function ListView({
         <TableBody>
           {/* Folders first */}
           {folders.map((folder) => (
-            <TableRow
-              key={folder.id}
-              className="cursor-pointer"
-              onClick={() => onNavigateFolder(folder.path)}
-            >
-              <TableCell>
-                <div className="flex items-center gap-3">
-                  <Folder className="h-5 w-5 text-muted-foreground" />
-                  <span className="font-medium">{folder.name}</span>
-                </div>
-              </TableCell>
-              <TableCell className="text-muted-foreground">Folder</TableCell>
-              <TableCell className="text-muted-foreground">--</TableCell>
-              <TableCell className="text-muted-foreground">
-                {formatDate(folder.createdAt)}
-              </TableCell>
-              <TableCell>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onDeleteFolder(folder)
-                      }}
-                      className="text-destructive"
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
+            <ContextMenu key={folder.id}>
+              <ContextMenuTrigger asChild>
+                <TableRow
+                  className="cursor-pointer"
+                  onClick={() => onNavigateFolder(folder.path)}
+                >
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <Folder className="h-5 w-5 text-muted-foreground" />
+                      <span className="font-medium">{folder.name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">Folder</TableCell>
+                  <TableCell className="text-muted-foreground">--</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {formatDate(folder.createdAt)}
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onNavigateFolder(folder.path)
+                          }}
+                        >
+                          <FolderOpen className="mr-2 h-4 w-4" />
+                          Open
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onDeleteFolder(folder)
+                          }}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              </ContextMenuTrigger>
+              <ContextMenuContent>
+                <ContextMenuItem onSelect={() => onNavigateFolder(folder.path)}>
+                  <FolderOpen className="mr-2 h-4 w-4" />
+                  Open
+                </ContextMenuItem>
+                <ContextMenuSeparator />
+                <ContextMenuItem
+                  onSelect={() => setTimeout(() => onDeleteFolder(folder))}
+                  className="text-destructive"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </ContextMenuItem>
+              </ContextMenuContent>
+            </ContextMenu>
           ))}
 
           {/* Assets */}
           {assets.map((asset) => (
-            <TableRow key={asset.id}>
-              <TableCell>
-                <div className="flex items-center gap-3">
-                  {asset.type === "image" ? (
-                    <div className="h-8 w-8 overflow-hidden rounded border bg-muted">
-                      <img
-                        src={asset.url}
-                        alt={asset.name}
-                        className="h-full w-full object-cover"
-                        loading="lazy"
-                      />
+            <ContextMenu key={asset.id}>
+              <ContextMenuTrigger asChild>
+                <TableRow>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      {asset.type === "image" ? (
+                        <div className="h-8 w-8 overflow-hidden rounded border bg-muted">
+                          <img
+                            src={asset.url}
+                            alt={asset.name}
+                            className="h-full w-full object-cover"
+                            loading="lazy"
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex h-8 w-8 items-center justify-center rounded border bg-muted">
+                          {getTypeIcon(asset.type)}
+                        </div>
+                      )}
+                      <span className="max-w-[300px] truncate font-medium" title={asset.name}>
+                        {asset.name}
+                      </span>
                     </div>
-                  ) : (
-                    <div className="flex h-8 w-8 items-center justify-center rounded border bg-muted">
-                      {getTypeIcon(asset.type)}
-                    </div>
-                  )}
-                  <span className="max-w-[300px] truncate font-medium" title={asset.name}>
-                    {asset.name}
-                  </span>
-                </div>
-              </TableCell>
-              <TableCell>
-                <Badge variant={getTypeBadgeVariant(asset.type)} className="text-xs">
-                  {asset.type}
-                </Badge>
-              </TableCell>
-              <TableCell className="text-muted-foreground">
-                {formatFileSize(asset.size)}
-              </TableCell>
-              <TableCell className="text-muted-foreground">
-                {formatDate(asset.createdAt)}
-              </TableCell>
-              <TableCell>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => onCopyUrl(asset.url)}>
-                      <Copy className="mr-2 h-4 w-4" />
-                      Copy URL
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <a href={asset.url} download={asset.name} target="_blank" rel="noopener noreferrer">
-                        <Download className="mr-2 h-4 w-4" />
-                        Download
-                      </a>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={() => onDeleteAsset(asset)}
-                      className="text-destructive"
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={getTypeBadgeVariant(asset.type)} className="text-xs">
+                      {asset.type}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {formatFileSize(asset.size)}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {formatDate(asset.createdAt)}
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => onViewDetails(asset)}>
+                          <Eye className="mr-2 h-4 w-4" />
+                          View Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onCopyUrl(asset.url)}>
+                          <Copy className="mr-2 h-4 w-4" />
+                          Copy URL
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <a href={asset.url} download={asset.name} target="_blank" rel="noopener noreferrer">
+                            <Download className="mr-2 h-4 w-4" />
+                            Download
+                          </a>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => onDeleteAsset(asset)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              </ContextMenuTrigger>
+              <ContextMenuContent>
+                <ContextMenuItem onSelect={() => setTimeout(() => onViewDetails(asset))}>
+                  <Eye className="mr-2 h-4 w-4" />
+                  View Details
+                </ContextMenuItem>
+                <ContextMenuItem onSelect={() => onCopyUrl(asset.url)}>
+                  <Copy className="mr-2 h-4 w-4" />
+                  Copy URL
+                </ContextMenuItem>
+                <ContextMenuItem onSelect={() => window.open(asset.url, "_blank")}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Download
+                </ContextMenuItem>
+                <ContextMenuSeparator />
+                <ContextMenuItem
+                  onSelect={() => setTimeout(() => onDeleteAsset(asset))}
+                  className="text-destructive"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </ContextMenuItem>
+              </ContextMenuContent>
+            </ContextMenu>
           ))}
 
           {folders.length === 0 && assets.length === 0 && (
