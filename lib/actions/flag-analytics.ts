@@ -1,37 +1,45 @@
 "use server"
 
+import { z } from "zod"
 import { getClickHouseClient } from "@/lib/clickhouse"
 import { getOrganizationId } from "@/lib/actions/utils"
 
-// ─── Types ──────────────────────────────────────────────────────────────────
+// ─── Schemas ─────────────────────────────────────────────────────────────────
 
-export interface TimeseriesPoint {
-  date: string
-  evaluations: number
-  unique_users: number
-}
+const TimeseriesPointSchema = z.object({
+  date: z.string(),
+  evaluations: z.number(),
+  unique_users: z.number(),
+})
 
-export interface CountryBreakdown {
-  country: string
-  evaluations: number
-  unique_users: number
-}
+const CountryBreakdownSchema = z.object({
+  country: z.string(),
+  evaluations: z.number(),
+  unique_users: z.number(),
+})
 
-export interface FlagSummaryStats {
-  total_evaluations: number
-  unique_users: number
-  top_country: string
-  avg_daily_evaluations: number
-}
+const FlagSummaryStatsSchema = z.object({
+  total_evaluations: z.number(),
+  unique_users: z.number(),
+  top_country: z.string(),
+  avg_daily_evaluations: z.number(),
+})
 
-export interface GeoPoint {
-  city: string
-  country: string
-  latitude: number
-  longitude: number
-  evaluations: number
-  unique_users: number
-}
+const GeoPointSchema = z.object({
+  city: z.string(),
+  country: z.string(),
+  latitude: z.number(),
+  longitude: z.number(),
+  evaluations: z.number(),
+  unique_users: z.number(),
+})
+
+// ─── Types (inferred from schemas) ──────────────────────────────────────────
+
+export type TimeseriesPoint = z.infer<typeof TimeseriesPointSchema>
+export type CountryBreakdown = z.infer<typeof CountryBreakdownSchema>
+export type FlagSummaryStats = z.infer<typeof FlagSummaryStatsSchema>
+export type GeoPoint = z.infer<typeof GeoPointSchema>
 
 // ─── Queries ────────────────────────────────────────────────────────────────
 
@@ -63,14 +71,23 @@ export async function getFlagEvaluationsTimeseries(
     query_params: { org_id: orgId, flag_key: flagKey },
   })
 
-  const rows = await result.json()
+  const rows = (await result.json()) as Record<string, unknown>[]
 
   // ClickHouse returns numbers as strings in JSON — cast them
-  return rows.map((r) => ({
-    date: r.date,
-    evaluations: Number(r.evaluations),
-    unique_users: Number(r.unique_users),
-  }))
+  const parsed = z.array(TimeseriesPointSchema).safeParse(
+    rows.map((r) => ({
+      date: r.date,
+      evaluations: Number(r.evaluations),
+      unique_users: Number(r.unique_users),
+    }))
+  )
+
+  if (!parsed.success) {
+    console.error("getFlagEvaluationsTimeseries: validation failed", parsed.error.flatten())
+    return []
+  }
+
+  return parsed.data
 }
 
 /**
@@ -102,12 +119,22 @@ export async function getFlagCountryBreakdown(
     query_params: { org_id: orgId, flag_key: flagKey },
   })
 
-  const rows = await result.json<CountryBreakdown[]>()
-  return rows.map((r) => ({
-    country: r.country,
-    evaluations: Number(r.evaluations),
-    unique_users: Number(r.unique_users),
-  }))
+  const rows = (await result.json()) as Record<string, unknown>[]
+
+  const parsed = z.array(CountryBreakdownSchema).safeParse(
+    rows.map((r) => ({
+      country: r.country,
+      evaluations: Number(r.evaluations),
+      unique_users: Number(r.unique_users),
+    }))
+  )
+
+  if (!parsed.success) {
+    console.error("getFlagCountryBreakdown: validation failed", parsed.error.flatten())
+    return []
+  }
+
+  return parsed.data
 }
 
 /**
@@ -144,7 +171,8 @@ export async function getFlagSummaryStats(
     query_params: { org_id: orgId, flag_key: flagKey },
   })
 
-  const summary = (await summaryResult.json<any[]>())[0] || {
+  const summaryRows = (await summaryResult.json()) as Record<string, unknown>[]
+  const summary = summaryRows[0] || {
     total_evaluations: 0,
     unique_users: 0,
     avg_daily_evaluations: 0,
@@ -167,14 +195,27 @@ export async function getFlagSummaryStats(
     query_params: { org_id: orgId, flag_key: flagKey },
   })
 
-  const topCountryRow = (await countryResult.json<{ country: string }[]>())[0]
+  const countryRows = (await countryResult.json()) as Record<string, unknown>[]
+  const topCountryRow = countryRows[0] as { country?: string } | undefined
 
-  return {
+  const parsed = FlagSummaryStatsSchema.safeParse({
     total_evaluations: Number(summary.total_evaluations),
     unique_users: Number(summary.unique_users),
     top_country: topCountryRow?.country || "-",
     avg_daily_evaluations: Number(summary.avg_daily_evaluations),
+  })
+
+  if (!parsed.success) {
+    console.error("getFlagSummaryStats: validation failed", parsed.error.flatten())
+    return {
+      total_evaluations: 0,
+      unique_users: 0,
+      top_country: "-",
+      avg_daily_evaluations: 0,
+    }
   }
+
+  return parsed.data
 }
 
 /**
@@ -212,14 +253,23 @@ export async function getFlagGeoPoints(
     query_params: { org_id: orgId, flag_key: flagKey },
   })
 
-  const rows = await result.json();
-  console.log("rows ( from getFlagGeoPoints )", rows);
-  return rows.map((r: any) => ({
-    city: r.city,
-    country: r.country,
-    latitude: Number(r.lat),
-    longitude: Number(r.lng),
-    evaluations: Number(r.evaluations),
-    unique_users: Number(r.unique_users),
-  }))
+  const rows = (await result.json()) as Record<string, unknown>[]
+
+  const parsed = z.array(GeoPointSchema).safeParse(
+    rows.map((r) => ({
+      city: r.city,
+      country: r.country,
+      latitude: Number(r.lat),
+      longitude: Number(r.lng),
+      evaluations: Number(r.evaluations),
+      unique_users: Number(r.unique_users),
+    }))
+  )
+
+  if (!parsed.success) {
+    console.error("getFlagGeoPoints: validation failed", parsed.error.flatten())
+    return []
+  }
+
+  return parsed.data
 }

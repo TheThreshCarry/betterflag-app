@@ -148,7 +148,6 @@ export function FlagDetailClient({
         return [feature]
       }
     )
-    console.log("geoJsonData ( from flag-detail-client )", features);
     return { type: "FeatureCollection", features }
   }, [geoPoints])
 

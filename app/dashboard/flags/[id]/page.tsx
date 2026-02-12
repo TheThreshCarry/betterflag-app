@@ -26,7 +26,6 @@ export default async function FlagDetailPage({
     getFlagCountryBreakdown(flag.key),
     getFlagGeoPoints(flag.key),
   ])
-  console.log("geoPoints ( from page )", geoPoints);
 
   return (
     <DashboardLayout

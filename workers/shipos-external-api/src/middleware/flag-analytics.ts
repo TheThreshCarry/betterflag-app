@@ -83,12 +83,11 @@ export const flagAnalyticsMiddleware = createMiddleware<AppEnv>(
       return;
     }
     try {
-      const result = await client.insert({
+      c.executionCtx.waitUntil(client.insert({
         table: "feature_flag_evaluations",
         values: rows,
         format: "JSONEachRow",
-      });
-      console.log("[FlagAnalytics] Insert result:", result);
+      }));
     } catch (err: any) {
       console.error("[FlagAnalytics] Insert failed:", err?.message || err);
     }
