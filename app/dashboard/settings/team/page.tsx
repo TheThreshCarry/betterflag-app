@@ -15,17 +15,18 @@ export default async function TeamPage() {
 
   const activeOrgId = session.session.activeOrganizationId
   let organization = null
+  type MemberRole = "owner" | "admin" | "member"
   let members: Array<{
     id: string
     userId: string
-    role: string
+    role: MemberRole
     createdAt: string
     user: { id: string; name: string; email: string; image: string | null }
   }> = []
   let invitations: Array<{
     id: string
     email: string
-    role: string | null
+    role: MemberRole | null
     status: string
     expiresAt: string
     inviterId: string
@@ -47,7 +48,7 @@ export default async function TeamPage() {
       members = (fullOrg.members ?? []).map((m: Record<string, unknown>) => ({
         id: m.id as string,
         userId: m.userId as string,
-        role: m.role as string,
+        role: m.role as MemberRole,
         createdAt:
           m.createdAt instanceof Date
             ? m.createdAt.toISOString()
@@ -64,7 +65,7 @@ export default async function TeamPage() {
         (inv: Record<string, unknown>) => ({
           id: inv.id as string,
           email: inv.email as string,
-          role: inv.role as string | null,
+          role: inv.role as MemberRole | null,
           status: inv.status as string,
           expiresAt:
             inv.expiresAt instanceof Date

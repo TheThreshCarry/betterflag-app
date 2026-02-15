@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
 import {
   pgTable,
+  pgEnum,
   text,
   timestamp,
   boolean,
@@ -8,6 +9,12 @@ import {
   index,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+
+// ============================================
+// Enums
+// ============================================
+
+export const memberRoleEnum = pgEnum("member_role", ["owner", "admin", "member"]);
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -129,7 +136,7 @@ export const member = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
-    role: text("role").default("member").notNull(),
+    role: memberRoleEnum("role").default("member").notNull(),
     createdAt: timestamp("created_at").notNull(),
   },
   (table) => [
@@ -146,7 +153,7 @@ export const invitation = pgTable(
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
     email: text("email").notNull(),
-    role: text("role"),
+    role: memberRoleEnum("role"),
     status: text("status").default("pending").notNull(),
     expiresAt: timestamp("expires_at").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),

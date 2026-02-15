@@ -67,10 +67,12 @@ import { authClient } from "@/lib/auth/auth-client"
 // Types
 // ---------------------------------------------------------------------------
 
+type MemberRole = "owner" | "admin" | "member"
+
 interface Member {
   id: string
   userId: string
-  role: string
+  role: MemberRole
   createdAt: string
   user: {
     id: string
@@ -83,7 +85,7 @@ interface Member {
 interface Invitation {
   id: string
   email: string
-  role: string | null
+  role: MemberRole | null
   status: string
   expiresAt: string
   inviterId: string
@@ -192,7 +194,7 @@ export function TeamClient({
         {
           id: crypto.randomUUID(),
           email: inviteEmail.trim(),
-          role: inviteRole,
+          role: inviteRole as MemberRole,
           status: "pending",
           expiresAt: new Date(
             Date.now() + 7 * 24 * 60 * 60 * 1000
@@ -223,7 +225,7 @@ export function TeamClient({
     }
   }
 
-  const handleRoleChange = async (memberId: string, newRole: string) => {
+  const handleRoleChange = async (memberId: string, newRole: MemberRole) => {
     setRoleLoading(memberId)
     try {
       await authClient.organization.updateMemberRole({
@@ -349,7 +351,7 @@ export function TeamClient({
                         <Select
                           value={member.role}
                           onValueChange={(value) =>
-                            handleRoleChange(member.id, value)
+                            handleRoleChange(member.id, value as MemberRole)
                           }
                           disabled={roleLoading === member.id}
                         >
