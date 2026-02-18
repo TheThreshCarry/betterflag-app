@@ -2,14 +2,14 @@
 
 import { eq, ilike, or, and, isNull } from "drizzle-orm"
 import db from "@/lib/db"
-import { featureFlags, changelogs, globalConfigs, customers } from "@/lib/db/schema"
+import { featureFlags, changelogs, globalConfigs, customers, contentTypes, entries } from "@/lib/db/schema"
 import { getOrganizationId } from "@/lib/actions/utils"
 
 export type SearchResult = {
   id: string
   title: string
   description?: string | null
-  type: "feature-flag" | "changelog" | "global-config" | "customer"
+  type: "feature-flag" | "changelog" | "global-config" | "customer" | "content-type" | "cms-entry"
   url: string
   meta?: Record<string, string>
 }
@@ -20,11 +20,12 @@ export async function searchAll(query: string): Promise<SearchResult[]> {
   const organizationId = await getOrganizationId()
   const searchPattern = `%${query.trim()}%`
 
-  const orgCondition = (orgField: typeof featureFlags.organizationId) =>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const orgCondition = (orgField: any) =>
     organizationId ? eq(orgField, organizationId) : isNull(orgField)
 
   // Run all searches in parallel
-  const [flagResults, changelogResults, configResults, customerResults] = await Promise.all([
+  const [flagResults, changelogResults, configResults, customerResults, contentTypeResults, entryResults] = await Promise.all([
     // Search feature flags
     db.query.featureFlags.findMany({
       where: and(
@@ -70,6 +71,27 @@ export async function searchAll(query: string): Promise<SearchResult[]> {
           ilike(customers.email, searchPattern),
           ilike(customers.externalId, searchPattern)
         )
+      ),
+      limit: 5,
+    }),
+
+    // Search content types
+    db.query.contentTypes.findMany({
+      where: and(
+        orgCondition(contentTypes.organizationId),
+        or(
+          ilike(contentTypes.name, searchPattern),
+          ilike(contentTypes.slug, searchPattern)
+        )
+      ),
+      limit: 5,
+    }),
+
+    // Search CMS entries
+    db.query.entries.findMany({
+      where: and(
+        orgCondition(entries.organizationId),
+        ilike(entries.slug, searchPattern)
       ),
       limit: 5,
     }),
@@ -124,6 +146,33 @@ export async function searchAll(query: string): Promise<SearchResult[]> {
       description: customer.email || customer.externalId || undefined,
       type: "customer",
       url: `/dashboard/customers`,
+    })
+  }
+
+  for (const ct of contentTypeResults) {
+    results.push({
+      id: ct.id,
+      title: ct.name,
+      description: ct.slug,
+      type: "content-type",
+      url: `/dashboard/cms/content-types/${ct.id}`,
+      meta: {
+        status: ct.status || "draft",
+      },
+    })
+  }
+
+  for (const entry of entryResults) {
+    const data = entry.data as Record<string, unknown> | null
+    results.push({
+      id: entry.id,
+      title: (data?.title as string) || entry.slug,
+      description: entry.slug,
+      type: "cms-entry",
+      url: `/dashboard/cms/content-types/${entry.contentTypeId}/entries/${entry.id}/edit`,
+      meta: {
+        status: entry.status || "draft",
+      },
     })
   }
 

@@ -37,21 +37,29 @@ import {
 const staticNavData = {
   navMain: [
     {
-      title: "Blogs & CMS",
-      url: "/dashboard/blogs",
+      title: "CMS",
+      url: "/dashboard/cms",
       icon: FileText,
       items: [
         {
-          title: "All Posts",
-          url: "/dashboard/blogs",
+          title: "Overview",
+          url: "/dashboard/cms",
+        },
+        {
+          title: "Content Types",
+          url: "/dashboard/cms/content-types",
         },
         {
           title: "Categories",
-          url: "/dashboard/blogs/categories",
+          url: "/dashboard/cms/categories",
         },
         {
           title: "Authors",
-          url: "/dashboard/blogs/authors",
+          url: "/dashboard/cms/authors",
+        },
+        {
+          title: "Media",
+          url: "/dashboard/cms/media",
         },
       ],
     },

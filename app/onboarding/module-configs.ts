@@ -156,12 +156,12 @@ export const ONBOARDING_MODULES: ModuleConfig[] = [
       },
     ],
   },
-  {
-    id: "blogs",
-    title: "Blogs & CMS",
+{
+    id: "cms",
+    title: "CMS",
     icon: FileText,
     description:
-      "Publish and manage blog posts with a built-in content management system.",
+      "Publish and manage content with a built-in content management system.",
     hasSetup: false,
   },
   {

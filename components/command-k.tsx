@@ -49,7 +49,7 @@ type NavItem = {
 
 const navigationItems: NavItem[] = [
   { title: "Dashboard", url: "/dashboard", icon: BarChart3, keywords: ["home", "overview"] },
-  { title: "Blogs & CMS", url: "/dashboard/blogs", icon: FileText, keywords: ["posts", "articles", "cms", "content"] },
+  { title: "CMS", url: "/dashboard/cms", icon: FileText, keywords: ["posts", "articles", "cms", "content"] },
   { title: "Global Configs", url: "/dashboard/configs", icon: FileJson, keywords: ["configuration", "settings", "remote config"] },
   { title: "Customers", url: "/dashboard/customers", icon: Users, keywords: ["users", "people"] },
   { title: "Documentation", url: "/dashboard/docs", icon: BookOpen, keywords: ["docs", "pages", "api docs"] },
@@ -76,6 +76,8 @@ type CreateItem = {
 }
 
 const createItems: CreateItem[] = [
+  { title: "New Blog Post", url: "/dashboard/cms", icon: FileText, keywords: ["create post", "new entry", "new blog", "new article"] },
+  { title: "New Content Type", url: "/dashboard/cms/content-types?new=true", icon: FileText, keywords: ["create content type", "new schema"] },
   { title: "New Changelog", url: "/dashboard/changelogs/new", icon: Sparkles, keywords: ["create changelog", "new release"] },
   { title: "New Feature Flag", url: "/dashboard/flags?new=true", icon: Flag, keywords: ["create flag", "new toggle"] },
   { title: "New Customer", url: "/dashboard/customers?new=true", icon: Users, keywords: ["create customer", "add customer"] },
@@ -88,6 +90,8 @@ const typeIcons: Record<SearchResult["type"], LucideIcon> = {
   "changelog": Sparkles,
   "global-config": FileJson,
   "customer": Users,
+  "content-type": FileText,
+  "cms-entry": FileText,
 }
 
 const typeLabels: Record<SearchResult["type"], string> = {
@@ -95,6 +99,8 @@ const typeLabels: Record<SearchResult["type"], string> = {
   "changelog": "Changelog",
   "global-config": "Config",
   "customer": "Customer",
+  "content-type": "Content Type",
+  "cms-entry": "Blog Entry",
 }
 
 // ─── Component ───────────────────────────────────────────────────────
