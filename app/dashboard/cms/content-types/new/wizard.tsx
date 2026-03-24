@@ -3,18 +3,36 @@
 import { useState, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
-import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react"
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Loader2,
+  Newspaper,
+  FileText,
+  Plus,
+} from "lucide-react"
 import { SchemaBuilder } from "@/components/cms/schema-builder"
 import { FieldTypeIcon } from "@/components/cms/field-type-icon"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import type { SchemaField } from "@/lib/cms/types"
 import { getFieldLabel, getFieldSummary } from "@/lib/cms/schema-utils"
 import { createContentType } from "@/lib/actions/content-types"
+import {
+  CONTENT_TYPE_TEMPLATES,
+  type ContentTypeTemplate,
+} from "@/lib/cms/content-type-templates"
 
 // ─── Helpers ───────────────────────────────────────────────────────
 
@@ -27,10 +45,17 @@ function slugify(text: string): string {
     .trim()
 }
 
+const TEMPLATE_ICONS = {
+  newspaper: Newspaper,
+  "file-text": FileText,
+  box: FileText,
+} as const
+
 const STEPS = [
-  { number: 1, label: "Name" },
-  { number: 2, label: "Schema" },
-  { number: 3, label: "Review" },
+  { number: 1, label: "Template" },
+  { number: 2, label: "Name" },
+  { number: 3, label: "Schema" },
+  { number: 4, label: "Review" },
 ] as const
 
 // ─── Step Indicator ────────────────────────────────────────────────
@@ -89,17 +114,81 @@ function StepIndicator({ current }: { current: number }) {
   )
 }
 
+// ─── Template Card ─────────────────────────────────────────────────
+
+function TemplateCard({
+  template,
+  selected,
+  onSelect,
+}: {
+  template: ContentTypeTemplate
+  selected: boolean
+  onSelect: () => void
+}) {
+  const Icon = TEMPLATE_ICONS[template.icon]
+
+  return (
+    <button type="button" onClick={onSelect} className="text-left w-full">
+      <Card
+        className={`cursor-pointer transition-all hover:shadow-md ${
+          selected
+            ? "ring-2 ring-primary border-primary"
+            : "hover:border-foreground/20"
+        }`}
+      >
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-3">
+            <div
+              className={`flex h-10 w-10 items-center justify-center rounded-lg ${
+                selected
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground"
+              }`}
+            >
+              <Icon className="h-5 w-5" />
+            </div>
+            <div>
+              <CardTitle className="text-base">{template.name}</CardTitle>
+              <CardDescription className="text-xs">
+                {template.fields.length} fields pre-configured
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <p className="text-sm text-muted-foreground mb-3">
+            {template.description}
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {template.fields.slice(0, 5).map((field) => (
+              <Badge key={field.uid} variant="secondary" className="text-xs">
+                {field.label || field.name}
+              </Badge>
+            ))}
+            {template.fields.length > 5 && (
+              <Badge variant="outline" className="text-xs">
+                +{template.fields.length - 5} more
+              </Badge>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </button>
+  )
+}
+
 // ─── Wizard ────────────────────────────────────────────────────────
 
 export function NewContentTypeWizard() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  // Step from URL, default to 1
   const stepParam = Number(searchParams.get("step")) || 1
-  const step = Math.min(Math.max(stepParam, 1), 3)
+  const step = Math.min(Math.max(stepParam, 1), 4)
 
   // Form state
+  const [selectedTemplate, setSelectedTemplate] =
+    useState<ContentTypeTemplate | null>(null)
   const [name, setName] = useState("")
   const [slug, setSlug] = useState("")
   const [slugTouched, setSlugTouched] = useState(false)
@@ -116,6 +205,33 @@ export function NewContentTypeWizard() {
     },
     [router, searchParams]
   )
+
+  // ── Template selection ───────────────────────────────────────────
+
+  const handleSelectTemplate = useCallback(
+    (template: ContentTypeTemplate) => {
+      setSelectedTemplate(template)
+      setName(template.name)
+      setSlug(template.slug)
+      setSlugTouched(false)
+      setFields(template.fields)
+    },
+    []
+  )
+
+  const handleStartFromScratch = useCallback(() => {
+    setSelectedTemplate(null)
+    if (!name) {
+      setName("")
+      setSlug("")
+    }
+    setSlugTouched(false)
+    goToStep(2)
+  }, [name, goToStep])
+
+  const handleContinueFromTemplate = useCallback(() => {
+    goToStep(2)
+  }, [goToStep])
 
   // ── Name change handler (auto-slug) ──────────────────────────────
 
@@ -134,31 +250,31 @@ export function NewContentTypeWizard() {
     setSlug(slugify(value))
   }, [])
 
-  // ── Step 1 → 2 ──────────────────────────────────────────────────
+  // ── Step 2 → 3 ──────────────────────────────────────────────────
 
   const handleContinueToSchema = useCallback(() => {
     if (!name.trim()) {
       toast.error("Please enter a name for your content type.")
       return
     }
-    goToStep(2)
+    goToStep(3)
   }, [name, goToStep])
 
-  // ── Step 2: SchemaBuilder save → Step 3 ──────────────────────────
+  // ── Step 3: SchemaBuilder save → Step 4 ──────────────────────────
 
   const handleSchemaSave = useCallback(
     async (savedFields: SchemaField[]) => {
       setFields(savedFields)
-      goToStep(3)
+      goToStep(4)
     },
     [goToStep]
   )
 
   const handleSchemaCancel = useCallback(() => {
-    goToStep(1)
+    goToStep(2)
   }, [goToStep])
 
-  // ── Step 3: Create ──────────────────────────────────────────────
+  // ── Step 4: Create ──────────────────────────────────────────────
 
   const handleCreate = useCallback(async () => {
     setIsCreating(true)
@@ -185,8 +301,78 @@ export function NewContentTypeWizard() {
     <div className="mx-auto w-full max-w-3xl">
       <StepIndicator current={step} />
 
-      {/* ── Step 1: Name + Slug ─────────────────────────────────── */}
+      {/* ── Step 1: Template Selection ────────────────────────────── */}
       {step === 1 && (
+        <div className="space-y-6">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold tracking-tight">
+              Choose a starting point
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Pick a template or start from scratch.
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            {CONTENT_TYPE_TEMPLATES.map((template) => (
+              <TemplateCard
+                key={template.id}
+                template={template}
+                selected={selectedTemplate?.id === template.id}
+                onSelect={() => handleSelectTemplate(template)}
+              />
+            ))}
+
+            <button
+              type="button"
+              onClick={handleStartFromScratch}
+              className="text-left w-full"
+            >
+              <Card
+                className={`cursor-pointer transition-all hover:shadow-md h-full ${
+                  selectedTemplate === null
+                    ? ""
+                    : "hover:border-foreground/20"
+                }`}
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 text-muted-foreground">
+                      <Plus className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-base">
+                        Start from Scratch
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        Build your own schema
+                      </CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <p className="text-sm text-muted-foreground">
+                    Create a custom content type with your own fields and
+                    configuration.
+                  </p>
+                </CardContent>
+              </Card>
+            </button>
+          </div>
+
+          {selectedTemplate && (
+            <div className="flex justify-end">
+              <Button onClick={handleContinueFromTemplate}>
+                Continue with {selectedTemplate.name}
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Step 2: Name + Slug ─────────────────────────────────── */}
+      {step === 2 && (
         <Card>
           <CardHeader>
             <CardTitle>Name your content type</CardTitle>
@@ -224,13 +410,9 @@ export function NewContentTypeWizard() {
             <Separator />
 
             <div className="flex items-center justify-between">
-              <Button
-                variant="outline"
-                onClick={() =>
-                  router.push("/dashboard/cms/content-types")
-                }
-              >
-                Cancel
+              <Button variant="outline" onClick={() => goToStep(1)}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back
               </Button>
               <Button onClick={handleContinueToSchema}>
                 Continue
@@ -241,8 +423,8 @@ export function NewContentTypeWizard() {
         </Card>
       )}
 
-      {/* ── Step 2: Schema Builder ──────────────────────────────── */}
-      {step === 2 && (
+      {/* ── Step 3: Schema Builder ──────────────────────────────── */}
+      {step === 3 && (
         <Card>
           <CardHeader>
             <CardTitle>Build your schema</CardTitle>
@@ -262,8 +444,8 @@ export function NewContentTypeWizard() {
         </Card>
       )}
 
-      {/* ── Step 3: Review + Create ─────────────────────────────── */}
-      {step === 3 && (
+      {/* ── Step 4: Review + Create ─────────────────────────────── */}
+      {step === 4 && (
         <Card>
           <CardHeader>
             <CardTitle>Review &amp; Create</CardTitle>
@@ -335,7 +517,7 @@ export function NewContentTypeWizard() {
             <div className="flex items-center justify-between">
               <Button
                 variant="outline"
-                onClick={() => goToStep(2)}
+                onClick={() => goToStep(3)}
                 disabled={isCreating}
               >
                 <ArrowLeft className="mr-2 h-4 w-4" />

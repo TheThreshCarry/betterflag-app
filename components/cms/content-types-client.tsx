@@ -45,15 +45,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-const STATUS_BADGE_VARIANT: Record<
-  string,
-  "outline" | "default" | "secondary"
-> = {
-  draft: "outline",
-  active: "default",
-  deprecated: "secondary",
-}
-
 interface ContentTypesClientProps {
   contentTypes: ContentType[]
 }
@@ -175,41 +166,31 @@ export function ContentTypesClient({
                       </TableCell>
                       <TableCell>v{ct.version}</TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Badge
-                            variant={
-                              STATUS_BADGE_VARIANT[ct.status ?? "draft"] ??
-                              "outline"
-                            }
-                          >
-                            {ct.status ?? "draft"}
-                          </Badge>
-                          <Select
-                            value={ct.status ?? "draft"}
-                            onValueChange={(value) =>
-                              handleStatusChange(
-                                ct.id,
-                                value as "draft" | "active" | "deprecated"
-                              )
-                            }
-                            disabled={statusLoading === ct.id}
-                          >
-                            <SelectTrigger size="sm" className="h-7 w-28">
-                              {statusLoading === ct.id ? (
-                                <Loader2 className="size-3 animate-spin" />
-                              ) : (
-                                <SelectValue />
-                              )}
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="draft">Draft</SelectItem>
-                              <SelectItem value="active">Active</SelectItem>
-                              <SelectItem value="deprecated">
-                                Deprecated
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
+                        <Select
+                          value={ct.status ?? "draft"}
+                          onValueChange={(value) =>
+                            handleStatusChange(
+                              ct.id,
+                              value as "draft" | "active" | "deprecated"
+                            )
+                          }
+                          disabled={statusLoading === ct.id}
+                        >
+                          <SelectTrigger size="sm" className="h-7 w-28">
+                            {statusLoading === ct.id ? (
+                              <Loader2 className="size-3 animate-spin" />
+                            ) : (
+                              <SelectValue />
+                            )}
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="draft">Draft</SelectItem>
+                            <SelectItem value="active">Active</SelectItem>
+                            <SelectItem value="deprecated">
+                              Deprecated
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
                       </TableCell>
                       <TableCell>
                         {new Date(ct.createdAt).toLocaleDateString()}

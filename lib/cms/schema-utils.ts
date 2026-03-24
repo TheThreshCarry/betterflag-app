@@ -253,3 +253,22 @@ export function getFieldSummary(field: SchemaField): string {
   }
   return parts.join(" \u00b7 ")
 }
+
+// ─── Status badge variant helper ────────────────────────────────────
+
+export function getStatusBadgeVariant(
+  status: string | null | undefined
+): "default" | "secondary" | "outline" {
+  switch (status) {
+    case "active":
+    case "published":
+      return "default"
+    case "draft":
+      return "secondary"
+    case "deprecated":
+    case "archived":
+      return "outline"
+    default:
+      return "secondary"
+  }
+}

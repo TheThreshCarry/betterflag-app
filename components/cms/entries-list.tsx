@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Plus, FileText, Trash2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import type { ContentType, Entry } from "@/lib/db/schema";
+import { getStatusBadgeVariant } from "@/lib/cms/schema-utils";
 import {
   deleteEntry,
   publishEntry,
@@ -35,21 +36,6 @@ interface EntriesListProps {
 }
 
 type StatusFilter = "all" | "draft" | "published" | "archived";
-
-function getStatusVariant(
-  status: string | null
-): "default" | "secondary" | "outline" {
-  switch (status) {
-    case "published":
-      return "default";
-    case "draft":
-      return "secondary";
-    case "archived":
-      return "outline";
-    default:
-      return "secondary";
-  }
-}
 
 function formatDate(date: Date | string) {
   return new Date(date).toLocaleDateString("en-US", {
@@ -110,9 +96,9 @@ export function EntriesList({ contentType, entries }: EntriesListProps) {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">
-          Entries for {contentType.name}
-        </h1>
+        <h2 className="text-xl font-bold tracking-tight">
+          Entries
+        </h2>
         <Button asChild>
           <Link
             href={`/dashboard/cms/content-types/${contentType.id}/entries/new`}
@@ -194,7 +180,7 @@ export function EntriesList({ contentType, entries }: EntriesListProps) {
                         {entry.slug}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={getStatusVariant(entry.status)}>
+                        <Badge variant={getStatusBadgeVariant(entry.status)}>
                           {entry.status}
                         </Badge>
                       </TableCell>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Plus, FileText, ArrowRight } from "lucide-react";
 import type { ContentType, Entry } from "@/lib/db/schema";
+import { getStatusBadgeVariant } from "@/lib/cms/schema-utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -24,21 +25,6 @@ interface CmsOverviewProps {
   entries: (Entry & { contentType: ContentType })[];
 }
 
-function getStatusVariant(
-  status: ContentType["status"]
-): "default" | "secondary" | "outline" {
-  switch (status) {
-    case "active":
-      return "default";
-    case "draft":
-      return "secondary";
-    case "deprecated":
-      return "outline";
-    default:
-      return "secondary";
-  }
-}
-
 export function CmsOverview({ contentTypes, entries }: CmsOverviewProps) {
   const entryCountByType = entries.reduce<Record<string, number>>(
     (acc, entry) => {
@@ -49,7 +35,7 @@ export function CmsOverview({ contentTypes, entries }: CmsOverviewProps) {
   );
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">CMS</h1>
@@ -96,15 +82,22 @@ export function CmsOverview({ contentTypes, entries }: CmsOverviewProps) {
             <FileText className="text-muted-foreground mb-4 size-12" />
             <h2 className="text-xl font-semibold">No content types yet</h2>
             <p className="text-muted-foreground mt-2 max-w-md">
-              Content types define the structure of your posts. Create your
-              first content type to start publishing.
+              Content types define the structure of your posts. Start with a
+              template like Blog Post, or build your own from scratch.
             </p>
-            <Button className="mt-6" asChild>
-              <Link href="/dashboard/cms/content-types?new=true">
-                <Plus className="mr-2 size-4" />
-                Create Content Type
-              </Link>
-            </Button>
+            <div className="mt-6 flex items-center gap-3">
+              <Button asChild>
+                <Link href="/dashboard/cms/content-types/new">
+                  <Plus className="mr-2 size-4" />
+                  Create from Template
+                </Link>
+              </Button>
+              <Button variant="outline" asChild>
+                <Link href="/dashboard/cms/content-types/new?step=2">
+                  Start from Scratch
+                </Link>
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ) : (
@@ -121,7 +114,7 @@ export function CmsOverview({ contentTypes, entries }: CmsOverviewProps) {
                     <div className="space-y-1">
                       <CardTitle className="flex items-center gap-2">
                         {ct.name}
-                        <Badge variant={getStatusVariant(ct.status)}>
+                        <Badge variant={getStatusBadgeVariant(ct.status)}>
                           {ct.status}
                         </Badge>
                       </CardTitle>

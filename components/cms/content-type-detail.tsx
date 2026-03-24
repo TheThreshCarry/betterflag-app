@@ -6,7 +6,7 @@ import { Pencil, ToggleLeft, ToggleRight } from "lucide-react";
 import { toast } from "sonner";
 import type { ContentType, Entry } from "@/lib/db/schema";
 import { setContentTypeStatus } from "@/lib/actions/content-types";
-import { parseSchemaFields, getFieldLabel, getFieldSummary } from "@/lib/cms/schema-utils";
+import { parseSchemaFields, getFieldLabel, getFieldSummary, getStatusBadgeVariant } from "@/lib/cms/schema-utils";
 import { FieldTypeIcon } from "./field-type-icon";
 import { EntriesList } from "./entries-list";
 import { Button } from "@/components/ui/button";
@@ -16,23 +16,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 interface ContentTypeDetailProps {
   contentType: ContentType;
   entries: Entry[];
-}
-
-function getStatusVariant(
-  status: string | null
-): "default" | "secondary" | "outline" {
-  switch (status) {
-    case "active":
-    case "published":
-      return "default";
-    case "draft":
-      return "secondary";
-    case "deprecated":
-    case "archived":
-      return "outline";
-    default:
-      return "secondary";
-  }
 }
 
 export function ContentTypeDetail({
@@ -63,7 +46,7 @@ export function ContentTypeDetail({
           <h1 className="text-3xl font-bold tracking-tight">
             {contentType.name}
           </h1>
-          <Badge variant={getStatusVariant(contentType.status)}>
+          <Badge variant={getStatusBadgeVariant(contentType.status)}>
             {contentType.status}
           </Badge>
           <Badge variant="outline" className="font-mono text-xs">
