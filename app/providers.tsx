@@ -5,11 +5,22 @@ import { ThemeProvider } from "next-themes";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
+import posthog from "posthog-js";
 
 import { authClient } from "@/lib/auth/auth-client";
+import {
+  PostHogProvider,
+  type BootstrapData,
+} from "@/components/posthog/posthog-provider";
 import { Toaster } from "sonner";
 
-export function Providers({ children }: { children: ReactNode }) {
+export function Providers({
+  children,
+  bootstrapData,
+}: {
+  children: ReactNode;
+  bootstrapData: BootstrapData | null;
+}) {
   const router = useRouter();
 
   return (
@@ -25,12 +36,14 @@ export function Providers({ children }: { children: ReactNode }) {
         navigate={router.push}
         replace={router.replace}
         onSessionChange={() => {
-          // Clear router cache (protected routes)
+          posthog.reset();
           router.refresh();
         }}
         Link={Link}
       >
-        {children}
+        <PostHogProvider bootstrapData={bootstrapData}>
+          {children}
+        </PostHogProvider>
       </AuthUIProvider>
     </ThemeProvider>
   );

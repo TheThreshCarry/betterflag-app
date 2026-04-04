@@ -8,6 +8,8 @@ import {
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar"
+import posthogServer from "@/lib/posthog"
+import { Providers } from "@/app/providers"
 
 export default async function DashboardRootLayout({
   children,
@@ -46,11 +48,9 @@ export default async function DashboardRootLayout({
     })
 
     if (!orgs || orgs.length === 0) {
-      // No orgs at all — redirect to onboarding
       redirect("/onboarding")
     }
 
-    // Has orgs but none active — set the first one as active
     await auth.api.setActiveOrganization({
       headers: await headers(),
       body: { organizationId: orgs[0].id },
@@ -59,6 +59,31 @@ export default async function DashboardRootLayout({
       headers: await headers(),
       query: { organizationId: orgs[0].id },
     })
+  }
+
+  // Pre-fetch feature flags for the current user + org
+  const allFlags = await posthogServer.getAllFlags(session.user.id, {
+    groups: { organization: organization?.id ?? "" },
+    personProperties: {
+      email: session.user.email,
+      name: session.user.name,
+    },
+    groupProperties: {
+      organization: {
+        name: organization?.name,
+        slug: organization?.slug,
+      },
+    },
+  })
+
+  const bootstrapData = {
+    userId: session.user.id,
+    userName: session.user.name,
+    userEmail: session.user.email,
+    activeOrgId: organization?.id ?? null,
+    activeOrgName: organization?.name ?? null,
+    activeOrgSlug: organization?.slug ?? null,
+    featureFlags: allFlags as Record<string, string | boolean>,
   }
 
   // Fetch global configs for dynamic sidebar
@@ -71,7 +96,7 @@ export default async function DashboardRootLayout({
   }))
 
   return (
-    <>
+    <Providers bootstrapData={bootstrapData}>
       <SidebarProvider>
         <AppSidebar user={user} organization={organization} configs={simplifiedConfigs} />
         <SidebarInset>
@@ -79,6 +104,6 @@ export default async function DashboardRootLayout({
         </SidebarInset>
       </SidebarProvider>
       <CommandK />
-    </>
+    </Providers>
   )
 }
