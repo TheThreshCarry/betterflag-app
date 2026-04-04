@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { useEditor, EditorContent } from "@tiptap/react"
+import DragHandle from "@tiptap/extension-drag-handle-react"
 import { BubbleMenu } from "@tiptap/react/menus"
 import type { JSONContent } from "@tiptap/core"
 import StarterKit from "@tiptap/starter-kit"
@@ -38,6 +39,8 @@ import {
   ImageIcon,
   Upload,
   Link,
+  Plus,
+  GripVertical,
 } from "lucide-react"
 import { toast } from "sonner"
 import semver from "semver"
@@ -119,6 +122,14 @@ export function ChangelogEditor({
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [imageTab, setImageTab] = useState<string>("url")
   const [isDragging, setIsDragging] = useState(false)
+  const hoveredNodePosRef = useRef<number>(-1)
+  const handleNodeChange = useCallback(({ pos }: { pos: number }) => {
+    hoveredNodePosRef.current = pos
+  }, [])
+  const dragHandlePositionConfig = useMemo(() => ({
+    placement: "left" as const,
+    strategy: "absolute" as const,
+  }), [])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const isVersionValid = !version || semver.valid(version) !== null
@@ -180,8 +191,9 @@ export function ChangelogEditor({
           levels: [1, 2, 3],
         },
         dropcursor: {
-          color: "hsl(var(--primary))",
-          width: 2,
+          color: "#2563EB",
+          width: 3,
+          class: "ProseMirror-dropcursor border-none",
         },
       }),
       TiptapLink.configure({
@@ -420,21 +432,41 @@ export function ChangelogEditor({
           Back to Changelogs
         </Button>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={handleSave}
-            disabled={isSaving || isPublishing}
-          >
-            <Save className="mr-2 h-4 w-4" />
-            {isSaving ? "Saving..." : "Save Draft"}
-          </Button>
-          <Button
-            onClick={handlePublish}
-            disabled={isSaving || isPublishing}
-          >
-            <Send className="mr-2 h-4 w-4" />
-            {isPublishing ? "Publishing..." : "Publish"}
-          </Button>
+          <TooltipProvider delayDuration={300}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  onClick={handleSave}
+                  disabled={isSaving || isPublishing}
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  {isSaving ? "Saving..." : "Save Draft"}
+                </Button>
+              </TooltipTrigger>
+              {!title.trim() && (
+                <TooltipContent>
+                  Title is required to save
+                </TooltipContent>
+              )}
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={handlePublish}
+                  disabled={isSaving || isPublishing}
+                >
+                  <Send className="mr-2 h-4 w-4" />
+                  {isPublishing ? "Publishing..." : "Publish"}
+                </Button>
+              </TooltipTrigger>
+              {!title.trim() && (
+                <TooltipContent>
+                  Title is required to publish
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
 
@@ -662,10 +694,55 @@ export function ChangelogEditor({
               )}
 
               {/* Editor */}
-              <EditorContent
-                editor={editor}
-                className="prose prose-sm dark:prose-invert max-w-none min-h-[400px] [&_.tiptap]:outline-none [&_.tiptap]:min-h-[360px]"
-              />
+              {editor && (
+                <DragHandle
+                  editor={editor}
+                  onNodeChange={handleNodeChange}
+                  computePositionConfig={dragHandlePositionConfig}
+                >
+                  <div className="flex items-center gap-0.5">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                      onMouseDown={(e) => {
+                        e.preventDefault()
+                        if (!editor) return
+                        const pos = hoveredNodePosRef.current
+                        if (pos < 0) {
+                          editor.chain().focus().insertContent("/").run()
+                          return
+                        }
+                        const node = editor.state.doc.nodeAt(pos)
+                        if (!node) return
+                        if (node.textContent.length === 0) {
+                          editor.chain().focus().setTextSelection(pos + 1).insertContent("/").run()
+                        } else {
+                          const insertPos = pos + node.nodeSize
+                          editor
+                            .chain()
+                            .focus()
+                            .insertContentAt(insertPos, { type: "paragraph" })
+                            .insertContent("/")
+                            .run()
+                        }
+                      }}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                    <div className="flex h-6 w-6 cursor-grab items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground active:cursor-grabbing">
+                      <GripVertical className="h-4 w-4" />
+                    </div>
+                  </div>
+                </DragHandle>
+              )}
+              <div className="group relative">
+                <EditorContent
+                  editor={editor}
+                  className="prose prose-sm dark:prose-invert max-w-none min-h-[400px] [&_.tiptap]:outline-none [&_.tiptap]:min-h-[360px]"
+                />
+              </div>
             </CardContent>
           </Card>
         </div>

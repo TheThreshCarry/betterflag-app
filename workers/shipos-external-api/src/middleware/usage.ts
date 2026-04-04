@@ -1,9 +1,6 @@
 import { createMiddleware } from "hono/factory";
 import type { AppEnv } from "../types";
 
-// Use sandbox for development. Change to "https://api.polar.sh" for production.
-const POLAR_API_BASE = "https://sandbox-api.polar.sh";
-
 /**
  * Usage Tracking Middleware
  *
@@ -25,12 +22,16 @@ export const usageMiddleware = createMiddleware<AppEnv>(async (c, next) => {
   const polarAccessToken = c.env.POLAR_ACCESS_TOKEN;
   if (!polarAccessToken) return;
 
-  // Fire-and-forget: use waitUntil so it doesn't block the response
+  const polarApiBase =
+    c.env.POLAR_API_BASE?.replace(/\/$/, "") || "https://api.polar.sh";
+
   const ctx = c.executionCtx;
   ctx.waitUntil(
-    ingestUsageEvent(polarAccessToken, organizationId).catch((err) => {
-      console.error("[Usage] Failed to ingest event:", err);
-    })
+    ingestUsageEvent(polarApiBase, polarAccessToken, organizationId).catch(
+      (err) => {
+        console.error("[Usage] Failed to ingest event:", err);
+      }
+    )
   );
 });
 
@@ -40,10 +41,11 @@ export const usageMiddleware = createMiddleware<AppEnv>(async (c, next) => {
  * reliability in Cloudflare Workers (avoids SDK bundle concerns).
  */
 async function ingestUsageEvent(
+  polarApiBase: string,
   accessToken: string,
   organizationId: string
 ): Promise<void> {
-  const response = await fetch(`${POLAR_API_BASE}/v1/customer-meters/events`, {
+  const response = await fetch(`${polarApiBase}/v1/customer-meters/events`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${accessToken}`,

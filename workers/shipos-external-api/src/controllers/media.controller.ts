@@ -1,17 +1,17 @@
 /**
  * Media Controller
  *
- * Handles file uploads, serving, and deletion for media assets.
- * Files are stored in Cloudflare R2 and served with proper headers.
- *
- * Endpoints:
- * - POST /media/upload - Upload a file to R2
- * - GET  /media/serve/:orgId/* - Serve a media asset (public URL)
- * - DELETE /media/:key - Delete a media asset from R2
+ * API key–authenticated media operations under /v1/media.
+ * Internal dashboard uploads use /internal/media (service secret).
  */
 
 import type { ApiError } from "../types";
 import { createController, controllerRegistry } from "./index";
+import {
+  deleteMediaAssetByKey,
+  serveMediaAsset,
+  uploadMediaAsset,
+} from "../lib/r2-media";
 
 const mediaController = createController(
   {
@@ -22,56 +22,39 @@ const mediaController = createController(
   },
   (router) => {
     /**
-     * POST /media/upload
-     * Upload a file to R2.
-     * Expects multipart/form-data with: file, organizationId, userId, folder
+     * POST /v1/media/upload
+     * organizationId is taken from the API key context only (not from form).
      */
     router.post("/upload", async (c) => {
       try {
+        const organizationId = c.get("organizationId");
+        if (!organizationId) {
+          return c.json(
+            { error: "Organization not resolved", code: "UNAUTHORIZED" } as ApiError,
+            401
+          );
+        }
+
         const formData = await c.req.formData();
         const file = formData.get("file") as File;
-        const organizationId = formData.get("organizationId") as string;
-        const userId = formData.get("userId") as string;
+        const userId = (formData.get("userId") as string) || "";
         const folder = (formData.get("folder") as string) || "/";
 
-        if (!file || !organizationId) {
+        if (!file) {
           return c.json(
-            { error: "File and organizationId are required", code: "BAD_REQUEST" } as ApiError,
+            { error: "file is required", code: "BAD_REQUEST" } as ApiError,
             400
           );
         }
 
-        // Generate unique filename preserving original extension
-        const fileExtension = file.name.split(".").pop() || "bin";
-        const uniqueId = crypto.randomUUID();
-
-        // Build R2 key mirroring folder structure
-        // folder is like "/" or "/marketing/logos/"
-        const folderPath = folder === "/" ? "" : folder.slice(1); // remove leading slash
-        const key = `media/${organizationId}/${folderPath}${uniqueId}.${fileExtension}`;
-
-        // Upload to R2
-        const arrayBuffer = await file.arrayBuffer();
-        await c.env.MEDIA_ASSETS.put(key, arrayBuffer, {
-          httpMetadata: {
-            contentType: file.type || "application/octet-stream",
-          },
-          customMetadata: {
-            organizationId,
-            userId: userId || "",
-            originalName: file.name,
-            folder,
-            uploadedAt: new Date().toISOString(),
-          },
+        const result = await uploadMediaAsset(c.env, {
+          file,
+          organizationId,
+          userId,
+          folder,
         });
 
-        return c.json({
-          success: true,
-          key,
-          name: file.name,
-          size: file.size,
-          mimeType: file.type || "application/octet-stream",
-        });
+        return c.json(result);
       } catch (error) {
         console.error("Media upload error:", error);
         return c.json(
@@ -82,33 +65,31 @@ const mediaController = createController(
     });
 
     /**
-     * GET /media/serve/:orgId/*
-     * Serve a media asset from R2 by its full key path.
-     * This is the public-facing endpoint for media URLs.
+     * GET /v1/media/serve/:orgId/*
      */
     router.get("/serve/:orgId/*", async (c) => {
       try {
         const orgId = c.req.param("orgId");
+        const authenticatedOrgId = c.get("organizationId");
+        if (orgId !== authenticatedOrgId) {
+          return c.json(
+            { error: "Access denied to this organization's media", code: "FORBIDDEN" } as ApiError,
+            403
+          );
+        }
         const restPath = c.req.param("*") || "";
-        const key = `media/${orgId}/${restPath}`;
-
-        const object = await c.env.MEDIA_ASSETS.get(key);
-
-        if (!object) {
+        const served = await serveMediaAsset(c.env, orgId, restPath);
+        if (!served) {
           return c.json(
             { error: "File not found", code: "NOT_FOUND" } as ApiError,
             404
           );
         }
-
-        const contentType = object.httpMetadata?.contentType || "application/octet-stream";
-        const isInline = contentType.startsWith("image/") || contentType.startsWith("video/");
-
-        return new Response(object.body, {
+        return new Response(served.body, {
           headers: {
-            "Content-Type": contentType,
+            "Content-Type": served.contentType,
             "Cache-Control": "public, max-age=31536000, immutable",
-            "Content-Disposition": isInline ? "inline" : `attachment; filename="${object.customMetadata?.originalName || "download"}"`,
+            "Content-Disposition": served.contentDisposition,
           },
         });
       } catch (error) {
@@ -121,13 +102,20 @@ const mediaController = createController(
     });
 
     /**
-     * DELETE /media/delete
-     * Delete a media asset from R2 by its key.
-     * Called internally by the Next.js API.
+     * POST /v1/media/delete
+     * Key must belong to the authenticated organization.
      */
     router.post("/delete", async (c) => {
       try {
-        const { key } = await c.req.json();
+        const organizationId = c.get("organizationId");
+        if (!organizationId) {
+          return c.json(
+            { error: "Organization not resolved", code: "UNAUTHORIZED" } as ApiError,
+            401
+          );
+        }
+
+        const { key } = await c.req.json<{ key?: string }>();
 
         if (!key) {
           return c.json(
@@ -136,16 +124,21 @@ const mediaController = createController(
           );
         }
 
-        // Verify the object exists
-        const object = await c.env.MEDIA_ASSETS.head(key);
-        if (!object) {
+        const prefix = `media/${organizationId}/`;
+        if (!key.startsWith(prefix)) {
+          return c.json(
+            { error: "Key does not belong to this organization", code: "FORBIDDEN" } as ApiError,
+            403
+          );
+        }
+
+        const result = await deleteMediaAssetByKey(c.env, key);
+        if (!result.ok) {
           return c.json(
             { error: "File not found", code: "NOT_FOUND" } as ApiError,
             404
           );
         }
-
-        await c.env.MEDIA_ASSETS.delete(key);
 
         return c.json({ success: true, message: "File deleted" });
       } catch (error) {

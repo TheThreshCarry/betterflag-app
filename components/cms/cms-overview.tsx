@@ -7,13 +7,6 @@ import { getStatusBadgeVariant } from "@/lib/cms/schema-utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -36,10 +29,10 @@ export function CmsOverview({ contentTypes, entries }: CmsOverviewProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between border-b pb-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">CMS</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-xl font-semibold tracking-tight">CMS</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             Manage your content types and entries.
           </p>
         </div>
@@ -77,66 +70,59 @@ export function CmsOverview({ contentTypes, entries }: CmsOverviewProps) {
       </div>
 
       {contentTypes.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-            <FileText className="text-muted-foreground mb-4 size-12" />
-            <h2 className="text-xl font-semibold">No content types yet</h2>
-            <p className="text-muted-foreground mt-2 max-w-md">
-              Content types define the structure of your posts. Start with a
-              template like Blog Post, or build your own from scratch.
-            </p>
-            <div className="mt-6 flex items-center gap-3">
-              <Button asChild>
-                <Link href="/dashboard/cms/content-types/new">
-                  <Plus className="mr-2 size-4" />
-                  Create from Template
-                </Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link href="/dashboard/cms/content-types/new?step=2">
-                  Start from Scratch
-                </Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <FileText className="text-muted-foreground mb-4 size-10" />
+          <h2 className="text-lg font-semibold">No content types yet</h2>
+          <p className="text-sm text-muted-foreground mt-2 max-w-md">
+            Content types define the structure of your posts. Start with a
+            template like Blog Post, or build your own from scratch.
+          </p>
+          <div className="mt-6 flex items-center gap-3">
+            <Button asChild>
+              <Link href="/dashboard/cms/content-types/new">
+                <Plus className="mr-2 size-4" />
+                Create from Template
+              </Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href="/dashboard/cms/content-types/new?step=2">
+                Start from Scratch
+              </Link>
+            </Button>
+          </div>
+        </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {contentTypes.map((ct) => (
             <Link
               key={ct.id}
               href={`/dashboard/cms/content-types/${ct.id}`}
-              className="group"
+              className="group flex flex-col rounded-lg border p-5 transition-colors hover:bg-muted/50"
             >
-              <Card className="transition-shadow group-hover:shadow-md">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-1">
-                      <CardTitle className="flex items-center gap-2">
-                        {ct.name}
-                        <Badge variant={getStatusBadgeVariant(ct.status)}>
-                          {ct.status}
-                        </Badge>
-                      </CardTitle>
-                      <CardDescription className="font-mono text-xs">
-                        /{ct.slug}
-                      </CardDescription>
-                    </div>
-                    <ArrowRight className="text-muted-foreground size-4 opacity-0 transition-opacity group-hover:opacity-100" />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-muted-foreground flex items-center justify-between text-sm">
-                    <span>
-                      {entryCountByType[ct.id] || 0}{" "}
-                      {(entryCountByType[ct.id] || 0) === 1
-                        ? "entry"
-                        : "entries"}
-                    </span>
-                    <span className="font-mono text-xs">v{ct.version}</span>
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="flex items-start justify-between mb-4">
+                <div className="space-y-1">
+                  <h3 className="font-medium flex items-center gap-2">
+                    {ct.name}
+                    <Badge variant={getStatusBadgeVariant(ct.status)} className="font-normal text-xs">
+                      {ct.status}
+                    </Badge>
+                  </h3>
+                  <p className="font-mono text-xs text-muted-foreground">
+                    /{ct.slug}
+                  </p>
+                </div>
+                <ArrowRight className="text-muted-foreground size-4 opacity-0 transition-opacity group-hover:opacity-100" />
+              </div>
+              
+              <div className="mt-auto pt-4 flex items-center justify-between text-sm text-muted-foreground border-t border-border/50">
+                <span>
+                  {entryCountByType[ct.id] || 0}{" "}
+                  {(entryCountByType[ct.id] || 0) === 1
+                    ? "entry"
+                    : "entries"}
+                </span>
+                <span className="font-mono text-xs">v{ct.version}</span>
+              </div>
             </Link>
           ))}
         </div>

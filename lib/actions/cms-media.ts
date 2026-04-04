@@ -18,8 +18,10 @@ export async function getCmsMedia() {
 }
 
 export async function getCmsMediaById(id: string) {
+  const { organizationId } = await getSessionData()
+  if (!organizationId) throw new Error("No active organization")
   return db.query.cmsMedia.findFirst({
-    where: eq(cmsMedia.id, id),
+    where: and(eq(cmsMedia.id, id), eq(cmsMedia.organizationId, organizationId)),
   })
 }
 
@@ -57,10 +59,12 @@ export async function updateCmsMedia(
   id: string,
   data: Partial<Omit<NewCmsMedia, "id" | "createdAt" | "organizationId">>
 ) {
+  const { organizationId } = await getSessionData()
+  if (!organizationId) throw new Error("No active organization")
   const [entry] = await db
     .update(cmsMedia)
     .set(data)
-    .where(eq(cmsMedia.id, id))
+    .where(and(eq(cmsMedia.id, id), eq(cmsMedia.organizationId, organizationId)))
     .returning()
 
   revalidatePath("/dashboard/cms/media")
@@ -68,7 +72,13 @@ export async function updateCmsMedia(
 }
 
 export async function deleteCmsMedia(id: string) {
-  await db.delete(cmsMedia).where(eq(cmsMedia.id, id))
+  const { organizationId } = await getSessionData()
+  if (!organizationId) throw new Error("No active organization")
+  const existing = await db.query.cmsMedia.findFirst({
+    where: and(eq(cmsMedia.id, id), eq(cmsMedia.organizationId, organizationId)),
+  })
+  if (!existing) throw new Error("CMS media not found")
+  await db.delete(cmsMedia).where(and(eq(cmsMedia.id, id), eq(cmsMedia.organizationId, organizationId)))
 
   revalidatePath("/dashboard/cms/media")
 }

@@ -4,7 +4,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { eq, and } from "drizzle-orm";
 import db from "@/lib/db";
 import { mediaAssets } from "@/lib/db/schema";
+import { createLogger } from "@/lib/logger";
+import { workerServiceHeaders } from "@/lib/worker-internal";
 
+const log = createLogger("api.media");
 const WORKER_URL = process.env.WORKER_API_URL || "http://localhost:8787";
 
 export async function POST(request: NextRequest) {
@@ -51,16 +54,15 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Delete from R2 via worker
-    const workerResponse = await fetch(`${WORKER_URL}/media/delete`, {
+    const workerResponse = await fetch(`${WORKER_URL}/internal/media/delete`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: workerServiceHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({ key: asset.key }),
     });
 
     if (!workerResponse.ok) {
       const errorData = await workerResponse.json();
-      console.error("Worker delete failed:", errorData);
-      // Continue to delete DB record even if R2 delete fails
+      log.error({ assetId: id, errorData }, "R2 delete failed, continuing with DB cleanup");
     }
 
     // 4. Delete from database
@@ -68,7 +70,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Media delete error:", error);
+    log.error({ err: error }, "media delete error");
     return NextResponse.json(
       { error: "Failed to delete file" },
       { status: 500 }

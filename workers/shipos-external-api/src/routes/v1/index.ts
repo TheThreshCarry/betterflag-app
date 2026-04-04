@@ -1,6 +1,8 @@
 import { Hono } from "hono";
 import type { AppEnv } from "../../types";
 import { authMiddleware } from "../../middleware/auth";
+import { permissionsMiddleware } from "../../middleware/permissions";
+import { rateLimitMiddleware } from "../../middleware/rate-limit";
 import { usageMiddleware } from "../../middleware/usage";
 import { controllerRegistry } from "../../controllers";
 
@@ -22,13 +24,10 @@ import "../../controllers/media.controller";
  */
 const v1Routes = new Hono<AppEnv>();
 
-// Apply auth middleware to all v1 routes
 v1Routes.use("/*", authMiddleware);
-
-// Track API usage for billing (runs after response, non-blocking)
-
-//TODO: put this back later
-// v1Routes.use("/*", usageMiddleware);
+v1Routes.use("/*", permissionsMiddleware);
+v1Routes.use("/*", rateLimitMiddleware);
+v1Routes.use("/*", usageMiddleware);
 
 // Mount all v1 controllers from the registry
 controllerRegistry.mountVersion(v1Routes, "v1");

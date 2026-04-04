@@ -7,16 +7,21 @@ import { entryRelations } from "@/lib/db/schema"
 import { getSessionData } from "@/lib/actions/utils"
 
 export async function getEntryRelations(entryId: string) {
+  const { organizationId } = await getSessionData()
+  if (!organizationId) throw new Error("No active organization")
   return db.query.entryRelations.findMany({
-    where: eq(entryRelations.entryId, entryId),
+    where: and(eq(entryRelations.entryId, entryId), eq(entryRelations.organizationId, organizationId)),
   })
 }
 
 export async function getEntryRelationsByType(entryId: string, type: string) {
+  const { organizationId } = await getSessionData()
+  if (!organizationId) throw new Error("No active organization")
   return db.query.entryRelations.findMany({
     where: and(
       eq(entryRelations.entryId, entryId),
-      eq(entryRelations.type, type)
+      eq(entryRelations.type, type),
+      eq(entryRelations.organizationId, organizationId)
     ),
   })
 }
@@ -43,7 +48,13 @@ export async function addRelation(
 }
 
 export async function removeRelation(id: string) {
-  await db.delete(entryRelations).where(eq(entryRelations.id, id))
+  const { organizationId } = await getSessionData()
+  if (!organizationId) throw new Error("No active organization")
+  const existing = await db.query.entryRelations.findFirst({
+    where: and(eq(entryRelations.id, id), eq(entryRelations.organizationId, organizationId)),
+  })
+  if (!existing) throw new Error("Relation not found")
+  await db.delete(entryRelations).where(and(eq(entryRelations.id, id), eq(entryRelations.organizationId, organizationId)))
 
   revalidatePath("/dashboard/cms")
 }

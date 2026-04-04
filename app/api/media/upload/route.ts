@@ -4,8 +4,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { eq, sql } from "drizzle-orm";
 import db from "@/lib/db";
 import { mediaAssets } from "@/lib/db/schema";
-import { PLAN_LIMITS, type PlanSlug } from "@/lib/polar/subscription";
+import { PLAN_LIMITS } from "@/lib/polar/subscription";
+import { getPlanSlugForUser } from "@/lib/polar/org-plan";
+import { createLogger } from "@/lib/logger";
+import { workerServiceHeaders } from "@/lib/worker-internal";
 
+const log = createLogger("api.media");
 const WORKER_URL = process.env.WORKER_API_URL || "http://localhost:8787";
 
 /**
@@ -48,11 +52,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Detect plan
-    // TODO: Implement server-side plan detection via Polar API.
-    // For now, defaults to "free". The billing client handles actual plan display.
-    const planSlug: PlanSlug = "free";
-
+    const planSlug = await getPlanSlugForUser(session.user.id);
     const limits = PLAN_LIMITS[planSlug];
 
     // 4. Check per-file size limit
@@ -97,8 +97,9 @@ export async function POST(request: NextRequest) {
     workerFormData.append("userId", session.user.id);
     workerFormData.append("folder", folder);
 
-    const workerResponse = await fetch(`${WORKER_URL}/media/upload`, {
+    const workerResponse = await fetch(`${WORKER_URL}/internal/media/upload`, {
       method: "POST",
+      headers: workerServiceHeaders(),
       body: workerFormData,
     });
 
@@ -139,7 +140,7 @@ export async function POST(request: NextRequest) {
       asset,
     });
   } catch (error) {
-    console.error("Media upload error:", error);
+    log.error({ err: error }, "media upload error");
     return NextResponse.json(
       { error: "Failed to upload file" },
       { status: 500 }

@@ -1,7 +1,7 @@
 import { LoopsClient } from "loops";
+import { createLogger } from "@/lib/logger";
 
-// Initialize the Loops client
-// Make sure to set LOOPS_API_KEY in your environment variables
+const log = createLogger("email");
 const loops = new LoopsClient(process.env.LOOPS_API_KEY as string);
 
 // Transactional email IDs from Loops dashboard
@@ -25,6 +25,7 @@ export async function sendMagicLinkEmail({
   token: string;
 }) {
   try {
+    log.info({ email, type: "magic-link" }, "sending magic link email");
     const resp = await loops.sendTransactionalEmail({
       transactionalId: TRANSACTIONAL_IDS.magicLink,
       email,
@@ -35,13 +36,14 @@ export async function sendMagicLinkEmail({
     });
 
     if (!resp.success) {
-      console.error("Failed to send magic link email:", resp);
+      log.error({ email, type: "magic-link", resp }, "magic link email failed");
       throw new Error("Failed to send magic link email");
     }
 
+    log.info({ email, type: "magic-link" }, "magic link email sent");
     return resp;
   } catch (error) {
-    console.error("Error sending magic link email:", error);
+    log.error({ email, type: "magic-link", err: error }, "magic link email error");
     throw error;
   }
 }
@@ -72,10 +74,7 @@ export async function sendOTPEmail({
         transactionalId = TRANSACTIONAL_IDS.otpVerification;
     }
 
-    console.log("transactionalId", transactionalId);
-    console.log("email", email);
-    console.log("otp", otp);
-    console.log("type", type);
+    log.info({ email, type, transactionalId }, "sending OTP email");
 
     const resp = await loops.sendTransactionalEmail({
       transactionalId,
@@ -88,13 +87,14 @@ export async function sendOTPEmail({
     });
 
     if (!resp.success) {
-      console.error("Failed to send OTP email:", resp);
+      log.error({ email, type, resp }, "OTP email failed");
       throw new Error("Failed to send OTP email");
     }
 
+    log.info({ email, type }, "OTP email sent");
     return resp;
   } catch (error) {
-    console.error("Error sending OTP email:", error);
+    log.error({ email, type, err: error }, "OTP email error");
     throw error;
   }
 }
@@ -115,7 +115,7 @@ export async function sendVerificationEmail({
         ? TRANSACTIONAL_IDS.emailVerification
         : TRANSACTIONAL_IDS.passwordReset;
 
-    console.log("Sending verification email:", { email, url, type, transactionalId });
+    log.info({ email, type }, "sending verification email");
 
     const resp = await loops.sendTransactionalEmail({
       transactionalId,
@@ -128,13 +128,14 @@ export async function sendVerificationEmail({
     });
 
     if (!resp.success) {
-      console.error("Failed to send verification email:", resp);
+      log.error({ email, type, resp }, "verification email failed");
       throw new Error("Failed to send verification email");
     }
 
+    log.info({ email, type }, "verification email sent");
     return resp;
   } catch (error) {
-    console.error("Error sending verification email:", error);
+    log.error({ email, type, err: error }, "verification email error");
     throw error;
   }
 }
@@ -150,6 +151,7 @@ export async function syncUserToLoops({
   name?: string;
 }) {
   try {
+    log.info({ email, userId }, "syncing user to Loops");
     const resp = await loops.updateContact({
       email,
       userId,
@@ -160,13 +162,12 @@ export async function syncUserToLoops({
     });
 
     if (!resp.success) {
-      console.error("Failed to sync user to Loops:", resp);
+      log.error({ email, userId, resp }, "failed to sync user to Loops");
     }
 
     return resp;
   } catch (error) {
-    console.error("Error syncing user to Loops:", error);
-    // Don't throw - this is not critical
+    log.error({ email, userId, err: error }, "error syncing user to Loops");
   }
 }
 

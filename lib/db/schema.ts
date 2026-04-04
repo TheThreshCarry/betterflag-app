@@ -21,6 +21,7 @@ export const featureFlags = pgTable(
   (table) => [
     index("feature_flags_key_env_idx").on(table.key, table.environment),
     index("feature_flags_org_idx").on(table.organizationId),
+    uniqueIndex("feature_flags_org_key_env_uidx").on(table.organizationId, table.key, table.environment),
   ]
 );
 
@@ -47,6 +48,7 @@ export const globalConfigs = pgTable(
   (table) => [
     index("global_configs_slug_env_idx").on(table.slug, table.environment),
     index("global_configs_org_idx").on(table.organizationId),
+    uniqueIndex("global_configs_org_slug_env_uidx").on(table.organizationId, table.slug, table.environment),
   ]
 );
 
@@ -113,8 +115,8 @@ export const changelogLabelAssignments = pgTable(
   "changelog_label_assignments",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    changelogId: uuid("changelog_id").notNull(),
-    labelId: uuid("label_id").notNull(),
+    changelogId: uuid("changelog_id").notNull().references(() => changelogs.id, { onDelete: "cascade" }),
+    labelId: uuid("label_id").notNull().references(() => changelogLabels.id, { onDelete: "cascade" }),
   },
   (table) => [
     index("cla_changelog_idx").on(table.changelogId),
@@ -160,7 +162,7 @@ export const changelogSubscriptions = pgTable(
   "changelog_subscriptions",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    customerId: uuid("customer_id").notNull(),
+    customerId: uuid("customer_id").notNull().references(() => customers.id, { onDelete: "cascade" }),
     organizationId: text("organization_id"),
     subscribedAt: timestamp("subscribed_at").defaultNow().notNull(),
     unsubscribedAt: timestamp("unsubscribed_at"),

@@ -1,7 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { eq, and, desc, isNull } from "drizzle-orm"
+import { eq, and, desc, isNull, inArray } from "drizzle-orm"
 import db from "@/lib/db"
 import {
   entries,
@@ -12,6 +12,9 @@ import {
 import { getSessionData } from "@/lib/actions/utils"
 import { parseSchemaFields } from "@/lib/cms/schema-utils"
 import { validateEntryData, coerceFieldValues } from "@/lib/cms/schema-validation"
+import { createLogger } from "@/lib/logger"
+
+const log = createLogger("actions.cms")
 
 function slugify(text: string): string {
   return text
@@ -80,8 +83,10 @@ export async function getEntries(contentTypeId?: string) {
 }
 
 export async function getEntry(id: string) {
+  const { organizationId } = await getSessionData()
+  if (!organizationId) throw new Error("No active organization")
   return db.query.entries.findFirst({
-    where: eq(entries.id, id),
+    where: and(eq(entries.id, id), eq(entries.organizationId, organizationId)),
     with: {
       contentType: true,
       entryRelations: true,
@@ -132,6 +137,7 @@ export async function createEntry(
     })
     .returning()
 
+  log.info({ id: entry.id, slug, contentTypeId: data.contentTypeId }, "entry created")
   revalidatePath("/dashboard/cms")
   return entry
 }
@@ -140,7 +146,9 @@ export async function updateEntry(
   id: string,
   data: Partial<Omit<NewEntry, "id" | "createdAt" | "organizationId">> & { title?: string }
 ) {
-  // Prioritize the title argument over data.title (schema field)
+  const { organizationId } = await getSessionData()
+  if (!organizationId) throw new Error("No active organization")
+
   const entryTitle = data.title !== undefined ? data.title : (
     data.data && typeof data.data === "object"
       ? (data.data as Record<string, unknown>).title as string | undefined
@@ -165,27 +173,82 @@ export async function updateEntry(
   const [entry] = await db
     .update(entries)
     .set(updateData)
-    .where(eq(entries.id, id))
+    .where(and(eq(entries.id, id), eq(entries.organizationId, organizationId)))
     .returning()
 
   revalidatePath("/dashboard/cms")
   return entry
 }
 
+async function assertEntriesInOrganization(
+  ids: string[],
+  organizationId: string
+): Promise<void> {
+  if (ids.length === 0) return
+  const found = await db.query.entries.findMany({
+    where: and(
+      eq(entries.organizationId, organizationId),
+      inArray(entries.id, ids)
+    ),
+    columns: { id: true },
+  })
+  if (found.length !== ids.length) {
+    throw new Error("Some entries were not found or you do not have access")
+  }
+}
+
 export async function deleteEntry(id: string) {
+  const { organizationId } = await getSessionData()
+  if (!organizationId) throw new Error("No active organization")
+  await assertEntriesInOrganization([id], organizationId)
   await db.delete(entries).where(eq(entries.id, id))
+  log.info({ id }, "entry deleted")
 
   revalidatePath("/dashboard/cms")
 }
 
+export async function bulkDeleteEntries(ids: string[]) {
+  const { organizationId } = await getSessionData()
+  if (!organizationId) throw new Error("No active organization")
+  if (ids.length === 0) return
+  await assertEntriesInOrganization(ids, organizationId)
+  await db.delete(entries).where(inArray(entries.id, ids))
+  log.info({ count: ids.length }, "entries bulk deleted")
+  revalidatePath("/dashboard/cms")
+}
+
+export async function bulkPublishEntries(ids: string[]) {
+  const { organizationId } = await getSessionData()
+  if (!organizationId) throw new Error("No active organization")
+  if (ids.length === 0) return
+  await assertEntriesInOrganization(ids, organizationId)
+  for (const id of ids) {
+    await publishEntry(id)
+  }
+}
+
+export async function bulkUnpublishEntries(ids: string[]) {
+  const { organizationId } = await getSessionData()
+  if (!organizationId) throw new Error("No active organization")
+  if (ids.length === 0) return
+  await assertEntriesInOrganization(ids, organizationId)
+  await db
+    .update(entries)
+    .set({ status: "draft", updatedAt: new Date() })
+    .where(inArray(entries.id, ids))
+  revalidatePath("/dashboard/cms")
+}
+
 export async function publishEntry(id: string) {
-  // Fetch the entry with its content type for validation
+  const { organizationId } = await getSessionData()
+  if (!organizationId) throw new Error("No active organization")
+
   const entry = await db.query.entries.findFirst({
     where: eq(entries.id, id),
     with: { contentType: true },
   })
 
-  if (!entry) {
+  if (!entry || entry.organizationId !== organizationId) {
     throw new Error("Entry not found")
   }
 
@@ -211,6 +274,10 @@ export async function publishEntry(id: string) {
 }
 
 export async function unpublishEntry(id: string) {
+  const { organizationId } = await getSessionData()
+  if (!organizationId) throw new Error("No active organization")
+  await assertEntriesInOrganization([id], organizationId)
+
   const [entry] = await db
     .update(entries)
     .set({

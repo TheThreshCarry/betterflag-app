@@ -189,3 +189,16 @@
 .tiptap ul[data-type="taskList"] li > div {
   flex: 1;
 }
+
+/* Drag & Drop styling */
+.ProseMirror-selectednode {
+  outline: 2px solid oklch(var(--primary));
+  background-color: oklch(var(--muted));
+  border-radius: var(--radius);
+  transition: background-color 0.2s;
+}
+
+.ProseMirror-dropcursor {
+  background-color: #2563EB !important;
+  border-radius: 4px;
+}

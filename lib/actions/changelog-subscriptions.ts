@@ -75,12 +75,18 @@ export async function subscribe(customerId: string) {
 }
 
 export async function unsubscribe(subscriptionId: string) {
+  const organizationId = await getOrganizationId()
+  if (!organizationId) throw new Error("No active organization")
+  const existing = await db.query.changelogSubscriptions.findFirst({
+    where: and(eq(changelogSubscriptions.id, subscriptionId), eq(changelogSubscriptions.organizationId, organizationId)),
+  })
+  if (!existing) throw new Error("Subscription not found")
   const [subscription] = await db
     .update(changelogSubscriptions)
     .set({
       unsubscribedAt: new Date(),
     })
-    .where(eq(changelogSubscriptions.id, subscriptionId))
+    .where(and(eq(changelogSubscriptions.id, subscriptionId), eq(changelogSubscriptions.organizationId, organizationId)))
     .returning()
 
   revalidatePath("/dashboard/changelogs/subscribers")

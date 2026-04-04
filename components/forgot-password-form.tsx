@@ -6,15 +6,7 @@ import { useState } from "react"
 import { authClient } from "@/lib/auth/auth-client"
 import { Button } from "@/components/ui/button"
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import {
   Field,
-  FieldDescription,
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field"
@@ -54,77 +46,70 @@ export function ForgotPasswordForm({
   if (emailSent) {
     return (
       <div className={cn("flex flex-col gap-6", className)} {...props}>
-        <Card>
-          <CardHeader className="text-center">
-            <CardTitle className="text-xl">Check your email</CardTitle>
-            <CardDescription>
-              We&apos;ve sent a password reset link to <strong>{email}</strong>
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-center text-sm text-muted-foreground">
-              Click the link in your email to reset your password.
-            </p>
-            <div className="mt-4 text-center">
-              <Link
-                href="/auth/login"
-                className="text-sm underline underline-offset-4 hover:text-primary"
-              >
-                Back to login
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-semibold tracking-tight">Check your email</h1>
+          <p className="text-sm text-muted-foreground mt-2">
+            We&apos;ve sent a password reset link to <strong>{email}</strong>
+          </p>
+        </div>
+        <div className="text-center">
+          <p className="text-sm text-muted-foreground mb-6">
+            Click the link in your email to reset your password.
+          </p>
+          <Link
+            href="/auth/login"
+            className="text-sm text-primary hover:underline underline-offset-4"
+          >
+            Back to login
+          </Link>
+        </div>
       </div>
     )
   }
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
-        <CardHeader className="text-center">
-          <CardTitle className="text-xl">Forgot your password?</CardTitle>
-          <CardDescription>
-            Enter your email and we&apos;ll send you a reset link
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit}>
-            <FieldGroup>
-              {error && (
-                <Field>
-                  <p className="text-sm text-destructive">{error}</p>
-                </Field>
-              )}
-              <Field>
-                <FieldLabel htmlFor="email">Email</FieldLabel>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="m@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </Field>
-              <Field>
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading ? "Sending..." : "Send reset link"}
-                </Button>
-                <FieldDescription className="text-center">
-                  Remember your password?{" "}
-                  <Link
-                    href="/auth/login"
-                    className="underline underline-offset-4"
-                  >
-                    Sign in
-                  </Link>
-                </FieldDescription>
-              </Field>
-            </FieldGroup>
-          </form>
-        </CardContent>
-      </Card>
+      <div className="text-center mb-8">
+        <h1 className="text-2xl font-semibold tracking-tight">Forgot your password?</h1>
+        <p className="text-sm text-muted-foreground mt-2">
+          Enter your email and we&apos;ll send you a reset link
+        </p>
+      </div>
+      <form onSubmit={handleSubmit}>
+        <FieldGroup>
+          {error && (
+            <Field>
+              <p className="text-sm text-destructive text-center">{error}</p>
+            </Field>
+          )}
+          <Field>
+            <FieldLabel htmlFor="email" className="sr-only">Email</FieldLabel>
+            <Input
+              id="email"
+              type="email"
+              placeholder="name@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="h-11 bg-muted/50 border-transparent focus-visible:bg-background focus-visible:border-primary"
+            />
+          </Field>
+          <Field className="pt-2">
+            <Button type="submit" disabled={isLoading} className="w-full h-11">
+              {isLoading ? "Sending..." : "Send reset link"}
+            </Button>
+          </Field>
+          <div className="text-center mt-4 text-sm text-muted-foreground">
+            Remember your password?{" "}
+            <Link
+              href="/auth/login"
+              className="text-primary hover:underline"
+            >
+              Sign in
+            </Link>
+          </div>
+        </FieldGroup>
+      </form>
     </div>
   )
 }

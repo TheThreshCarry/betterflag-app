@@ -12,13 +12,6 @@ import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
@@ -77,46 +70,36 @@ export function ProfileClient({ user }: ProfileClientProps) {
     name !== user.name || username !== (user.username ?? "")
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-12">
       {/* Profile Picture */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-              <User className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <CardTitle>Profile Picture</CardTitle>
-              <CardDescription>
-                Upload a profile picture to personalize your account
-              </CardDescription>
-            </div>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between border-b pb-4">
+          <div>
+            <h1 className="text-xl font-semibold tracking-tight">Profile Picture</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Upload a profile picture to personalize your account
+            </p>
           </div>
-        </CardHeader>
-        <CardContent className="flex justify-center py-6">
+        </div>
+        <div className="flex py-2">
           <ProfilePictureUpload
             currentImage={user.image}
             userName={user.name}
           />
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Personal Information */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-              <Mail className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <CardTitle>Personal Information</CardTitle>
-              <CardDescription>
-                Update your name, username, and view account details
-              </CardDescription>
-            </div>
+      <div className="space-y-6 pt-6 border-t">
+        <div className="flex items-center justify-between border-b pb-4">
+          <div>
+            <h2 className="text-xl font-semibold tracking-tight">Personal Information</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Update your name, username, and view account details
+            </p>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
+        </div>
+        <div className="space-y-6 max-w-2xl">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2">
               <Label htmlFor="profile-name">Full Name</Label>
@@ -149,12 +132,12 @@ export function ProfileClient({ user }: ProfileClientProps) {
             <div className="flex items-center gap-2">
               <Input value={user.email} disabled className="flex-1" />
               {user.emailVerified ? (
-                <Badge className="gap-1 bg-emerald-100 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950 dark:text-emerald-400">
+                <Badge className="gap-1 bg-emerald-100 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950 dark:text-emerald-400 font-normal">
                   <CheckCircle2 className="h-3 w-3" />
                   Verified
                 </Badge>
               ) : (
-                <Badge variant="secondary">Unverified</Badge>
+                <Badge variant="secondary" className="font-normal">Unverified</Badge>
               )}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -179,8 +162,8 @@ export function ProfileClient({ user }: ProfileClientProps) {
               )}
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 }

@@ -12,6 +12,8 @@ export type Bindings = {
   ASSETS: Fetcher;
   /** Polar access token for usage event ingestion */
   POLAR_ACCESS_TOKEN: string;
+  /** Polar API host (no path), e.g. https://api.polar.sh or https://sandbox-api.polar.sh */
+  POLAR_API_BASE?: string;
   /** Shared secret for internal service-to-service calls (e.g. KV sync from Next.js) */
   SERVICE_SECRET: string;
   /** ClickHouse connection URL (e.g. https://your-ch-host:8443) */
@@ -38,6 +40,9 @@ export type ApiKeyData = {
   expiresAt: string | null;
   /** Optional permissions array */
   permissions?: string[];
+  rateLimitEnabled?: boolean;
+  rateLimitTimeWindow?: number;
+  rateLimitMax?: number;
 };
 
 /**
@@ -50,6 +55,8 @@ export type Variables = {
   environment: string;
   /** Organization ID extracted from API key validation */
   organizationId: string;
+  /** Full KV / DB metadata for this key (rate limits, permissions) */
+  apiKeyData: ApiKeyData;
 };
 
 /**
@@ -64,11 +71,10 @@ export type AppEnv = {
  * KV Key builders for consistent key formatting
  */
 export const KVKeys = {
-  /**
-   * Build the API key lookup key
-   * Format: v1::apikey::{apiKey}
-   */
-  apiKey: (apiKey: string): string => `v1::apikey::${apiKey}`,
+  /** Preferred: v1::apikey_h::{sha256Hex} */
+  apiKeyHashed: (keyHash: string): string => `v1::apikey_h::${keyHash}`,
+  /** Legacy: v1::apikey::{rawApiKey} */
+  apiKeyLegacy: (rawApiKey: string): string => `v1::apikey::${rawApiKey}`,
 
   /**
    * Build the flags key (organization-scoped)

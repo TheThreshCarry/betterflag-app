@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { eq, and, isNull } from "drizzle-orm"
 import db from "@/lib/db"
 import { contentTypes } from "@/lib/db/schema"
+import { createLogger } from "@/lib/logger"
+
+const log = createLogger("api.cms")
 
 /**
  * GET /api/cms/content-types
@@ -26,7 +29,8 @@ export async function GET(request: NextRequest) {
     })
 
     return NextResponse.json({ data: results })
-  } catch {
+  } catch (error) {
+    log.error({ err: error, organizationId }, "failed to fetch content types")
     return NextResponse.json(
       { error: "Failed to fetch content types" },
       { status: 500 }

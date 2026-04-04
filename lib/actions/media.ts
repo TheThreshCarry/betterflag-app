@@ -5,6 +5,10 @@ import { eq, and, desc, sql, isNull } from "drizzle-orm"
 import db from "@/lib/db"
 import { mediaAssets, mediaFolders } from "@/lib/db/schema"
 import { getSessionData } from "@/lib/actions/utils"
+import { createLogger } from "@/lib/logger"
+import { workerServiceHeaders } from "@/lib/worker-internal"
+
+const log = createLogger("actions.media")
 
 // ---------------------------------------------------------------------------
 // Media Assets
@@ -34,8 +38,10 @@ export async function getMediaAssets(
 }
 
 export async function getMediaAsset(id: string) {
+  const { organizationId } = await getSessionData()
+  if (!organizationId) throw new Error("No active organization")
   return db.query.mediaAssets.findFirst({
-    where: eq(mediaAssets.id, id),
+    where: and(eq(mediaAssets.id, id), eq(mediaAssets.organizationId, organizationId)),
   })
 }
 
@@ -61,17 +67,17 @@ export async function deleteMediaAsset(id: string) {
   // Delete from R2 via API route
   const workerUrl = process.env.WORKER_API_URL || "http://localhost:8787"
   try {
-    await fetch(`${workerUrl}/media/delete`, {
+    await fetch(`${workerUrl}/internal/media/delete`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: workerServiceHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({ key: asset.key }),
     })
   } catch (error) {
-    console.error("Failed to delete from R2:", error)
+    log.error({ assetId: id, key: asset.key, err: error }, "failed to delete from R2")
   }
 
-  // Delete from database
   await db.delete(mediaAssets).where(eq(mediaAssets.id, id))
+  log.info({ id, key: asset.key, orgId: organizationId }, "media asset deleted")
 
   revalidatePath("/dashboard/media")
 }

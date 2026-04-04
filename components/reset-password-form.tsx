@@ -7,15 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { authClient } from "@/lib/auth/auth-client"
 import { Button } from "@/components/ui/button"
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import {
   Field,
-  FieldDescription,
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field"
@@ -74,19 +66,15 @@ export function ResetPasswordForm({
   if (success) {
     return (
       <div className={cn("flex flex-col gap-6", className)} {...props}>
-        <Card>
-          <CardHeader className="text-center">
-            <CardTitle className="text-xl">Password reset successful</CardTitle>
-            <CardDescription>
-              Your password has been updated successfully.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button asChild className="w-full">
-              <Link href="/auth/login">Sign in with new password</Link>
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-semibold tracking-tight">Password reset successful</h1>
+          <p className="text-sm text-muted-foreground mt-2">
+            Your password has been updated successfully.
+          </p>
+        </div>
+        <Button asChild className="w-full h-11">
+          <Link href="/auth/login">Sign in with new password</Link>
+        </Button>
       </div>
     )
   }
@@ -94,74 +82,70 @@ export function ResetPasswordForm({
   if (!token) {
     return (
       <div className={cn("flex flex-col gap-6", className)} {...props}>
-        <Card>
-          <CardHeader className="text-center">
-            <CardTitle className="text-xl">Invalid reset link</CardTitle>
-            <CardDescription>
-              This password reset link is invalid or has expired.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button asChild className="w-full">
-              <Link href="/auth/forgot-password">Request a new link</Link>
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-semibold tracking-tight">Invalid reset link</h1>
+          <p className="text-sm text-muted-foreground mt-2">
+            This password reset link is invalid or has expired.
+          </p>
+        </div>
+        <Button asChild className="w-full h-11">
+          <Link href="/auth/forgot-password">Request a new link</Link>
+        </Button>
       </div>
     )
   }
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
-        <CardHeader className="text-center">
-          <CardTitle className="text-xl">Reset your password</CardTitle>
-          <CardDescription>
-            Enter your new password below
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit}>
-            <FieldGroup>
-              {error && (
-                <Field>
-                  <p className="text-sm text-destructive">{error}</p>
-                </Field>
-              )}
-              <Field>
-                <FieldLabel htmlFor="password">New Password</FieldLabel>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="confirm-password">
-                  Confirm New Password
-                </FieldLabel>
-                <Input
-                  id="confirm-password"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                />
-                <FieldDescription>
-                  Must be at least 8 characters long.
-                </FieldDescription>
-              </Field>
-              <Field>
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading ? "Resetting..." : "Reset password"}
-                </Button>
-              </Field>
-            </FieldGroup>
-          </form>
-        </CardContent>
-      </Card>
+      <div className="text-center mb-8">
+        <h1 className="text-2xl font-semibold tracking-tight">Reset your password</h1>
+        <p className="text-sm text-muted-foreground mt-2">
+          Enter your new password below
+        </p>
+      </div>
+      <form onSubmit={handleSubmit}>
+        <FieldGroup>
+          {error && (
+            <Field>
+              <p className="text-sm text-destructive text-center">{error}</p>
+            </Field>
+          )}
+          <Field>
+            <FieldLabel htmlFor="password" className="sr-only">New Password</FieldLabel>
+            <Input
+              id="password"
+              type="password"
+              placeholder="New password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="h-11 bg-muted/50 border-transparent focus-visible:bg-background focus-visible:border-primary"
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="confirm-password" className="sr-only">
+              Confirm New Password
+            </FieldLabel>
+            <Input
+              id="confirm-password"
+              type="password"
+              placeholder="Confirm new password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              className="h-11 bg-muted/50 border-transparent focus-visible:bg-background focus-visible:border-primary"
+            />
+            <p className="text-[0.8rem] text-muted-foreground mt-2">
+              Must be at least 8 characters long.
+            </p>
+          </Field>
+          <Field className="pt-2">
+            <Button type="submit" disabled={isLoading} className="w-full h-11">
+              {isLoading ? "Resetting..." : "Reset password"}
+            </Button>
+          </Field>
+        </FieldGroup>
+      </form>
     </div>
   )
 }

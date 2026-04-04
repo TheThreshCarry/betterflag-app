@@ -5,13 +5,6 @@ import { ImageIcon, Loader2, ArrowRight } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import {
@@ -122,16 +115,15 @@ export function OnboardingForm({
   return (
     <div className={cn("flex flex-col gap-6", className)}>
       <Card>
-        <CardHeader className="text-center">
-          <CardTitle className="text-xl">
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-semibold tracking-tight">
             Welcome, {userName.split(" ")[0]}!
-          </CardTitle>
-          <CardDescription>
+          </h1>
+          <p className="text-sm text-muted-foreground mt-2">
             Set up your organization to get started with ShipOS
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit}>
+          </p>
+        </div>
+        <form onSubmit={handleSubmit}>
             <FieldGroup>
               {error && (
                 <Field>
@@ -227,7 +219,7 @@ export function OnboardingForm({
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full"
+                  className="w-full h-11"
                   size="lg"
                 >
                   {isLoading ? (
@@ -245,8 +237,6 @@ export function OnboardingForm({
               </Field>
             </FieldGroup>
           </form>
-        </CardContent>
-      </Card>
     </div>
   )
 }

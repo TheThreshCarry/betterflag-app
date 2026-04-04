@@ -1,7 +1,10 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
+import { createLogger } from "@/lib/logger";
+import { workerServiceHeaders } from "@/lib/worker-internal";
 
+const log = createLogger("api.profile");
 const WORKER_URL = process.env.WORKER_API_URL || "http://localhost:8787";
 
 export async function POST(request: NextRequest) {
@@ -32,8 +35,9 @@ export async function POST(request: NextRequest) {
     workerFormData.append("userId", session.user.id);
 
     // Forward to Cloudflare Worker
-    const response = await fetch(`${WORKER_URL}/profile-picture/upload`, {
+    const response = await fetch(`${WORKER_URL}/internal/profile-picture/upload`, {
       method: "POST",
+      headers: workerServiceHeaders(),
       body: workerFormData,
     });
 
@@ -48,7 +52,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(data);
   } catch (error) {
-    console.error("Profile picture upload error:", error);
+    log.error({ err: error }, "profile picture upload error");
     return NextResponse.json(
       { error: "Failed to upload profile picture" },
       { status: 500 }

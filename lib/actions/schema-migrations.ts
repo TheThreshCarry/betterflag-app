@@ -51,10 +51,12 @@ export async function updateMigrationStatus(
   id: string,
   status: "pending" | "done" | "error"
 ) {
+  const { organizationId } = await getSessionData()
+  if (!organizationId) throw new Error("No active organization")
   const [entry] = await db
     .update(schemaMigrations)
     .set({ status })
-    .where(eq(schemaMigrations.id, id))
+    .where(and(eq(schemaMigrations.id, id), eq(schemaMigrations.organizationId, organizationId)))
     .returning()
 
   revalidatePath("/dashboard/cms")
@@ -62,9 +64,10 @@ export async function updateMigrationStatus(
 }
 
 export async function runMigration(id: string) {
-  // 1. Get the migration record
+  const { organizationId } = await getSessionData()
+  if (!organizationId) throw new Error("No active organization")
   const migration = await db.query.schemaMigrations.findFirst({
-    where: eq(schemaMigrations.id, id),
+    where: and(eq(schemaMigrations.id, id), eq(schemaMigrations.organizationId, organizationId)),
   })
 
   if (!migration) {

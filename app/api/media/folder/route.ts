@@ -4,6 +4,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { eq, and } from "drizzle-orm";
 import db from "@/lib/db";
 import { mediaFolders, mediaAssets } from "@/lib/db/schema";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("api.media");
 
 /**
  * POST /api/media/folder
@@ -82,7 +85,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, folder });
   } catch (error) {
-    console.error("Folder create error:", error);
+    log.error({ err: error }, "folder create error");
     return NextResponse.json(
       { error: "Failed to create folder" },
       { status: 500 }
@@ -171,7 +174,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Folder delete error:", error);
+    log.error({ err: error }, "folder delete error");
     return NextResponse.json(
       { error: "Failed to delete folder" },
       { status: 500 }

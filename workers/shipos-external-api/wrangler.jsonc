@@ -40,7 +40,8 @@
 	 * - CLICKHOUSE_PASSWORD: ClickHouse analytics password
 	 */
 	"vars": {
-		"CLICKHOUSE_DATABASE": "shipos_analytics"
+		"CLICKHOUSE_DATABASE": "shipos_analytics",
+		"POLAR_API_BASE": "https://api.polar.sh"
 	},
 	/**
 	 * Smart Placement

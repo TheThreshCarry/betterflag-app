@@ -171,119 +171,110 @@ export function FeatureFlagsClient({ initialFlags }: FeatureFlagsClientProps) {
   }
 
   return (
-    <>
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                <Flag className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <CardTitle>Feature Flags</CardTitle>
-                <CardDescription>
-                  Manage feature flags for your application
-                </CardDescription>
-              </div>
-            </div>
-            <Button onClick={() => setIsCreateOpen(true)}>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between border-b pb-4">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Feature Flags</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage feature flags for your application
+          </p>
+        </div>
+        <Button onClick={() => setIsCreateOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Create Flag
+        </Button>
+      </div>
+
+      <div>
+        {flags.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <Flag className="h-10 w-10 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold">No feature flags</h3>
+            <p className="mt-2 text-sm text-muted-foreground max-w-md">
+              Create your first feature flag to get started controlling access to new features.
+            </p>
+            <Button className="mt-6" onClick={() => setIsCreateOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
               Create Flag
             </Button>
           </div>
-        </CardHeader>
-        <CardContent>
-          {flags.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-                <Flag className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <h3 className="mt-4 text-lg font-semibold">No feature flags</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Create your first feature flag to get started
-              </p>
-              <Button className="mt-4" onClick={() => setIsCreateOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Create Flag
-              </Button>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Key</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Environment</TableHead>
-                  <TableHead>Updated</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {flags.map((flag) => (
-                  <TableRow
-                    key={flag.id}
-                    className="cursor-pointer"
-                    onClick={() => router.push(`/dashboard/flags/${flag.id}`)}
-                  >
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <Switch
-                        checked={flag.enabled}
-                        onCheckedChange={(checked) => handleToggle(flag, checked)}
-                      />
-                    </TableCell>
-                    <TableCell className="font-mono text-sm">{flag.key}</TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{flag.name}</div>
-                        {flag.description && (
-                          <div className="text-sm text-muted-foreground truncate max-w-xs">
-                            {flag.description}
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          flag.environment === "production"
-                            ? "default"
-                            : flag.environment === "staging"
-                            ? "secondary"
-                            : "outline"
-                        }
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-16">Status</TableHead>
+                <TableHead>Key</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Environment</TableHead>
+                <TableHead>Updated</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {flags.map((flag) => (
+                <TableRow
+                  key={flag.id}
+                  className="group cursor-pointer hover:bg-muted/50"
+                  onClick={() => router.push(`/dashboard/flags/${flag.id}`)}
+                >
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Switch
+                      checked={flag.enabled}
+                      onCheckedChange={(checked) => handleToggle(flag, checked)}
+                    />
+                  </TableCell>
+                  <TableCell className="font-mono text-sm text-muted-foreground">{flag.key}</TableCell>
+                  <TableCell>
+                    <div>
+                      <div className="font-medium">{flag.name}</div>
+                      {flag.description && (
+                        <div className="text-sm text-muted-foreground truncate max-w-xs">
+                          {flag.description}
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        flag.environment === "production"
+                          ? "default"
+                          : flag.environment === "staging"
+                          ? "secondary"
+                          : "outline"
+                      }
+                      className="font-normal"
+                    >
+                      {flag.environment}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {new Date(flag.updatedAt).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex justify-end gap-2 opacity-20 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openEditDialog(flag)}
                       >
-                        {flag.environment}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {new Date(flag.updatedAt).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openEditDialog(flag)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openDeleteDialog(flag)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openDeleteDialog(flag)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </div>
 
       {/* Create Dialog */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
@@ -476,6 +467,6 @@ export function FeatureFlagsClient({ initialFlags }: FeatureFlagsClientProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   )
 }

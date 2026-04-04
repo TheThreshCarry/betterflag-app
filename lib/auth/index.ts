@@ -32,6 +32,9 @@ import {
   onSubscriptionRevoked,
 } from "../polar/webhook-handlers";
 import { sendMagicLinkEmail, sendOTPEmail, sendVerificationEmail } from "../email";
+import { createLogger } from "@/lib/logger";
+
+const log = createLogger("auth");
 
 export const auth = betterAuth({
   appName: "ShipOS",
@@ -61,7 +64,7 @@ export const auth = betterAuth({
     sendOnSignUp: true,
     autoSignInAfterVerification: true,
     sendResetPassword: async ({ user, url }: { user: User; url: string }) => {
-      console.log("sendResetPassword", { user, url });
+      log.info({ userId: user.id, email: user.email }, "sending password reset email");
       await sendVerificationEmail({
         email: user.email,
         url,
@@ -69,8 +72,7 @@ export const auth = betterAuth({
       });
     },
     onPasswordReset: async ({ user }: { user: User }) => {
-      // your logic here
-      console.log(`Password for user ${user.email} has been reset.`);
+      log.info({ userId: user.id, email: user.email }, "password reset completed");
     },
   },
   databaseHooks: {
@@ -87,24 +89,22 @@ export const auth = betterAuth({
               externalId: user.id,
             });
           } catch (error) {
-            console.error(
-              `[Polar] Failed to create customer for user ${user.id}:`,
-              error
-            );
+            log.error({ userId: user.id, err: error }, "failed to create Polar customer");
 
-            // Rollback: delete the user (cascade removes account, session, etc.)
-            try {
-              await db.delete(userTable).where(eq(userTable.id, user.id));
-            } catch (deleteError) {
-              console.error(
-                `[Polar] Failed to rollback user ${user.id}:`,
-                deleteError
+            if (process.env.NODE_ENV === "production") {
+              try {
+                await db.delete(userTable).where(eq(userTable.id, user.id));
+                log.warn({ userId: user.id }, "rolled back user after Polar failure");
+              } catch (deleteError) {
+                log.error({ userId: user.id, err: deleteError }, "failed to rollback user after Polar failure");
+              }
+
+              throw new Error(
+                "Unable to complete sign-up. Please try again later."
               );
             }
 
-            throw new Error(
-              "Unable to complete sign-up. Please try again later."
-            );
+            log.warn({ userId: user.id }, "skipping Polar customer creation in non-production environment");
           }
         },
       },

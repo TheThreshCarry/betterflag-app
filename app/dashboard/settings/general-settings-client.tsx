@@ -2,10 +2,8 @@
 
 import { useState } from "react"
 import {
-  Building2,
   Save,
   Loader2,
-  AlertTriangle,
   Trash2,
   ImageIcon,
 } from "lucide-react"
@@ -138,163 +136,165 @@ function GeneralSettingsForm({ organization }: { organization: Organization }) {
     description !== organization.description
 
   return (
-    <div className="space-y-6">
-      {/* Organization Info */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-              <Building2 className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <CardTitle>Organization Info</CardTitle>
-              <CardDescription>
-                Manage your organization&apos;s identity and branding
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-2">
-              <Label htmlFor="org-name">Organization Name</Label>
-              <Input
-                id="org-name"
-                placeholder="My Organization"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                The display name for your organization
-              </p>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="org-slug">Slug</Label>
-              <Input
-                id="org-slug"
-                placeholder="my-organization"
-                value={slug}
-                onChange={(e) =>
-                  setSlug(
-                    e.target.value
-                      .toLowerCase()
-                      .replace(/[^a-z0-9-]/g, "-")
-                      .replace(/-+/g, "-")
-                  )
-                }
-              />
-              <p className="text-xs text-muted-foreground">
-                URL-friendly identifier for your organization
-              </p>
-            </div>
-          </div>
-
+    <div className="space-y-12">
+      <div className="flex items-center justify-between border-b pb-4">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Organization Info</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage your organization&apos;s identity and branding
+          </p>
+        </div>
+      </div>
+      
+      <div className="space-y-6 max-w-2xl">
+        <div className="grid gap-4 sm:grid-cols-2">
           <div className="grid gap-2">
-            <Label htmlFor="org-logo">Logo URL</Label>
-            <div className="flex gap-3">
-              {logo ? (
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={logo}
-                    alt="Organization logo"
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-              ) : (
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border bg-muted">
-                  <ImageIcon className="h-4 w-4 text-muted-foreground" />
-                </div>
-              )}
-              <Input
-                id="org-logo"
-                placeholder="https://example.com/logo.png"
-                value={logo}
-                onChange={(e) => setLogo(e.target.value)}
-                className="flex-1"
-              />
-            </div>
-            <p className="text-xs text-muted-foreground">
-              A URL to your organization&apos;s logo image
-            </p>
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="org-description">Description</Label>
-            <Textarea
-              id="org-description"
-              placeholder="What does your organization do?"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
+            <Label htmlFor="org-name">Organization Name</Label>
+            <Input
+              id="org-name"
+              placeholder="My Organization"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
             />
             <p className="text-xs text-muted-foreground">
-              A short description of your organization
+              The display name for your organization
             </p>
           </div>
-
-          <Separator />
-
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              Created on{" "}
-              {new Date(organization.createdAt).toLocaleDateString("en-US", {
-                month: "long",
-                day: "numeric",
-                year: "numeric",
-              })}
+          <div className="grid gap-2">
+            <Label htmlFor="org-slug">Slug</Label>
+            <Input
+              id="org-slug"
+              placeholder="my-organization"
+              value={slug}
+              onChange={(e) =>
+                setSlug(
+                  e.target.value
+                    .toLowerCase()
+                    .replace(/[^a-z0-9-]/g, "-")
+                    .replace(/-+/g, "-")
+                )
+              }
+            />
+            <p className="text-xs text-muted-foreground">
+              URL-friendly identifier for your organization
             </p>
-            <Button onClick={handleSave} disabled={saving || !hasChanges}>
-              {saving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
+          </div>
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="org-logo">Logo</Label>
+          <div className="flex items-center gap-3">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted">
+              {logo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={logo}
+                  alt="Organization logo"
+                  className="h-full w-full object-cover"
+                />
               ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Save Changes
-                </>
+                <ImageIcon className="h-5 w-5 text-muted-foreground" />
               )}
-            </Button>
+            </div>
+            <div className="grid flex-1 gap-1.5">
+              <Input
+                id="org-logo"
+                type="file"
+                accept="image/*"
+                className="cursor-pointer"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (!file) return
+                  const reader = new FileReader()
+                  reader.onload = (ev) => {
+                    setLogo((ev.target?.result as string) ?? "")
+                  }
+                  reader.readAsDataURL(file)
+                }}
+              />
+              {logo && (
+                <button
+                  type="button"
+                  onClick={() => setLogo("")}
+                  className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline text-left w-fit"
+                >
+                  Remove image
+                </button>
+              )}
+            </div>
           </div>
-        </CardContent>
-      </Card>
+          <p className="text-xs text-muted-foreground">
+            Upload an image for your organization&apos;s logo
+          </p>
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="org-description">Description</Label>
+          <Textarea
+            id="org-description"
+            placeholder="What does your organization do?"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={3}
+          />
+          <p className="text-xs text-muted-foreground">
+            A short description of your organization
+          </p>
+        </div>
+
+        <Separator />
+
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Created on{" "}
+            {new Date(organization.createdAt).toLocaleDateString("en-US", {
+              month: "long",
+              day: "numeric",
+              year: "numeric",
+            })}
+          </p>
+          <Button onClick={handleSave} disabled={saving || !hasChanges}>
+            {saving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-4 w-4" />
+                Save Changes
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
 
       {/* Danger Zone */}
-      <Card className="border-destructive/50">
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-destructive/10">
-              <AlertTriangle className="h-5 w-5 text-destructive" />
-            </div>
-            <div>
-              <CardTitle>Danger Zone</CardTitle>
-              <CardDescription>
-                Irreversible and destructive actions
-              </CardDescription>
-            </div>
+      <div className="pt-6 border-t">
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold tracking-tight text-destructive">Danger Zone</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Irreversible and destructive actions
+          </p>
+        </div>
+        
+        <div className="flex items-center justify-between rounded-lg border border-destructive/30 bg-destructive/5 p-4 max-w-2xl">
+          <div>
+            <p className="font-medium text-destructive">Delete Organization</p>
+            <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+              Permanently delete this organization, all its data, and remove
+              all members. This action cannot be undone.
+            </p>
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between rounded-lg border border-destructive/30 p-4">
-            <div>
-              <p className="font-medium">Delete Organization</p>
-              <p className="text-sm text-muted-foreground">
-                Permanently delete this organization, all its data, and remove
-                all members. This action cannot be undone.
-              </p>
-            </div>
-            <Button
-              variant="destructive"
-              onClick={() => setDeleteOpen(true)}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+          <Button
+            variant="destructive"
+            onClick={() => setDeleteOpen(true)}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Delete
+          </Button>
+        </div>
+      </div>
 
       {/* Delete Confirmation */}
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>

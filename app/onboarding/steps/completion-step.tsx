@@ -5,13 +5,6 @@ import { ArrowRight, Check, Loader2, PartyPopper, SkipForward } from "lucide-rea
 import { motion } from "framer-motion"
 
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import { ONBOARDING_MODULES } from "../module-configs"
 
 interface CompletionStepProps {
@@ -104,10 +97,10 @@ export function CompletionStep({
     Object.values(createdItems).filter((v) => v === false).length
 
   return (
-    <Card className="relative overflow-hidden">
+    <div className="relative overflow-hidden">
       <Confetti />
 
-      <CardHeader className="relative z-10 text-center">
+      <div className="relative z-10 text-center mb-8">
         <motion.div
           initial={{ scale: 0, rotate: -20 }}
           animate={{ scale: 1, rotate: 0 }}
@@ -117,7 +110,7 @@ export function CompletionStep({
             damping: 20,
             delay: 0.1,
           }}
-          className="mx-auto mb-3 flex size-16 items-center justify-center rounded-2xl bg-primary/10 text-primary"
+          className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-primary/10 text-primary"
         >
           <PartyPopper className="size-8" />
         </motion.div>
@@ -127,7 +120,7 @@ export function CompletionStep({
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <CardTitle className="text-2xl">You&apos;re all set!</CardTitle>
+          <h1 className="text-2xl font-semibold tracking-tight">You&apos;re all set!</h1>
         </motion.div>
 
         <motion.div
@@ -135,17 +128,17 @@ export function CompletionStep({
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.45 }}
         >
-          <CardDescription className="mx-auto max-w-sm text-base">
+          <p className="text-sm text-muted-foreground mx-auto max-w-sm mt-2">
             Your workspace is ready. Head to the dashboard to start building.
-          </CardDescription>
+          </p>
         </motion.div>
-      </CardHeader>
+      </div>
 
-      <CardContent className="relative z-10">
+      <div className="relative z-10">
         {/* Summary */}
         {setupModules.length > 0 && (
           <motion.div
-            className="mb-6 space-y-2"
+            className="mb-8 space-y-2"
             initial="hidden"
             animate="show"
             variants={{
@@ -200,6 +193,7 @@ export function CompletionStep({
                 variants={{
                   hidden: { opacity: 0 },
                   show: { opacity: 1 },
+                  transition: { delay: 0.7 },
                 }}
                 className="pt-2 text-center text-xs text-muted-foreground"
               >
@@ -222,7 +216,7 @@ export function CompletionStep({
           <Button
             onClick={handleClick}
             disabled={isNavigating}
-            className="w-full gap-2"
+            className="w-full gap-2 h-11"
             size="lg"
           >
             {isNavigating ? (
@@ -238,7 +232,7 @@ export function CompletionStep({
             )}
           </Button>
         </motion.div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }

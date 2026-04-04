@@ -9,6 +9,9 @@ import {
   type NewChangelog,
 } from "@/lib/db/schema"
 import { getSessionData } from "@/lib/actions/utils"
+import { createLogger } from "@/lib/logger"
+
+const log = createLogger("actions.changelogs")
 
 export async function getChangelogs() {
   const { organizationId } = await getSessionData()
@@ -22,8 +25,10 @@ export async function getChangelogs() {
 }
 
 export async function getChangelog(id: string) {
+  const { organizationId } = await getSessionData()
+  if (!organizationId) throw new Error("No active organization")
   return db.query.changelogs.findFirst({
-    where: eq(changelogs.id, id),
+    where: and(eq(changelogs.id, id), eq(changelogs.organizationId, organizationId)),
   })
 }
 
@@ -59,6 +64,7 @@ export async function createChangelog(
     })
     .returning()
 
+  log.info({ id: entry.id, slug }, "changelog created")
   revalidatePath("/dashboard/changelogs")
   return entry
 }
@@ -67,7 +73,8 @@ export async function updateChangelog(
   id: string,
   data: Partial<Omit<NewChangelog, "id" | "createdAt" | "organizationId" | "authorId">>
 ) {
-  // Re-generate slug if title is being updated
+  const { organizationId } = await getSessionData()
+  if (!organizationId) throw new Error("No active organization")
   const updateData: Record<string, unknown> = {
     ...data,
     updatedAt: new Date(),
@@ -79,14 +86,17 @@ export async function updateChangelog(
   const [entry] = await db
     .update(changelogs)
     .set(updateData)
-    .where(eq(changelogs.id, id))
+    .where(and(eq(changelogs.id, id), eq(changelogs.organizationId, organizationId)))
     .returning()
 
+  log.info({ id }, "changelog updated")
   revalidatePath("/dashboard/changelogs")
   return entry
 }
 
 export async function publishChangelog(id: string) {
+  const { organizationId } = await getSessionData()
+  if (!organizationId) throw new Error("No active organization")
   const [entry] = await db
     .update(changelogs)
     .set({
@@ -94,7 +104,7 @@ export async function publishChangelog(id: string) {
       publishedAt: new Date(),
       updatedAt: new Date(),
     })
-    .where(eq(changelogs.id, id))
+    .where(and(eq(changelogs.id, id), eq(changelogs.organizationId, organizationId)))
     .returning()
 
   revalidatePath("/dashboard/changelogs")
@@ -102,6 +112,8 @@ export async function publishChangelog(id: string) {
 }
 
 export async function unpublishChangelog(id: string) {
+  const { organizationId } = await getSessionData()
+  if (!organizationId) throw new Error("No active organization")
   const [entry] = await db
     .update(changelogs)
     .set({
@@ -109,7 +121,7 @@ export async function unpublishChangelog(id: string) {
       publishedAt: null,
       updatedAt: new Date(),
     })
-    .where(eq(changelogs.id, id))
+    .where(and(eq(changelogs.id, id), eq(changelogs.organizationId, organizationId)))
     .returning()
 
   revalidatePath("/dashboard/changelogs")
@@ -137,7 +149,6 @@ export async function deployChangelog(id: string) {
     .set({ deployedAt: null, updatedAt: new Date() })
     .where(condition)
 
-  // Then deploy the target changelog (also publish it if not already)
   const [entry] = await db
     .update(changelogs)
     .set({
@@ -146,7 +157,7 @@ export async function deployChangelog(id: string) {
       publishedAt: new Date(),
       updatedAt: new Date(),
     })
-    .where(eq(changelogs.id, id))
+    .where(and(eq(changelogs.id, id), eq(changelogs.organizationId, organizationId)))
     .returning()
 
   revalidatePath("/dashboard/changelogs")
@@ -154,13 +165,15 @@ export async function deployChangelog(id: string) {
 }
 
 export async function undeployChangelog(id: string) {
+  const { organizationId } = await getSessionData()
+  if (!organizationId) throw new Error("No active organization")
   const [entry] = await db
     .update(changelogs)
     .set({
       deployedAt: null,
       updatedAt: new Date(),
     })
-    .where(eq(changelogs.id, id))
+    .where(and(eq(changelogs.id, id), eq(changelogs.organizationId, organizationId)))
     .returning()
 
   revalidatePath("/dashboard/changelogs")
@@ -168,12 +181,19 @@ export async function undeployChangelog(id: string) {
 }
 
 export async function deleteChangelog(id: string) {
-  // Also delete label assignments
+  const { organizationId } = await getSessionData()
+  if (!organizationId) throw new Error("No active organization")
+  const existing = await db.query.changelogs.findFirst({
+    where: and(eq(changelogs.id, id), eq(changelogs.organizationId, organizationId)),
+  })
+  if (!existing) throw new Error("Changelog not found")
+
   await db
     .delete(changelogLabelAssignments)
     .where(eq(changelogLabelAssignments.changelogId, id))
 
-  await db.delete(changelogs).where(eq(changelogs.id, id))
+  await db.delete(changelogs).where(and(eq(changelogs.id, id), eq(changelogs.organizationId, organizationId)))
+  log.info({ id }, "changelog deleted")
 
   revalidatePath("/dashboard/changelogs")
 }

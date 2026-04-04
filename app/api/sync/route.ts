@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createLogger } from "@/lib/logger";
 
+const log = createLogger("api.sync");
 const WORKER_API_URL = process.env.WORKER_API_URL;
 const SERVICE_SECRET = process.env.SERVICE_SECRET;
 const SYNC_WEBHOOK_SECRET = process.env.SYNC_WEBHOOK_SECRET;
@@ -24,14 +26,15 @@ export async function POST(request: NextRequest) {
   // Authenticate using service-level secret
   const secret = request.headers.get("x-sync-secret");
   if (!secret || secret !== SYNC_WEBHOOK_SECRET) {
+    log.warn("unauthorized sync request");
     return NextResponse.json(
       { error: "Unauthorized", code: "INVALID_SECRET" },
       { status: 401 }
     );
   }
 
-  // Validate Worker configuration
   if (!WORKER_API_URL || !SERVICE_SECRET) {
+    log.error("KV sync not configured — missing WORKER_API_URL or SERVICE_SECRET");
     return NextResponse.json(
       { error: "Worker KV sync not configured", code: "KV_NOT_CONFIGURED" },
       { status: 500 }
@@ -40,8 +43,8 @@ export async function POST(request: NextRequest) {
 
   try {
     const payload: SyncPayload = await request.json();
+    log.info({ type: payload.type, action: payload.action, key: payload.key }, "sync request received");
 
-    // Validate payload
     if (!payload.type || !payload.action || !payload.key) {
       return NextResponse.json(
         { error: "Invalid payload", code: "INVALID_PAYLOAD" },
@@ -69,14 +72,15 @@ export async function POST(request: NextRequest) {
       });
 
       if (!response.ok) {
-        const error = await response.text();
-        console.error(`KV write failed: ${error}`);
+        const body = await response.text();
+        log.error({ key: payload.key, status: response.status, body }, "KV write failed");
         return NextResponse.json(
           { error: "Failed to write to KV", code: "KV_WRITE_FAILED" },
           { status: 500 }
         );
       }
 
+      log.info({ key: payload.key }, "KV upsert succeeded");
       return NextResponse.json({ success: true, action: "upsert", key: payload.key });
     }
 
@@ -89,14 +93,15 @@ export async function POST(request: NextRequest) {
       });
 
       if (!response.ok) {
-        const error = await response.text();
-        console.error(`KV delete failed: ${error}`);
+        const body = await response.text();
+        log.error({ key: payload.key, status: response.status, body }, "KV delete failed");
         return NextResponse.json(
           { error: "Failed to delete from KV", code: "KV_DELETE_FAILED" },
           { status: 500 }
         );
       }
 
+      log.info({ key: payload.key }, "KV delete succeeded");
       return NextResponse.json({ success: true, action: "delete", key: payload.key });
     }
 
@@ -105,7 +110,7 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   } catch (error) {
-    console.error("Sync error:", error);
+    log.error({ err: error }, "sync error");
     return NextResponse.json(
       { error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }
@@ -188,7 +193,7 @@ export async function PUT(request: NextRequest) {
       results,
     });
   } catch (error) {
-    console.error("Batch sync error:", error);
+    log.error({ err: error }, "batch sync error");
     return NextResponse.json(
       { error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }

@@ -26,6 +26,15 @@ import {
 } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import {
+  Stepper,
+  StepperIndicator,
+  StepperItem,
+  StepperNav,
+  StepperSeparator,
+  StepperTitle,
+  StepperTrigger,
+} from "@/components/reui/stepper"
 import type { SchemaField } from "@/lib/cms/types"
 import { getFieldLabel, getFieldSummary } from "@/lib/cms/schema-utils"
 import { createContentType } from "@/lib/actions/content-types"
@@ -57,62 +66,6 @@ const STEPS = [
   { number: 3, label: "Schema" },
   { number: 4, label: "Review" },
 ] as const
-
-// ─── Step Indicator ────────────────────────────────────────────────
-
-function StepIndicator({ current }: { current: number }) {
-  return (
-    <nav aria-label="Progress" className="mb-8">
-      <ol className="flex items-center justify-center gap-4">
-        {STEPS.map(({ number, label }) => {
-          const isCompleted = number < current
-          const isActive = number === current
-
-          return (
-            <li key={number} className="flex items-center gap-2">
-              {number > 1 && (
-                <Separator
-                  orientation="horizontal"
-                  className={`w-8 ${
-                    isCompleted ? "bg-primary" : "bg-muted"
-                  }`}
-                />
-              )}
-              <div className="flex items-center gap-2">
-                <span
-                  className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium transition-colors ${
-                    isCompleted
-                      ? "bg-primary text-primary-foreground"
-                      : isActive
-                        ? "border-2 border-primary text-primary"
-                        : "border-2 border-muted text-muted-foreground"
-                  }`}
-                >
-                  {isCompleted ? (
-                    <Check className="h-4 w-4" />
-                  ) : (
-                    number
-                  )}
-                </span>
-                <span
-                  className={`text-sm font-medium ${
-                    isActive
-                      ? "text-foreground"
-                      : isCompleted
-                        ? "text-primary"
-                        : "text-muted-foreground"
-                  }`}
-                >
-                  {label}
-                </span>
-              </div>
-            </li>
-          )
-        })}
-      </ol>
-    </nav>
-  )
-}
 
 // ─── Template Card ─────────────────────────────────────────────────
 
@@ -299,7 +252,34 @@ export function NewContentTypeWizard() {
 
   return (
     <div className="mx-auto w-full max-w-3xl">
-      <StepIndicator current={step} />
+      <Stepper
+        value={step}
+        onValueChange={goToStep}
+        indicators={{ completed: <Check className="size-3.5" /> }}
+        className="mb-8"
+      >
+        <StepperNav className="justify-center gap-2">
+          {STEPS.map(({ number, label }) => (
+            <StepperItem
+              key={number}
+              step={number}
+              disabled={number > step}
+            >
+              <StepperTrigger className="gap-2">
+                <StepperIndicator className="size-7 rounded-full border-2 text-xs font-medium data-[state=inactive]:border-muted data-[state=inactive]:bg-transparent data-[state=inactive]:text-muted-foreground data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=completed]:border-primary data-[state=completed]:bg-primary data-[state=completed]:text-primary-foreground">
+                  {number}
+                </StepperIndicator>
+                <StepperTitle className="data-[state=inactive]:text-muted-foreground data-[state=active]:text-foreground data-[state=completed]:text-primary">
+                  {label}
+                </StepperTitle>
+              </StepperTrigger>
+              {number < STEPS.length && (
+                <StepperSeparator className="mx-2 w-8 data-[state=completed]:bg-primary" />
+              )}
+            </StepperItem>
+          ))}
+        </StepperNav>
+      </Stepper>
 
       {/* ── Step 1: Template Selection ────────────────────────────── */}
       {step === 1 && (

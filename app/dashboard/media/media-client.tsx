@@ -24,13 +24,6 @@ import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import {
   Table,
   TableBody,
   TableCell,
@@ -366,60 +359,47 @@ export function MediaClient({
 
   return (
     <div className="space-y-6">
-      {/* Storage indicator */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                <HardDrive className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <CardTitle>Media Library</CardTitle>
-                <CardDescription>
-                  Upload and manage your files, images, and videos
-                </CardDescription>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setNewFolderOpen(true)}
-              >
-                <FolderPlus className="mr-2 h-4 w-4" />
-                New Folder
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-              >
-                {uploading ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Upload className="mr-2 h-4 w-4" />
-                )}
-                Upload
-              </Button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                className="hidden"
-                onChange={(e) => handleUpload(e.target.files)}
-              />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <span>{formatFileSize(usedBytes)} used</span>
-            <Separator orientation="vertical" className="h-4" />
-            <span>{totalFiles} {totalFiles === 1 ? "file" : "files"}</span>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex items-center justify-between border-b pb-4">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Media Library</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Upload and manage your files, images, and videos
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setNewFolderOpen(true)}
+          >
+            <FolderPlus className="mr-2 h-4 w-4" />
+            New Folder
+          </Button>
+          <Button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+          >
+            {uploading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Upload className="mr-2 h-4 w-4" />
+            )}
+            Upload
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            className="hidden"
+            onChange={(e) => handleUpload(e.target.files)}
+          />
+        </div>
+      </div>
+
+      <div className="flex items-center gap-4 text-sm text-muted-foreground bg-muted/30 p-3 rounded-md border inline-flex">
+        <span>{formatFileSize(usedBytes)} used</span>
+        <Separator orientation="vertical" className="h-4" />
+        <span>{totalFiles} {totalFiles === 1 ? "file" : "files"}</span>
+      </div>
 
       {/* Toolbar: breadcrumbs, filter, view toggle */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

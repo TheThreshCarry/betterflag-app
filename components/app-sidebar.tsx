@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import {
   FileText,
   BookOpen,
@@ -24,6 +25,7 @@ import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { DynamicContentTypeMenu } from "@/components/dynamic-content-type-menu"
 import {
   Sidebar,
   SidebarContent,
@@ -44,10 +46,6 @@ const staticNavData = {
         {
           title: "Overview",
           url: "/dashboard/cms",
-        },
-        {
-          title: "Content Types",
-          url: "/dashboard/cms/content-types",
         },
         {
           title: "Categories",
@@ -292,7 +290,7 @@ export function AppSidebar({ user, organization, ...props }: AppSidebarProps) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <a href="/dashboard">
+              <Link href="/dashboard">
                 <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
                   <Command className="size-4" />
                 </div>
@@ -304,7 +302,7 @@ export function AppSidebar({ user, organization, ...props }: AppSidebarProps) {
                     {organization?.slug || "Personal"}
                   </span>
                 </div>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
@@ -325,7 +323,12 @@ export function AppSidebar({ user, organization, ...props }: AppSidebarProps) {
         </button>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={staticNavData.navMain} />
+        <NavMain
+          items={staticNavData.navMain}
+          sectionExtra={{
+            CMS: <DynamicContentTypeMenu />,
+          }}
+        />
         <NavSecondary items={staticNavData.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>

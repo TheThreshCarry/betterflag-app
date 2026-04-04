@@ -27,15 +27,13 @@ export const flagAnalyticsMiddleware = createMiddleware<AppEnv>(
     let flags: Record<string, boolean>;
     try {
       flags = await clonedRes.json();
-      console.log("flags ( from analytics middleware )", flags);
     } catch {
-      return; // Not valid JSON, skip
+      return;
     }
 
     if (!flags || typeof flags !== "object" || Object.keys(flags).length === 0) {
       return;
     }
-    console.log("flags ( from analytics middleware ) after all checks", flags);
 
     // Extract Cloudflare geo data from the request
     const cf = (c.req.raw as any).cf || {};
@@ -68,8 +66,6 @@ export const flagAnalyticsMiddleware = createMiddleware<AppEnv>(
       sdk_version: sdkVersion,
       request_id: requestId,
     }));
-
-    console.log("rows ( from analytics middleware )", rows);
 
     // Fire-and-forget: insert into ClickHouse without blocking the response
     let client: ReturnType<typeof createClickHouseClient> | null = null;

@@ -4,8 +4,48 @@ import { revalidatePath } from "next/cache"
 import { eq, and } from "drizzle-orm"
 import db from "@/lib/db"
 import { apikey } from "@/lib/auth/auth-schema"
-import { syncApiKey, deleteApiKeyFromKV, type ApiKeyData } from "@/lib/sync/kv-sync"
+import {
+  syncApiKey,
+  syncApiKeyByHash,
+  deleteApiKeyFromKV,
+  type ApiKeyData,
+} from "@/lib/sync/kv-sync"
 import { getSessionData } from "@/lib/actions/utils"
+import { createLogger } from "@/lib/logger"
+import { hashApiKey } from "@/lib/api-key-hash"
+
+const log = createLogger("actions.apikeys")
+
+function parsePermissionsJson(
+  raw: string | null | undefined
+): string[] | undefined {
+  if (raw == null || raw === "") return undefined
+  try {
+    const v = JSON.parse(raw) as unknown
+    if (Array.isArray(v)) {
+      return v.filter((x): x is string => typeof x === "string")
+    }
+  } catch {
+    /* ignore */
+  }
+  return undefined
+}
+
+function apiKeyDataFromRow(
+  row: typeof apikey.$inferSelect
+): ApiKeyData | null {
+  if (!row.organizationId) return null
+  return {
+    organizationId: row.organizationId,
+    userId: row.userId,
+    enabled: row.enabled ?? true,
+    expiresAt: row.expiresAt ? row.expiresAt.toISOString() : null,
+    permissions: parsePermissionsJson(row.permissions ?? undefined),
+    rateLimitEnabled: row.rateLimitEnabled ?? undefined,
+    rateLimitTimeWindow: row.rateLimitTimeWindow ?? undefined,
+    rateLimitMax: row.rateLimitMax ?? undefined,
+  }
+}
 
 /**
  * API Key type for the UI
@@ -26,16 +66,16 @@ export type ApiKey = {
  */
 export async function getApiKeys(): Promise<ApiKey[]> {
   const { userId } = await getSessionData()
-  
+
   if (!userId) {
     return []
   }
-  
+
   const keys = await db.query.apikey.findMany({
     where: eq(apikey.userId, userId),
     orderBy: (keys, { desc }) => [desc(keys.createdAt)],
   })
-  
+
   return keys.map((key) => ({
     id: key.id,
     name: key.name,
@@ -54,26 +94,23 @@ export async function getApiKeys(): Promise<ApiKey[]> {
  */
 export async function createApiKey(name: string): Promise<{ id: string; key: string } | null> {
   const { userId, organizationId } = await getSessionData()
-  
+
   if (!userId) {
     throw new Error("Not authenticated")
   }
-  
-  // Generate a secure API key
+
   const keyBytes = new Uint8Array(32)
   crypto.getRandomValues(keyBytes)
   const fullKey = `sk_${Buffer.from(keyBytes).toString("base64url")}`
-  
-  // Create prefix and start for display
+
   const prefix = "sk"
-  const start = fullKey.slice(3, 11) // First 8 chars after prefix
-  
-  // Hash the key for database storage
+  const start = fullKey.slice(3, 11)
+
   const keyHash = await hashApiKey(fullKey)
-  
+
   const id = crypto.randomUUID()
   const now = new Date()
-  
+
   await db.insert(apikey).values({
     id,
     name,
@@ -81,26 +118,28 @@ export async function createApiKey(name: string): Promise<{ id: string; key: str
     prefix,
     start,
     userId,
+    organizationId: organizationId ?? null,
     enabled: true,
     createdAt: now,
     updatedAt: now,
   })
-  
-  // Sync to KV for edge validation using the full key
-  // KV uses the full key as the lookup key, not the hash
+
   if (organizationId) {
     const apiKeyData: ApiKeyData = {
       organizationId,
       userId,
       enabled: true,
       expiresAt: null,
+      rateLimitEnabled: true,
+      rateLimitTimeWindow: 86400000,
+      rateLimitMax: 10,
     }
     await syncApiKey(fullKey, apiKeyData)
   }
-  
+
+  log.info({ apiKeyId: id, userId }, "API key created")
   revalidatePath("/dashboard/settings/api-keys")
-  
-  // Return the full key (only shown once)
+
   return { id, key: fullKey }
 }
 
@@ -109,28 +148,24 @@ export async function createApiKey(name: string): Promise<{ id: string; key: str
  */
 export async function deleteApiKey(id: string): Promise<void> {
   const { userId } = await getSessionData()
-  
+
   if (!userId) {
     throw new Error("Not authenticated")
   }
-  
-  // Get the key first to verify ownership and get the key for KV deletion
+
   const key = await db.query.apikey.findFirst({
     where: and(eq(apikey.id, id), eq(apikey.userId, userId)),
   })
-  
+
   if (!key) {
     throw new Error("API key not found")
   }
-  
-  // Delete from database
+
   await db.delete(apikey).where(eq(apikey.id, id))
-  
-  // Note: We can't delete from KV because we don't have the original key
-  // The key in the database is hashed. This is a limitation - revoked keys
-  // will remain in KV until they're overwritten or expire.
-  // For immediate revocation, we'd need to store the key differently.
-  
+  log.info({ apiKeyId: id, userId }, "API key deleted")
+
+  await deleteApiKeyFromKV(key.key)
+
   revalidatePath("/dashboard/settings/api-keys")
 }
 
@@ -139,37 +174,34 @@ export async function deleteApiKey(id: string): Promise<void> {
  */
 export async function toggleApiKey(id: string, enabled: boolean): Promise<void> {
   const { userId } = await getSessionData()
-  
+
   if (!userId) {
     throw new Error("Not authenticated")
   }
-  
-  // Verify ownership
+
   const key = await db.query.apikey.findFirst({
     where: and(eq(apikey.id, id), eq(apikey.userId, userId)),
   })
-  
+
   if (!key) {
     throw new Error("API key not found")
   }
-  
+
   await db
     .update(apikey)
     .set({ enabled, updatedAt: new Date() })
     .where(eq(apikey.id, id))
-  
-  // Note: Same limitation as delete - we can't update KV without the original key
-  
-  revalidatePath("/dashboard/settings/api-keys")
-}
+  log.info({ apiKeyId: id, enabled }, "API key toggled")
 
-/**
- * Hash an API key for storage
- */
-async function hashApiKey(key: string): Promise<string> {
-  const encoder = new TextEncoder()
-  const data = encoder.encode(key)
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data)
-  const hashArray = Array.from(new Uint8Array(hashBuffer))
-  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("")
+  const updated = await db.query.apikey.findFirst({
+    where: eq(apikey.id, id),
+  })
+  if (updated) {
+    const data = apiKeyDataFromRow(updated)
+    if (data) {
+      await syncApiKeyByHash(updated.key, data)
+    }
+  }
+
+  revalidatePath("/dashboard/settings/api-keys")
 }

@@ -6,15 +6,7 @@ import { useState } from "react"
 import { authClient } from "@/lib/auth/auth-client"
 import { Button } from "@/components/ui/button"
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import {
   Field,
-  FieldDescription,
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field"
@@ -87,91 +79,91 @@ export function SignupForm({
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
-        <CardHeader className="text-center">
-          <CardTitle className="text-xl">Create your account</CardTitle>
-          <CardDescription>
-            Enter your email below to create your account
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit}>
-            <FieldGroup>
-              {error && (
-                <Field>
-                  <p className="text-sm text-destructive">{error}</p>
-                </Field>
-              )}
-              <Field>
-                <FieldLabel htmlFor="name">Full Name</FieldLabel>
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder="John Doe"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="email">Email</FieldLabel>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="m@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </Field>
-              <Field>
-                <Field className="grid grid-cols-2 gap-4">
-                  <Field>
-                    <FieldLabel htmlFor="password">Password</FieldLabel>
-                    <Input
-                      id="password"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
-                  </Field>
-                  <Field>
-                    <FieldLabel htmlFor="confirm-password">
-                      Confirm Password
-                    </FieldLabel>
-                    <Input
-                      id="confirm-password"
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      required
-                    />
-                  </Field>
-                </Field>
-                <FieldDescription>
-                  Must be at least 8 characters long.
-                </FieldDescription>
-              </Field>
-              <Field>
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading ? "Creating Account..." : "Create Account"}
-                </Button>
-                <FieldDescription className="text-center">
-                  Already have an account?{" "}
-                  <Link href="/auth/login" className="underline underline-offset-4">
-                    Sign in
-                  </Link>
-                </FieldDescription>
-              </Field>
-            </FieldGroup>
-          </form>
-        </CardContent>
-      </Card>
-      <FieldDescription className="px-6 text-center">
-        By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
-        and <a href="#">Privacy Policy</a>.
-      </FieldDescription>
+      <div className="text-center mb-8">
+        <h1 className="text-2xl font-semibold tracking-tight">Create your account</h1>
+        <p className="text-sm text-muted-foreground mt-2">
+          Enter your details below to create your account
+        </p>
+      </div>
+      <form onSubmit={handleSubmit}>
+        <FieldGroup>
+          {error && (
+            <Field>
+              <p className="text-sm text-destructive text-center">{error}</p>
+            </Field>
+          )}
+          <Field>
+            <FieldLabel htmlFor="name" className="sr-only">Full Name</FieldLabel>
+            <Input
+              id="name"
+              type="text"
+              placeholder="John Doe"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              className="h-11 bg-muted/50 border-transparent focus-visible:bg-background focus-visible:border-primary"
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="email" className="sr-only">Email</FieldLabel>
+            <Input
+              id="email"
+              type="email"
+              placeholder="m@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="h-11 bg-muted/50 border-transparent focus-visible:bg-background focus-visible:border-primary"
+            />
+          </Field>
+          <Field className="grid grid-cols-2 gap-4">
+            <Field>
+              <FieldLabel htmlFor="password" className="sr-only">Password</FieldLabel>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="h-11 bg-muted/50 border-transparent focus-visible:bg-background focus-visible:border-primary"
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="confirm-password" className="sr-only">Confirm Password</FieldLabel>
+              <Input
+                id="confirm-password"
+                type="password"
+                placeholder="Confirm password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                className="h-11 bg-muted/50 border-transparent focus-visible:bg-background focus-visible:border-primary"
+              />
+            </Field>
+          </Field>
+          <Field>
+            <p className="text-[0.8rem] text-muted-foreground">
+              Must be at least 8 characters long.
+            </p>
+          </Field>
+          <Field className="pt-2">
+            <Button type="submit" disabled={isLoading} className="w-full h-11">
+              {isLoading ? "Creating Account..." : "Create Account"}
+            </Button>
+          </Field>
+          <div className="text-center mt-4 text-sm text-muted-foreground">
+            Already have an account?{" "}
+            <Link href="/auth/login" className="text-primary hover:underline">
+              Sign in
+            </Link>
+          </div>
+        </FieldGroup>
+      </form>
+      <div className="mt-8 text-center text-xs text-muted-foreground">
+        By clicking continue, you agree to our <a href="#" className="hover:text-primary transition-colors">Terms of Service</a>{" "}
+        and <a href="#" className="hover:text-primary transition-colors">Privacy Policy</a>.
+      </div>
     </div>
   )
 }

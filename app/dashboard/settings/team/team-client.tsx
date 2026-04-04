@@ -17,13 +17,6 @@ import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import {
   Table,
   TableBody,
   TableCell,
@@ -270,39 +263,30 @@ export function TeamClient({
     currentMember?.role === "owner" || currentMember?.role === "admin"
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-12">
       {/* Members */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                <Users className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <CardTitle>Team Members</CardTitle>
-                <CardDescription>
-                  Manage who has access to {organization.name}
-                </CardDescription>
-              </div>
-            </div>
-            {isOwnerOrAdmin && (
-              <Button onClick={() => setInviteOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Invite Member
-              </Button>
-            )}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between border-b pb-4">
+          <div>
+            <h1 className="text-xl font-semibold tracking-tight">Team Members</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Manage who has access to {organization.name}
+            </p>
           </div>
-        </CardHeader>
-        <CardContent>
+          {isOwnerOrAdmin && (
+            <Button onClick={() => setInviteOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Invite Member
+            </Button>
+          )}
+        </div>
+        <div>
           {members.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-                <Users className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <h3 className="mt-4 text-lg font-semibold">No members</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Invite team members to collaborate
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <Users className="h-10 w-10 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold">No members</h3>
+              <p className="mt-2 text-sm text-muted-foreground max-w-md">
+                Invite team members to collaborate on your projects.
               </p>
             </div>
           ) : (
@@ -319,7 +303,7 @@ export function TeamClient({
               </TableHeader>
               <TableBody>
                 {members.map((member) => (
-                  <TableRow key={member.id}>
+                  <TableRow key={member.id} className="hover:bg-muted/50 group">
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8">
@@ -338,7 +322,7 @@ export function TeamClient({
                           </p>
                         </div>
                         {member.userId === currentUserId && (
-                          <Badge variant="outline" className="text-xs">
+                          <Badge variant="outline" className="text-xs font-normal">
                             You
                           </Badge>
                         )}
@@ -355,7 +339,7 @@ export function TeamClient({
                           }
                           disabled={roleLoading === member.id}
                         >
-                          <SelectTrigger className="w-[130px]">
+                          <SelectTrigger className="w-[130px] h-8 text-sm">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -367,7 +351,7 @@ export function TeamClient({
                         getRoleBadge(member.role)
                       )}
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="text-muted-foreground text-sm">
                       {formatDate(member.createdAt)}
                     </TableCell>
                     {isOwnerOrAdmin && (
@@ -377,6 +361,7 @@ export function TeamClient({
                             <Button
                               variant="ghost"
                               size="icon"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity"
                               onClick={() => {
                                 setMemberToRemove(member)
                                 setRemoveOpen(true)
@@ -392,31 +377,26 @@ export function TeamClient({
               </TableBody>
             </Table>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Pending Invitations */}
       {invitations.length > 0 && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                <Mail className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <CardTitle>Pending Invitations</CardTitle>
-                <CardDescription>
-                  Invitations that haven&apos;t been accepted yet
-                </CardDescription>
-              </div>
+        <div className="space-y-6 pt-6 border-t">
+          <div className="flex items-center gap-3">
+            <div>
+              <h2 className="text-xl font-semibold tracking-tight">Pending Invitations</h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Invitations that haven&apos;t been accepted yet
+              </p>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
+          </div>
+          <div>
+            <div className="space-y-3 max-w-3xl">
               {invitations.map((invitation) => (
                 <div
                   key={invitation.id}
-                  className="flex items-center justify-between rounded-lg border p-3"
+                  className="flex items-center justify-between rounded-lg border bg-card p-4 hover:bg-muted/30 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
@@ -424,7 +404,7 @@ export function TeamClient({
                     </div>
                     <div>
                       <p className="text-sm font-medium">{invitation.email}</p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
                         <Clock className="h-3 w-3" />
                         <span>
                           Expires {formatDate(invitation.expiresAt)}
@@ -441,7 +421,7 @@ export function TeamClient({
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant="secondary">Pending</Badge>
+                    <Badge variant="secondary" className="font-normal text-xs">Pending</Badge>
                     {isOwnerOrAdmin && (
                       <Button
                         variant="ghost"
@@ -450,15 +430,15 @@ export function TeamClient({
                           handleCancelInvitation(invitation.id)
                         }
                       >
-                        <X className="h-4 w-4 text-muted-foreground" />
+                        <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
                       </Button>
                     )}
                   </div>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Invite Dialog */}

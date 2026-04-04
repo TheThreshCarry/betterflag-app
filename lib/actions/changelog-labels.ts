@@ -1,7 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { eq, desc, isNull } from "drizzle-orm"
+import { eq, and, desc, isNull } from "drizzle-orm"
 import db from "@/lib/db"
 import {
   changelogLabels,
@@ -22,8 +22,10 @@ export async function getChangelogLabels() {
 }
 
 export async function getChangelogLabel(id: string) {
+  const organizationId = await getOrganizationId()
+  if (!organizationId) throw new Error("No active organization")
   return db.query.changelogLabels.findFirst({
-    where: eq(changelogLabels.id, id),
+    where: and(eq(changelogLabels.id, id), eq(changelogLabels.organizationId, organizationId)),
   })
 }
 
@@ -48,10 +50,12 @@ export async function updateChangelogLabel(
   id: string,
   data: Partial<Omit<NewChangelogLabel, "id" | "createdAt" | "organizationId">>
 ) {
+  const organizationId = await getOrganizationId()
+  if (!organizationId) throw new Error("No active organization")
   const [label] = await db
     .update(changelogLabels)
     .set(data)
-    .where(eq(changelogLabels.id, id))
+    .where(and(eq(changelogLabels.id, id), eq(changelogLabels.organizationId, organizationId)))
     .returning()
 
   revalidatePath("/dashboard/changelogs/labels")
@@ -59,12 +63,18 @@ export async function updateChangelogLabel(
 }
 
 export async function deleteChangelogLabel(id: string) {
-  // Remove all assignments using this label
+  const organizationId = await getOrganizationId()
+  if (!organizationId) throw new Error("No active organization")
+  const existing = await db.query.changelogLabels.findFirst({
+    where: and(eq(changelogLabels.id, id), eq(changelogLabels.organizationId, organizationId)),
+  })
+  if (!existing) throw new Error("Label not found")
+
   await db
     .delete(changelogLabelAssignments)
     .where(eq(changelogLabelAssignments.labelId, id))
 
-  await db.delete(changelogLabels).where(eq(changelogLabels.id, id))
+  await db.delete(changelogLabels).where(and(eq(changelogLabels.id, id), eq(changelogLabels.organizationId, organizationId)))
 
   revalidatePath("/dashboard/changelogs/labels")
 }

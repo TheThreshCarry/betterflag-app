@@ -5,13 +5,6 @@ import { ArrowLeft, ArrowRight, Loader2, SkipForward } from "lucide-react"
 import { motion } from "framer-motion"
 
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import {
@@ -168,63 +161,63 @@ export function ModuleSetupStep({
   // Modules without a backend setup show intro-only
   if (!module.hasSetup || !module.fields) {
     return (
-      <Card>
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+      <div>
+        <div className="text-center mb-8">
+          <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
             <Icon className="size-6" />
           </div>
-          <div className="flex items-center justify-center gap-2">
-            <CardTitle className="text-xl">{module.title}</CardTitle>
-            <Badge variant="secondary" className="text-[10px]">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <h1 className="text-2xl font-semibold tracking-tight">{module.title}</h1>
+            <Badge variant="secondary" className="text-[10px] font-normal">
               Coming Soon
             </Badge>
           </div>
-          <CardDescription className="mx-auto max-w-md">
+          <p className="text-sm text-muted-foreground mx-auto max-w-md">
             {module.description}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="mb-6 text-center text-sm text-muted-foreground">
+          </p>
+        </div>
+        <div>
+          <p className="mb-8 text-center text-sm text-muted-foreground">
             This module is not yet available for setup. You&apos;ll be able to
             configure it once it&apos;s ready.
           </p>
           <div className="flex items-center gap-3">
-            <Button variant="outline" onClick={onBack} className="gap-2">
+            <Button variant="outline" onClick={onBack} className="gap-2 h-11">
               <ArrowLeft className="h-4 w-4" />
               Back
             </Button>
-            <Button onClick={handleSkip} className="flex-1 gap-2" size="lg">
+            <Button onClick={handleSkip} className="flex-1 gap-2 h-11" size="lg">
               Continue
               <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     )
   }
 
   return (
-    <Card>
-      <CardHeader className="text-center">
+    <div>
+      <div className="text-center mb-8">
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: "spring", stiffness: 300, damping: 25 }}
-          className="mx-auto mb-2 flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary"
+          className="mx-auto mb-4 flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary"
         >
           <Icon className="size-6" />
         </motion.div>
-        <CardTitle className="text-xl">{module.title}</CardTitle>
-        <CardDescription className="mx-auto max-w-md">
+        <h1 className="text-2xl font-semibold tracking-tight">{module.title}</h1>
+        <p className="text-sm text-muted-foreground mx-auto max-w-md mt-2">
           {module.description}
-        </CardDescription>
-        <p className="pt-1 text-xs text-muted-foreground">
+        </p>
+        <p className="pt-2 text-xs text-muted-foreground">
           Step {stepNumber} of {totalSteps}
         </p>
-      </CardHeader>
-      <CardContent>
+      </div>
+      <div>
         {/* Module intro separator */}
-        <div className="mb-5 rounded-lg border bg-muted/30 px-4 py-3">
+        <div className="mb-6 rounded-lg border bg-muted/30 px-4 py-3">
           <p className="text-sm font-medium">{module.createLabel}</p>
           <p className="mt-1 text-xs text-muted-foreground">
             Set up a quick example or skip to configure later.
@@ -276,16 +269,16 @@ export function ModuleSetupStep({
 
             <motion.div
               variants={fieldVariant}
-              className="flex items-center gap-3 pt-2"
+              className="flex items-center gap-3 pt-4"
             >
-              <Button variant="outline" onClick={onBack} className="gap-2">
+              <Button variant="outline" onClick={onBack} className="gap-2 h-11">
                 <ArrowLeft className="h-4 w-4" />
                 Back
               </Button>
               <Button
                 variant="ghost"
                 onClick={handleSkip}
-                className="gap-2 text-muted-foreground"
+                className="gap-2 text-muted-foreground h-11"
               >
                 Skip
                 <SkipForward className="h-4 w-4" />
@@ -293,7 +286,7 @@ export function ModuleSetupStep({
               <Button
                 onClick={handleCreate}
                 disabled={isLoading}
-                className="flex-1 gap-2"
+                className="flex-1 gap-2 h-11"
                 size="lg"
               >
                 {isLoading ? (
@@ -311,7 +304,7 @@ export function ModuleSetupStep({
             </motion.div>
           </FieldGroup>
         </motion.div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }

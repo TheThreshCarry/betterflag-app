@@ -3,6 +3,9 @@
 import { z } from "zod"
 import { getClickHouseClient } from "@/lib/clickhouse"
 import { getOrganizationId } from "@/lib/actions/utils"
+import { createLogger } from "@/lib/logger"
+
+const log = createLogger("actions.analytics")
 
 // ─── Schemas ─────────────────────────────────────────────────────────────────
 
@@ -83,7 +86,7 @@ export async function getFlagEvaluationsTimeseries(
   )
 
   if (!parsed.success) {
-    console.error("getFlagEvaluationsTimeseries: validation failed", parsed.error.flatten())
+    log.error({ flagKey, errors: parsed.error.flatten() }, "getFlagEvaluationsTimeseries validation failed")
     return []
   }
 
@@ -130,7 +133,7 @@ export async function getFlagCountryBreakdown(
   )
 
   if (!parsed.success) {
-    console.error("getFlagCountryBreakdown: validation failed", parsed.error.flatten())
+    log.error({ flagKey, errors: parsed.error.flatten() }, "getFlagCountryBreakdown validation failed")
     return []
   }
 
@@ -206,7 +209,7 @@ export async function getFlagSummaryStats(
   })
 
   if (!parsed.success) {
-    console.error("getFlagSummaryStats: validation failed", parsed.error.flatten())
+    log.error({ flagKey, errors: parsed.error.flatten() }, "getFlagSummaryStats validation failed")
     return {
       total_evaluations: 0,
       unique_users: 0,
@@ -267,7 +270,7 @@ export async function getFlagGeoPoints(
   )
 
   if (!parsed.success) {
-    console.error("getFlagGeoPoints: validation failed", parsed.error.flatten())
+    log.error({ flagKey, errors: parsed.error.flatten() }, "getFlagGeoPoints validation failed")
     return []
   }
 

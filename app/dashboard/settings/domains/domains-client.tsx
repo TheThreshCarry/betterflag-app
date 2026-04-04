@@ -16,13 +16,6 @@ import {
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
@@ -207,178 +200,168 @@ export function DomainsClient() {
 
   return (
     <div className="space-y-6">
-      {/* Domains List */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                <Globe className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <CardTitle>Custom Domains</CardTitle>
-                <CardDescription>
-                  Add custom domains for your changelog, docs, and public pages
-                </CardDescription>
-              </div>
-            </div>
-            <Button onClick={() => setAddOpen(true)}>
+      <div className="flex items-center justify-between border-b pb-4">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Custom Domains</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Add custom domains for your changelog, docs, and public pages
+          </p>
+        </div>
+        <Button onClick={() => setAddOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Add Domain
+        </Button>
+      </div>
+
+      <div>
+        {domains.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <Globe className="h-10 w-10 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold">No custom domains</h3>
+            <p className="mt-2 max-w-sm text-sm text-muted-foreground mx-auto">
+              Add a custom domain to serve your changelog, documentation, and
+              public pages on your own domain.
+            </p>
+            <Button
+              className="mt-6"
+              onClick={() => setAddOpen(true)}
+            >
               <Plus className="mr-2 h-4 w-4" />
               Add Domain
             </Button>
           </div>
-        </CardHeader>
-        <CardContent>
-          {domains.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-                <Globe className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <h3 className="mt-4 text-lg font-semibold">No custom domains</h3>
-              <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-                Add a custom domain to serve your changelog, documentation, and
-                public pages on your own domain.
-              </p>
-              <Button
-                className="mt-4"
-                onClick={() => setAddOpen(true)}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Domain
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {domains.map((domain) => (
-                <div key={domain.id} className="rounded-lg border">
-                  <div className="flex items-center justify-between p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted">
-                        <Globe className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                      <div>
-                        <p className="font-medium">{domain.domain}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Added {formatDate(domain.addedAt)}
-                        </p>
-                      </div>
+        ) : (
+          <div className="space-y-4">
+            {domains.map((domain) => (
+              <div key={domain.id} className="rounded-lg border bg-card">
+                <div className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted">
+                      <Globe className="h-4 w-4 text-muted-foreground" />
                     </div>
-                    <div className="flex items-center gap-2">
-                      {getStatusBadge(domain.status)}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleVerify(domain.id)}
-                        disabled={
-                          verifying === domain.id ||
-                          domain.status === "verified"
-                        }
-                      >
-                        {verifying === domain.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <RefreshCw className="h-4 w-4" />
-                        )}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setExpandedDomain(
-                            expandedDomain === domain.id
-                              ? null
-                              : domain.id
-                          )
-                        }}
-                      >
-                        <svg
-                          className={`h-4 w-4 transition-transform ${
-                            expandedDomain === domain.id ? "rotate-180" : ""
-                          }`}
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="m6 9 6 6 6-6" />
-                        </svg>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setDomainToDelete(domain)
-                          setDeleteOpen(true)
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                    <div>
+                      <p className="font-medium">{domain.domain}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Added {formatDate(domain.addedAt)}
+                      </p>
                     </div>
                   </div>
-
-                  {/* DNS Records (expandable) */}
-                  {expandedDomain === domain.id && (
-                    <div className="border-t bg-muted/30 p-4">
-                      <p className="mb-3 text-sm font-medium">
-                        DNS Configuration
-                      </p>
-                      <p className="mb-4 text-xs text-muted-foreground">
-                        Add the following DNS records to your domain provider to
-                        verify ownership and enable routing.
-                      </p>
-                      <div className="space-y-3">
-                        {domain.dnsRecords.map((record, idx) => (
-                          <div
-                            key={idx}
-                            className="overflow-hidden rounded-md border bg-background"
-                          >
-                            <div className="grid grid-cols-[80px_1fr_1fr_40px] items-center gap-2 p-3 text-sm">
-                              <div>
-                                <Badge variant="outline" className="text-xs">
-                                  {record.type}
-                                </Badge>
-                              </div>
-                              <div>
-                                <p className="text-xs text-muted-foreground">
-                                  Name
-                                </p>
-                                <code className="text-xs">{record.name}</code>
-                              </div>
-                              <div>
-                                <p className="text-xs text-muted-foreground">
-                                  Value
-                                </p>
-                                <code className="text-xs break-all">
-                                  {record.value}
-                                </code>
-                              </div>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => copyToClipboard(record.value)}
-                              >
-                                {copiedValue === record.value ? (
-                                  <Check className="h-3.5 w-3.5 text-green-500" />
-                                ) : (
-                                  <Copy className="h-3.5 w-3.5" />
-                                )}
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {getStatusBadge(domain.status)}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="ml-2"
+                      onClick={() => handleVerify(domain.id)}
+                      disabled={
+                        verifying === domain.id ||
+                        domain.status === "verified"
+                      }
+                    >
+                      {verifying === domain.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-4 w-4" />
+                      )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setExpandedDomain(
+                          expandedDomain === domain.id
+                            ? null
+                            : domain.id
+                        )
+                      }}
+                    >
+                      <svg
+                        className={`h-4 w-4 transition-transform ${
+                          expandedDomain === domain.id ? "rotate-180" : ""
+                        }`}
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="m6 9 6 6 6-6" />
+                      </svg>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setDomainToDelete(domain)
+                        setDeleteOpen(true)
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+
+                {/* DNS Records (expandable) */}
+                {expandedDomain === domain.id && (
+                  <div className="border-t bg-muted/20 p-5">
+                    <p className="text-sm font-medium">
+                      DNS Configuration
+                    </p>
+                    <p className="mb-4 text-sm text-muted-foreground mt-1">
+                      Add the following DNS records to your domain provider to
+                      verify ownership and enable routing.
+                    </p>
+                    <div className="space-y-3">
+                      {domain.dnsRecords.map((record, idx) => (
+                        <div
+                          key={idx}
+                          className="overflow-hidden rounded-md border bg-background"
+                        >
+                          <div className="grid grid-cols-[80px_1fr_1fr_40px] items-center gap-2 p-3 text-sm">
+                            <div>
+                              <Badge variant="outline" className="font-normal text-xs bg-muted/50">
+                                {record.type}
+                              </Badge>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1">
+                                Name
+                              </p>
+                              <code className="text-sm font-mono">{record.name}</code>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-1">
+                                Value
+                              </p>
+                              <code className="text-sm font-mono break-all">
+                                {record.value}
+                              </code>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                              onClick={() => copyToClipboard(record.value)}
+                            >
+                              {copiedValue === record.value ? (
+                                <Check className="h-3.5 w-3.5 text-green-500" />
+                              ) : (
+                                <Copy className="h-3.5 w-3.5" />
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Add Domain Dialog */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>

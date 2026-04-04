@@ -1,7 +1,10 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
+import { createLogger } from "@/lib/logger";
+import { workerServiceHeaders } from "@/lib/worker-internal";
 
+const log = createLogger("api.profile");
 const WORKER_URL = process.env.WORKER_API_URL || "http://localhost:8787";
 
 export async function DELETE(request: NextRequest) {
@@ -26,11 +29,9 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Forward to Cloudflare Worker
-    const response = await fetch(`${WORKER_URL}/profile-picture/delete`, {
+    const response = await fetch(`${WORKER_URL}/internal/profile-picture/delete`, {
       method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: workerServiceHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         key,
         userId: session.user.id,
@@ -45,7 +46,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json(data);
   } catch (error) {
-    console.error("Profile picture delete error:", error);
+    log.error({ err: error }, "profile picture delete error");
     return NextResponse.json(
       { error: "Failed to delete profile picture" },
       { status: 500 }

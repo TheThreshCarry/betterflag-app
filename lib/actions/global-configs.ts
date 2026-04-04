@@ -6,6 +6,9 @@ import db from "@/lib/db"
 import { globalConfigs, type NewGlobalConfig, type GlobalConfig } from "@/lib/db/schema"
 import { syncConfig, deleteConfigFromKV } from "@/lib/sync/kv-sync"
 import { getOrganizationId } from "@/lib/actions/utils"
+import { createLogger } from "@/lib/logger"
+
+const log = createLogger("actions.configs")
 
 /**
  * Sync a single config to KV
@@ -39,8 +42,10 @@ export async function getGlobalConfigs(environment?: string) {
 }
 
 export async function getGlobalConfig(id: string) {
+  const organizationId = await getOrganizationId()
+  if (!organizationId) throw new Error("No active organization")
   return db.query.globalConfigs.findFirst({
-    where: eq(globalConfigs.id, id),
+    where: and(eq(globalConfigs.id, id), eq(globalConfigs.organizationId, organizationId)),
   })
 }
 
@@ -57,8 +62,8 @@ export async function createGlobalConfig(
     })
     .returning()
 
-  // Sync config to KV
   await syncConfigToKV(config)
+  log.info({ id: config.id, slug: config.slug }, "global config created")
 
   revalidatePath("/dashboard/configs")
   return config
@@ -68,35 +73,39 @@ export async function updateGlobalConfig(
   id: string,
   data: Partial<Omit<NewGlobalConfig, "id" | "createdAt" | "organizationId">>
 ) {
+  const organizationId = await getOrganizationId()
+  if (!organizationId) throw new Error("No active organization")
   const [config] = await db
     .update(globalConfigs)
     .set({
       ...data,
       updatedAt: new Date(),
     })
-    .where(eq(globalConfigs.id, id))
+    .where(and(eq(globalConfigs.id, id), eq(globalConfigs.organizationId, organizationId)))
     .returning()
 
-  // Sync config to KV
   await syncConfigToKV(config)
+  log.info({ id, slug: config.slug }, "global config updated")
 
   revalidatePath("/dashboard/configs")
   return config
 }
 
 export async function deleteGlobalConfig(id: string) {
-  // Get the config first to know the organization and slug
+  const organizationId = await getOrganizationId()
+  if (!organizationId) throw new Error("No active organization")
   const config = await db.query.globalConfigs.findFirst({
-    where: eq(globalConfigs.id, id),
+    where: and(eq(globalConfigs.id, id), eq(globalConfigs.organizationId, organizationId)),
   })
+  if (!config) throw new Error("Config not found")
+
+  await db.delete(globalConfigs).where(and(eq(globalConfigs.id, id), eq(globalConfigs.organizationId, organizationId)))
   
-  await db.delete(globalConfigs).where(eq(globalConfigs.id, id))
-  
-  // Delete config from KV
   if (config?.organizationId && config?.slug) {
     const environment = config.environment || "production"
     await deleteConfigFromKV(config.organizationId, environment, config.slug)
   }
+  log.info({ id, slug: config?.slug }, "global config deleted")
   
   revalidatePath("/dashboard/configs")
 }

@@ -2,6 +2,9 @@
 
 import { headers } from "next/headers"
 import { auth } from "@/lib/auth"
+import { createLogger } from "@/lib/logger"
+
+const log = createLogger("actions.session")
 
 /**
  * Get the active organization ID for the current user.
@@ -17,14 +20,15 @@ export async function getOrganizationId(): Promise<string | null> {
     headers: await headers(),
   })
 
-  if (!session) return null
+  if (!session) {
+    log.debug("no session found")
+    return null
+  }
 
-  // If there's already an active org, use it
   if (session.session.activeOrganizationId) {
     return session.session.activeOrganizationId
   }
 
-  // No active org — try to find and activate the user's first org
   const orgs = await auth.api.listOrganizations({
     headers: await headers(),
   })
@@ -34,9 +38,11 @@ export async function getOrganizationId(): Promise<string | null> {
       headers: await headers(),
       body: { organizationId: orgs[0].id },
     })
+    log.info({ orgId: orgs[0].id, userId: session.user.id }, "auto-activated first organization")
     return orgs[0].id
   }
 
+  log.debug({ userId: session.user.id }, "user has no organizations")
   return null
 }
 

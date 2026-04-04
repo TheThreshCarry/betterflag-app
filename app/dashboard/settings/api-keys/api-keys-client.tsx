@@ -5,7 +5,6 @@ import { Plus, Trash2, Key, Copy, Check, Eye, EyeOff } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Table,
   TableBody,
@@ -155,93 +154,84 @@ export function ApiKeysClient({ initialApiKeys }: ApiKeysClientProps) {
   }
 
   return (
-    <>
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                <Key className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <CardTitle>API Keys</CardTitle>
-                <CardDescription>
-                  Manage API keys for accessing ShipOS from your applications
-                </CardDescription>
-              </div>
-            </div>
-            <Button onClick={() => setIsCreateOpen(true)}>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between border-b pb-4">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">API Keys</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage API keys for accessing ShipOS from your applications
+          </p>
+        </div>
+        <Button onClick={() => setIsCreateOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Create Key
+        </Button>
+      </div>
+
+      <div>
+        {apiKeys.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <Key className="h-10 w-10 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold">No API keys</h3>
+            <p className="mt-2 text-sm text-muted-foreground max-w-md">
+              Create your first API key to start using the ShipOS SDK in your application.
+            </p>
+            <Button className="mt-6" onClick={() => setIsCreateOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
               Create Key
             </Button>
           </div>
-        </CardHeader>
-        <CardContent>
-          {apiKeys.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-                <Key className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <h3 className="mt-4 text-lg font-semibold">No API keys</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Create your first API key to start using the ShipOS SDK
-              </p>
-              <Button className="mt-4" onClick={() => setIsCreateOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Create Key
-              </Button>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Key</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Last Used</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Status</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Key</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead>Last Used</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {apiKeys.map((key) => (
+                <TableRow key={key.id} className="hover:bg-muted/50 group">
+                  <TableCell>
+                    <Switch
+                      checked={key.enabled ?? false}
+                      onCheckedChange={(checked) => handleToggle(key, checked)}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <div className="font-medium">{key.name || "Unnamed"}</div>
+                  </TableCell>
+                  <TableCell>
+                    <code className="rounded bg-muted px-2 py-1 text-sm font-mono text-muted-foreground">
+                      {maskKey(key.prefix, key.start)}
+                    </code>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-sm">
+                    {formatDate(key.createdAt)}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-sm">
+                    {formatDate(key.lastRequest)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => openDeleteDialog(key)}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {apiKeys.map((key) => (
-                  <TableRow key={key.id}>
-                    <TableCell>
-                      <Switch
-                        checked={key.enabled ?? false}
-                        onCheckedChange={(checked) => handleToggle(key, checked)}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium">{key.name || "Unnamed"}</div>
-                    </TableCell>
-                    <TableCell>
-                      <code className="rounded bg-muted px-2 py-1 text-sm">
-                        {maskKey(key.prefix, key.start)}
-                      </code>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {formatDate(key.createdAt)}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {formatDate(key.lastRequest)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => openDeleteDialog(key)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </div>
 
       {/* Create Dialog */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
@@ -351,6 +341,6 @@ export function ApiKeysClient({ initialApiKeys }: ApiKeysClientProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   )
 }

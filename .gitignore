@@ -12,6 +12,10 @@
 
 # testing
 /coverage
+/test-results/
+/playwright-report/
+e2e/.auth/
+!e2e/.auth/.gitkeep
 
 # next.js
 /.next/

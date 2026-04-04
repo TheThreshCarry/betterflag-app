@@ -19,7 +19,7 @@ export function createClickHouseClient(env: Bindings) {
     database: env.CLICKHOUSE_DATABASE || "shipos_analytics",
     clickhouse_settings: {
       async_insert: 1,
-      wait_for_async_insert: 1,
+      wait_for_async_insert: 0,
     },
   });
 }

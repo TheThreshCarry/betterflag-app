@@ -15,13 +15,6 @@ import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import {
   Table,
   TableBody,
   TableCell,
@@ -177,22 +170,35 @@ export function CustomersClient({ initialCustomers }: CustomersClientProps) {
   }
 
   return (
-    <>
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                <Users className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <CardTitle>Customers</CardTitle>
-                <CardDescription>
-                  Manage your customers and their information
-                </CardDescription>
-              </div>
-            </div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between border-b pb-4">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Customers</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage your customers and their information
+          </p>
+        </div>
+        <Button
+          onClick={() => {
+            resetForm()
+            setIsCreateOpen(true)
+          }}
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Add Customer
+        </Button>
+      </div>
+
+      <div>
+        {customers.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <Users className="h-10 w-10 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold">No customers yet</h3>
+            <p className="mt-2 text-sm text-muted-foreground max-w-md">
+              Add your first customer to get started tracking their data.
+            </p>
             <Button
+              className="mt-6"
               onClick={() => {
                 resetForm()
                 setIsCreateOpen(true)
@@ -202,111 +208,88 @@ export function CustomersClient({ initialCustomers }: CustomersClientProps) {
               Add Customer
             </Button>
           </div>
-        </CardHeader>
-        <CardContent>
-          {customers.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-                <Users className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <h3 className="mt-4 text-lg font-semibold">No customers yet</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Add your first customer to get started
-              </p>
-              <Button
-                className="mt-4"
-                onClick={() => {
-                  resetForm()
-                  setIsCreateOpen(true)
-                }}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Customer
-              </Button>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>External ID</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>External ID</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {customers.map((customer) => (
+                <TableRow key={customer.id} className="hover:bg-muted/50 group">
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted shrink-0">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <span className="font-medium">
+                        {customer.name || (
+                          <span className="text-muted-foreground font-normal italic">Unnamed</span>
+                        )}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <span className="text-sm">
+                        {customer.email || (
+                          <span className="text-muted-foreground italic">No email</span>
+                        )}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {customer.externalId ? (
+                      <Badge variant="outline" className="font-mono text-xs font-normal">
+                        {customer.externalId}
+                      </Badge>
+                    ) : (
+                      <span className="text-muted-foreground">--</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-sm">
+                    {new Date(customer.createdAt).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openViewDialog(customer)}
+                        title="View details"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openEditDialog(customer)}
+                        title="Edit customer"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openDeleteDialog(customer)}
+                        title="Delete customer"
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {customers.map((customer) => (
-                  <TableRow key={customer.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
-                          <User className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                        <span className="font-medium">
-                          {customer.name || (
-                            <span className="text-muted-foreground">--</span>
-                          )}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Mail className="h-4 w-4 text-muted-foreground" />
-                        <span>
-                          {customer.email || (
-                            <span className="text-muted-foreground">--</span>
-                          )}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {customer.externalId ? (
-                        <Badge variant="outline" className="font-mono text-xs">
-                          {customer.externalId}
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground">--</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {new Date(customer.createdAt).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openViewDialog(customer)}
-                          title="View details"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openEditDialog(customer)}
-                          title="Edit customer"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openDeleteDialog(customer)}
-                          title="Delete customer"
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </div>
 
       {/* View Customer Dialog */}
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
@@ -553,6 +536,6 @@ export function CustomersClient({ initialCustomers }: CustomersClientProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   )
 }

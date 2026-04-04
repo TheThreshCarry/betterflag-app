@@ -5,7 +5,6 @@ import { Plus, Pencil, Trash2, Settings, Code, Eye, GripVertical, FileJson } fro
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Table,
   TableBody,
@@ -521,119 +520,110 @@ export function GlobalConfigClient({ initialConfigs, selectedId }: GlobalConfigC
   )
 
   return (
-    <>
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                <FileJson className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <CardTitle>Global Configuration</CardTitle>
-                <CardDescription>
-                  Manage global configurations for your application (pricing, legal, etc.)
-                </CardDescription>
-              </div>
-            </div>
-            <Button onClick={() => setIsCreateOpen(true)}>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between border-b pb-4">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Global Configuration</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage global configurations for your application (pricing, legal, etc.)
+          </p>
+        </div>
+        <Button onClick={() => setIsCreateOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Create Config
+        </Button>
+      </div>
+
+      <div>
+        {configs.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <FileJson className="h-10 w-10 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold">No configurations</h3>
+            <p className="mt-2 text-sm text-muted-foreground max-w-md">
+              Create your first config to manage global settings across your application.
+            </p>
+            <Button className="mt-6" onClick={() => setIsCreateOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
               Create Config
             </Button>
           </div>
-        </CardHeader>
-        <CardContent>
-          {configs.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-                <FileJson className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <h3 className="mt-4 text-lg font-semibold">No configurations</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Create your first config to get started
-              </p>
-              <Button className="mt-4" onClick={() => setIsCreateOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Create Config
-              </Button>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Slug</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Environment</TableHead>
-                  <TableHead>Fields</TableHead>
-                  <TableHead>Updated</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {configs.map((config) => (
-                  <TableRow key={config.id}>
-                    <TableCell className="font-mono text-sm">{config.slug}</TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{config.name}</div>
-                        {config.description && (
-                          <div className="text-sm text-muted-foreground truncate max-w-xs">
-                            {config.description}
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          config.environment === "production"
-                            ? "default"
-                            : config.environment === "staging"
-                            ? "secondary"
-                            : "outline"
-                        }
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Slug</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Environment</TableHead>
+                <TableHead>Fields</TableHead>
+                <TableHead>Updated</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {configs.map((config) => (
+                <TableRow key={config.id} className="hover:bg-muted/50 group">
+                  <TableCell className="font-mono text-sm text-muted-foreground">{config.slug}</TableCell>
+                  <TableCell>
+                    <div>
+                      <div className="font-medium">{config.name}</div>
+                      {config.description && (
+                        <div className="text-sm text-muted-foreground truncate max-w-xs mt-0.5">
+                          {config.description}
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        config.environment === "production"
+                          ? "default"
+                          : config.environment === "staging"
+                          ? "secondary"
+                          : "outline"
+                      }
+                      className="font-normal"
+                    >
+                      {config.environment}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-sm">
+                    {Object.keys(config.data as object).length} fields
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-sm">
+                    {new Date(config.updatedAt).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openViewDialog(config)}
                       >
-                        {config.environment}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {Object.keys(config.data as object).length} fields
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {new Date(config.updatedAt).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openViewDialog(config)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openEditDialog(config)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openDeleteDialog(config)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openEditDialog(config)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openDeleteDialog(config)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </div>
 
       {/* Create Dialog */}
       <Dialog open={isCreateOpen} onOpenChange={(open) => { setIsCreateOpen(open); if (!open) resetForm(); }}>
@@ -928,6 +918,6 @@ export function GlobalConfigClient({ initialConfigs, selectedId }: GlobalConfigC
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   )
 }

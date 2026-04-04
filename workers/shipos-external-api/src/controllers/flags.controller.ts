@@ -32,20 +32,14 @@ const flagsController = createController(
       const organizationId = c.get("organizationId");
       const environment = c.get("environment");
 
-      // Build the KV key using organization ID
-      console.log("organizationId", organizationId);
-      console.log("environment", environment);
       const kvKey = KVKeys.flags(organizationId, environment);
-      console.log("kvKey", kvKey);
 
       try {
         // Fetch flags from KV
         const flags = await c.env.SHIPOS_KV.get<FlagsResponse>(kvKey, "json");
 
         if (flags === null) {
-          // check flags in database
           const flagsInDatabase = await db.select().from(featureFlagsTable).where(DrizzleORM.and(DrizzleORM.eq(featureFlagsTable.organizationId, organizationId), DrizzleORM.eq(featureFlagsTable.environment, environment)));
-          console.log("flagsInDatabase", flagsInDatabase);
           if (flagsInDatabase.length > 0) {
             // store them in KV
             await c.env.SHIPOS_KV.put(kvKey, JSON.stringify(flagsInDatabase.reduce((acc, flag) => {

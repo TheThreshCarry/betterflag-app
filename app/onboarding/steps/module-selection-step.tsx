@@ -6,13 +6,6 @@ import { motion } from "framer-motion"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ONBOARDING_MODULES, type ModuleConfig } from "../module-configs"
 
@@ -68,14 +61,14 @@ export function ModuleSelectionStep({
   const allSelected = selectableModules.every((m) => selected.includes(m.id))
 
   return (
-    <Card>
-      <CardHeader className="text-center">
-        <CardTitle className="text-xl">Choose your modules</CardTitle>
-        <CardDescription>
+    <div>
+      <div className="text-center mb-8">
+        <h1 className="text-2xl font-semibold tracking-tight">Choose your modules</h1>
+        <p className="text-sm text-muted-foreground mt-2">
           Select the modules you want to explore. You can always enable more
           later.
-        </CardDescription>
-        <div className="flex justify-center gap-2 pt-2">
+        </p>
+        <div className="flex justify-center gap-2 pt-4">
           <Button
             variant="ghost"
             size="sm"
@@ -85,8 +78,8 @@ export function ModuleSelectionStep({
             {allSelected ? "Deselect All" : "Select All"}
           </Button>
         </div>
-      </CardHeader>
-      <CardContent>
+      </div>
+      <div>
         <motion.div
           className="grid grid-cols-2 gap-3 sm:grid-cols-3"
           variants={containerVariants}
@@ -113,16 +106,16 @@ export function ModuleSelectionStep({
           ))}
         </motion.div>
 
-        <div className="mt-6 flex items-center gap-3">
+        <div className="mt-8 flex items-center gap-3">
           {onBack && (
-            <Button variant="outline" onClick={onBack} className="gap-2">
+            <Button variant="outline" onClick={onBack} className="gap-2 h-11">
               <ArrowLeft className="h-4 w-4" />
               Back
             </Button>
           )}
           <Button
             onClick={() => onContinue(selected)}
-            className="flex-1 gap-2"
+            className="flex-1 gap-2 h-11"
             size="lg"
             disabled={selected.length === 0}
           >
@@ -130,8 +123,8 @@ export function ModuleSelectionStep({
             <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }
 

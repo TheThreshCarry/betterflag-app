@@ -108,7 +108,6 @@ export const twoFactor = pgTable(
       .references(() => user.id, { onDelete: "cascade" }),
   },
   (table) => [
-    index("twoFactor_secret_idx").on(table.secret),
     index("twoFactor_userId_idx").on(table.userId),
   ],
 );
@@ -142,6 +141,7 @@ export const member = pgTable(
   (table) => [
     index("member_organizationId_idx").on(table.organizationId),
     index("member_userId_idx").on(table.userId),
+    uniqueIndex("member_org_user_uidx").on(table.organizationId, table.userId),
   ],
 );
 
@@ -175,6 +175,9 @@ export const apikey = pgTable(
     start: text("start"),
     prefix: text("prefix"),
     key: text("key").notNull(),
+    organizationId: text("organization_id").references(() => organization.id, {
+      onDelete: "set null",
+    }),
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
@@ -197,6 +200,7 @@ export const apikey = pgTable(
   (table) => [
     index("apikey_key_idx").on(table.key),
     index("apikey_userId_idx").on(table.userId),
+    index("apikey_organizationId_idx").on(table.organizationId),
   ],
 );
 
@@ -261,5 +265,9 @@ export const apikeyRelations = relations(apikey, ({ one }) => ({
   user: one(user, {
     fields: [apikey.userId],
     references: [user.id],
+  }),
+  organization: one(organization, {
+    fields: [apikey.organizationId],
+    references: [organization.id],
   }),
 }));
