@@ -3,8 +3,7 @@
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
-import { authClient } from "@/lib/auth/auth-client"
+import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import {
   Field,
@@ -13,14 +12,19 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 
+/**
+ * Supabase password reset flow:
+ *   1. user clicks link in reset email → lands here with ?code=...
+ *   2. we exchange code for a session (silently, on mount)
+ *   3. user sets a new password; we call supabase.auth.updateUser({ password })
+ *
+ * The old "token" param from Better Auth is gone — Supabase handles it via the
+ * PKCE code exchange + active session.
+ */
 export function ResetPasswordForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const token = searchParams.get("token")
-
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -41,22 +45,15 @@ export function ResetPasswordForm({
       return
     }
 
-    if (!token) {
-      setError("Invalid reset link. Please request a new one.")
-      return
-    }
-
     setIsLoading(true)
 
-    const { error } = await authClient.resetPassword({
-      newPassword: password,
-      token,
-    })
+    const supabase = createClient()
+    const { error: updateError } = await supabase.auth.updateUser({ password })
 
     setIsLoading(false)
 
-    if (error) {
-      setError(error.message || "Failed to reset password")
+    if (updateError) {
+      setError(updateError.message || "Failed to reset password")
       return
     }
 
@@ -74,22 +71,6 @@ export function ResetPasswordForm({
         </div>
         <Button asChild className="w-full h-11">
           <Link href="/auth/login">Sign in with new password</Link>
-        </Button>
-      </div>
-    )
-  }
-
-  if (!token) {
-    return (
-      <div className={cn("flex flex-col gap-6", className)} {...props}>
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-semibold tracking-tight">Invalid reset link</h1>
-          <p className="text-sm text-muted-foreground mt-2">
-            This password reset link is invalid or has expired.
-          </p>
-        </div>
-        <Button asChild className="w-full h-11">
-          <Link href="/auth/forgot-password">Request a new link</Link>
         </Button>
       </div>
     )
@@ -149,4 +130,3 @@ export function ResetPasswordForm({
     </div>
   )
 }
-

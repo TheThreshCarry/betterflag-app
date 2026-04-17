@@ -1,55 +1,49 @@
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { NextRequest, NextResponse } from "next/server";
-import { createLogger } from "@/lib/logger";
-import { workerServiceHeaders } from "@/lib/worker-internal";
+import { getSupabaseSession } from "@/lib/supabase/session"
+import { NextRequest, NextResponse } from "next/server"
+import { createLogger } from "@/lib/logger"
+import { createAdminClient } from "@/lib/supabase/admin"
+import { parsePublicStoragePath } from "@/lib/supabase/storage-brand"
 
-const log = createLogger("api.profile");
-const WORKER_URL = process.env.WORKER_API_URL || "http://localhost:8787";
+const log = createLogger("api.profile")
+const BUCKET = "avatars"
 
 export async function DELETE(request: NextRequest) {
   try {
-    // Get the current session
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    let session
+    try {
+      session = await getSupabaseSession()
+    } catch {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Get the key from request body
-    const { key } = await request.json();
+    const body = (await request.json()) as { url?: string }
+    const url = body.url
+    if (!url || typeof url !== "string") {
+      return NextResponse.json({ error: "No url provided" }, { status: 400 })
+    }
 
-    if (!key) {
+    const path = parsePublicStoragePath(url, BUCKET, session.userId)
+    if (!path) {
+      return NextResponse.json({ error: "Invalid or unauthorized image url" }, { status: 400 })
+    }
+
+    const admin = createAdminClient()
+    const { error } = await admin.storage.from(BUCKET).remove([path])
+
+    if (error) {
+      log.error({ err: error }, "avatar delete failed")
       return NextResponse.json(
-        { error: "No key provided" },
-        { status: 400 }
-      );
+        { error: error.message ?? "Delete failed" },
+        { status: 500 }
+      )
     }
 
-    // Forward to Cloudflare Worker
-    const response = await fetch(`${WORKER_URL}/internal/profile-picture/delete`, {
-      method: "DELETE",
-      headers: workerServiceHeaders({ "Content-Type": "application/json" }),
-      body: JSON.stringify({
-        key,
-        userId: session.user.id,
-      }),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      return NextResponse.json(data, { status: response.status });
-    }
-
-    return NextResponse.json(data);
+    return NextResponse.json({ success: true })
   } catch (error) {
-    log.error({ err: error }, "profile picture delete error");
+    log.error({ err: error }, "profile picture delete error")
     return NextResponse.json(
       { error: "Failed to delete profile picture" },
       { status: 500 }
-    );
+    )
   }
 }

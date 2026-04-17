@@ -1,0 +1,23 @@
+DESCRIPTION >
+    Generic analytics events pipeline — pageviews, custom events, errors.
+    Populated by POST /v1/analytics/events via the Worker.
+
+SCHEMA >
+    `organization_id` String `json:$.organization_id`,
+    `event_type` LowCardinality(String) `json:$.event_type`,
+    `event_name` String `json:$.event_name`,
+    `customer_id` String `json:$.customer_id`,
+    `session_id` String `json:$.session_id`,
+    `url` String `json:$.url`,
+    `referrer` String `json:$.referrer`,
+    `properties` String `json:$.properties`,
+    `user_agent` String `json:$.user_agent`,
+    `country` LowCardinality(String) `json:$.country`,
+    `city` String `json:$.city`,
+    `timestamp` DateTime64(3) `json:$.timestamp`,
+    `sdk_version` LowCardinality(String) `json:$.sdk_version`
+
+ENGINE "MergeTree"
+ENGINE_PARTITION_KEY "toYYYYMM(timestamp)"
+ENGINE_SORTING_KEY "organization_id, timestamp, event_type"
+ENGINE_TTL "timestamp + INTERVAL 365 DAY"

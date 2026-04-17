@@ -76,7 +76,7 @@ type CreateItem = {
 }
 
 const createItems: CreateItem[] = [
-  { title: "New Blog Post", url: "/dashboard/cms", icon: FileText, keywords: ["create post", "new entry", "new blog", "new article"] },
+  { title: "New CMS entry", url: "/dashboard/cms", icon: FileText, keywords: ["create entry", "new entry", "cms", "content"] },
   { title: "New Content Type", url: "/dashboard/cms/content-types?new=true", icon: FileText, keywords: ["create content type", "new schema"] },
   { title: "New Changelog", url: "/dashboard/changelogs/new", icon: Sparkles, keywords: ["create changelog", "new release"] },
   { title: "New Feature Flag", url: "/dashboard/flags?new=true", icon: Flag, keywords: ["create flag", "new toggle"] },
@@ -100,7 +100,7 @@ const typeLabels: Record<SearchResult["type"], string> = {
   "global-config": "Config",
   "customer": "Customer",
   "content-type": "Content Type",
-  "cms-entry": "Blog Entry",
+  "cms-entry": "CMS entry",
 }
 
 // ─── Component ───────────────────────────────────────────────────────
@@ -218,7 +218,7 @@ export function CommandK() {
                         </span>
                       )}
                     </div>
-                    <Badge variant="secondary" className="ml-auto shrink-0 text-[10px] font-normal">
+                    <Badge variant="muted" className="ml-auto shrink-0 text-[10px] font-normal">
                       {typeLabels[result.type]}
                     </Badge>
                     {result.meta?.enabled && (
@@ -280,7 +280,7 @@ export function CommandK() {
               <item.icon className="mr-2 size-4 shrink-0" />
               <span>{item.title}</span>
               {item.comingSoon ? (
-                <Badge variant="secondary" className="ml-auto shrink-0 text-[10px] font-normal">
+                <Badge variant="muted" className="ml-auto shrink-0 text-[10px] font-normal">
                   Coming Soon
                 </Badge>
               ) : (

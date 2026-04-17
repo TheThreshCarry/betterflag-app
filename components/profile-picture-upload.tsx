@@ -5,7 +5,7 @@ import { Camera, Trash2, Upload } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { authClient } from "@/lib/auth/auth-client";
+import { updateProfile } from "@/lib/actions/profile";
 
 interface ProfilePictureUploadProps {
   currentImage?: string | null;
@@ -69,10 +69,7 @@ export function ProfilePictureUpload({
         throw new Error(data.error || "Failed to upload");
       }
 
-      // Update user's image in the database using better-auth
-      await authClient.updateUser({
-        image: data.url,
-      });
+      await updateProfile({ image: data.url });
 
       setImage(data.url);
       onUpdate?.(data.url);
@@ -96,16 +93,12 @@ export function ProfilePictureUpload({
     setIsDeleting(true);
 
     try {
-      // Extract key from URL (assuming format: https://domain.com/profile-pictures/userId-timestamp.ext)
-      const url = new URL(image);
-      const key = url.pathname.slice(1); // Remove leading slash
-
       const response = await fetch("/api/profile-picture/delete", {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ key }),
+        body: JSON.stringify({ url: image }),
       });
 
       const data = await response.json();
@@ -114,10 +107,7 @@ export function ProfilePictureUpload({
         throw new Error(data.error || "Failed to delete");
       }
 
-      // Update user's image to null in the database
-      await authClient.updateUser({
-        image: null,
-      });
+      await updateProfile({ image: null });
 
       setImage(null);
       onUpdate?.("");

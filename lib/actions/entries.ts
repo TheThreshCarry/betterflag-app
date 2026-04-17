@@ -12,9 +12,11 @@ import {
 import { getSessionData } from "@/lib/actions/utils"
 import { parseSchemaFields } from "@/lib/cms/schema-utils"
 import { validateEntryData, coerceFieldValues } from "@/lib/cms/schema-validation"
+import { deriveEntryDisplayTitle } from "@/lib/cms/entry-label"
+import { getSupabaseSessionOptional } from "@/lib/supabase/session"
+import { createActionLogger } from "@/lib/log-context"
 import { createLogger } from "@/lib/logger"
-
-const log = createLogger("actions.cms")
+import { captureProductEvent, ProductEvent } from "@/lib/analytics/product-events"
 
 function slugify(text: string): string {
   return text
@@ -111,20 +113,18 @@ export async function getEntriesByContentType(contentTypeId: string) {
 export async function createEntry(
   data: Omit<NewEntry, "id" | "createdAt" | "updatedAt" | "organizationId"> & { title?: string }
 ) {
+  const session = await getSupabaseSessionOptional()
+  const log = session ? createActionLogger("actions.cms", session) : createLogger("actions.cms")
   const { organizationId } = await getSessionData()
 
-  // Prioritize the title argument over data.title (schema field)
-  const entryTitle = data.title || (
-    data.data && typeof data.data === "object" 
-      ? (data.data as Record<string, unknown>).title 
-      : undefined
-  )
-  
-  if (!entryTitle || (typeof entryTitle === "string" && !entryTitle.trim())) {
-    throw new Error("Entry title is required")
-  }
+  const row =
+    data.data && typeof data.data === "object"
+      ? (data.data as Record<string, unknown>)
+      : {}
+  const entryTitle =
+    data.title ?? deriveEntryDisplayTitle(row)
 
-  const slug = data.slug || slugify(String(entryTitle) || "untitled")
+  const slug = data.slug || slugify(entryTitle)
 
   const [entry] = await db
     .insert(entries)
@@ -138,6 +138,11 @@ export async function createEntry(
     .returning()
 
   log.info({ id: entry.id, slug, contentTypeId: data.contentTypeId }, "entry created")
+  captureProductEvent(ProductEvent.CMS_ENTRY_CREATED, session, {
+    entry_id: entry.id,
+    content_type_id: data.contentTypeId,
+    slug,
+  })
   revalidatePath("/dashboard/cms")
   return entry
 }
@@ -146,18 +151,10 @@ export async function updateEntry(
   id: string,
   data: Partial<Omit<NewEntry, "id" | "createdAt" | "organizationId">> & { title?: string }
 ) {
+  const session = await getSupabaseSessionOptional()
+  const log = session ? createActionLogger("actions.cms", session) : createLogger("actions.cms")
   const { organizationId } = await getSessionData()
   if (!organizationId) throw new Error("No active organization")
-
-  const entryTitle = data.title !== undefined ? data.title : (
-    data.data && typeof data.data === "object"
-      ? (data.data as Record<string, unknown>).title as string | undefined
-      : undefined
-  )
-  
-  if (entryTitle !== undefined && (!entryTitle || (typeof entryTitle === "string" && !entryTitle.trim()))) {
-    throw new Error("Entry title is required")
-  }
 
   const updateData: Record<string, unknown> = {
     ...data,
@@ -166,16 +163,17 @@ export async function updateEntry(
 
   delete updateData.title
 
-  if (entryTitle && typeof entryTitle === "string") {
-    updateData.slug = slugify(entryTitle)
-  }
-
   const [entry] = await db
     .update(entries)
     .set(updateData)
     .where(and(eq(entries.id, id), eq(entries.organizationId, organizationId)))
     .returning()
 
+  log.info({ id, contentTypeId: entry?.contentTypeId }, "entry updated")
+  captureProductEvent(ProductEvent.CMS_ENTRY_UPDATED, session, {
+    entry_id: id,
+    keys_updated: Object.keys(data),
+  })
   revalidatePath("/dashboard/cms")
   return entry
 }
@@ -198,22 +196,30 @@ async function assertEntriesInOrganization(
 }
 
 export async function deleteEntry(id: string) {
+  const session = await getSupabaseSessionOptional()
+  const log = session ? createActionLogger("actions.cms", session) : createLogger("actions.cms")
   const { organizationId } = await getSessionData()
   if (!organizationId) throw new Error("No active organization")
   await assertEntriesInOrganization([id], organizationId)
   await db.delete(entries).where(eq(entries.id, id))
   log.info({ id }, "entry deleted")
+  captureProductEvent(ProductEvent.CMS_ENTRY_DELETED, session, { entry_id: id })
 
   revalidatePath("/dashboard/cms")
 }
 
 export async function bulkDeleteEntries(ids: string[]) {
+  const session = await getSupabaseSessionOptional()
+  const log = session ? createActionLogger("actions.cms", session) : createLogger("actions.cms")
   const { organizationId } = await getSessionData()
   if (!organizationId) throw new Error("No active organization")
   if (ids.length === 0) return
   await assertEntriesInOrganization(ids, organizationId)
   await db.delete(entries).where(inArray(entries.id, ids))
   log.info({ count: ids.length }, "entries bulk deleted")
+  captureProductEvent(ProductEvent.CMS_ENTRIES_BULK_DELETED, session, {
+    count: ids.length,
+  })
   revalidatePath("/dashboard/cms")
 }
 
@@ -240,6 +246,8 @@ export async function bulkUnpublishEntries(ids: string[]) {
 }
 
 export async function publishEntry(id: string) {
+  const session = await getSupabaseSessionOptional()
+  const log = session ? createActionLogger("actions.cms", session) : createLogger("actions.cms")
   const { organizationId } = await getSessionData()
   if (!organizationId) throw new Error("No active organization")
 
@@ -269,11 +277,18 @@ export async function publishEntry(id: string) {
     .where(eq(entries.id, id))
     .returning()
 
+  log.info({ id }, "entry published")
+  captureProductEvent(ProductEvent.CMS_ENTRY_PUBLISHED, session, {
+    entry_id: id,
+    content_type_id: entry.contentTypeId,
+  })
   revalidatePath("/dashboard/cms")
   return updated
 }
 
 export async function unpublishEntry(id: string) {
+  const session = await getSupabaseSessionOptional()
+  const log = session ? createActionLogger("actions.cms", session) : createLogger("actions.cms")
   const { organizationId } = await getSessionData()
   if (!organizationId) throw new Error("No active organization")
   await assertEntriesInOrganization([id], organizationId)
@@ -287,6 +302,8 @@ export async function unpublishEntry(id: string) {
     .where(eq(entries.id, id))
     .returning()
 
+  log.info({ id }, "entry unpublished")
+  captureProductEvent(ProductEvent.CMS_ENTRY_UNPUBLISHED, session, { entry_id: id })
   revalidatePath("/dashboard/cms")
   return entry
 }

@@ -1,0 +1,19 @@
+DESCRIPTION >
+    Top pages by pageview count for an org.
+
+TOKEN "events_read" READ
+
+NODE top
+SQL >
+    %
+    SELECT
+        url,
+        count() AS views,
+        uniq(customer_id) AS uniques
+    FROM events
+    WHERE organization_id = {{ String(organization_id, required=True) }}
+      AND event_type = 'pageview'
+      AND timestamp BETWEEN {{ DateTime(from) }} AND {{ DateTime(to) }}
+    GROUP BY url
+    ORDER BY views DESC
+    LIMIT {{ Int32(limit, 25) }}

@@ -168,7 +168,7 @@ export function ModuleSetupStep({
           </div>
           <div className="flex items-center justify-center gap-2 mb-2">
             <h1 className="text-2xl font-semibold tracking-tight">{module.title}</h1>
-            <Badge variant="secondary" className="text-[10px] font-normal">
+            <Badge variant="muted" className="text-[10px] font-normal">
               Coming Soon
             </Badge>
           </div>

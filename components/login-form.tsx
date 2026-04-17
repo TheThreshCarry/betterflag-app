@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { authClient } from "@/lib/auth/auth-client"
+import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import {
   Field,
@@ -28,34 +28,42 @@ export function LoginForm({
     setError(null)
     setIsLoading(true)
 
-    const { error } = await authClient.signIn.email({
+    const supabase = createClient()
+    const { error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
 
     setIsLoading(false)
 
-    if (error) {
-      setError(error.message || "Invalid email or password")
+    if (signInError) {
+      setError(signInError.message || "Invalid email or password")
       return
     }
 
     router.push("/dashboard")
+    router.refresh()
   }
 
   const handleSocialLogin = async (provider: "apple" | "google") => {
     setError(null)
     setIsLoading(true)
 
-    const { error } = await authClient.signIn.social({
+    const supabase = createClient()
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider,
-      callbackURL: "/dashboard",
+      options: {
+        redirectTo:
+          typeof window !== "undefined"
+            ? `${window.location.origin}/auth/callback?next=/dashboard`
+            : undefined,
+      },
     })
 
     setIsLoading(false)
 
-    if (error) {
-      setError(error.message || `Failed to login with ${provider}`)
+    if (oauthError) {
+      setError(oauthError.message || `Failed to login with ${provider}`)
     }
   }
 

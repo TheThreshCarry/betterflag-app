@@ -1,22 +1,28 @@
-import { headers } from "next/headers"
 import { DashboardLayout } from "@/components/dashboard-layout"
-import { auth } from "@/lib/auth"
+import { getSupabaseSession } from "@/lib/supabase/session"
+import { createClient } from "@/lib/supabase/server"
 
 export default async function Page() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  })
-
-  // Get active organization if available
-  const activeOrgId = session?.session.activeOrganizationId
-  let organization = null
-
-  if (activeOrgId) {
-    organization = await auth.api.getFullOrganization({
-      headers: await headers(),
-      query: { organizationId: activeOrgId },
-    })
+  let session
+  try {
+    session = await getSupabaseSession()
+  } catch {
+    session = null
   }
+
+  let organization: { id: string; name: string } | null = null
+  if (session?.organizationId) {
+    const supabase = await createClient()
+    const { data } = await supabase
+      .from("organizations")
+      .select("id, name")
+      .eq("id", session.organizationId)
+      .maybeSingle()
+    organization = data ?? null
+  }
+
+  const userName = session?.email?.split("@")[0] ?? "there"
+  const userEmail = session?.email ?? ""
 
   return (
     <DashboardLayout
@@ -26,12 +32,8 @@ export default async function Page() {
       ]}
     >
       <div className="rounded-xl border bg-card p-6">
-        <h2 className="text-xl font-semibold">
-          Welcome back, {session?.user.name}!
-        </h2>
-        <p className="text-muted-foreground mt-1">
-          {session?.user.email}
-        </p>
+        <h2 className="text-xl font-semibold">Welcome back, {userName}!</h2>
+        <p className="text-muted-foreground mt-1">{userEmail}</p>
         {organization && (
           <p className="text-muted-foreground mt-1">
             Organization: {organization.name}

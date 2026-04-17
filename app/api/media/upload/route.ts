@@ -1,20 +1,15 @@
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { eq, sql } from "drizzle-orm";
 import db from "@/lib/db";
 import { mediaAssets } from "@/lib/db/schema";
-import { PLAN_LIMITS } from "@/lib/polar/subscription";
-import { getPlanSlugForUser } from "@/lib/polar/org-plan";
+import { getSupabaseSession } from "@/lib/supabase/session";
+import { getOrganizationEntitlements } from "@/lib/billing/entitlements";
 import { createLogger } from "@/lib/logger";
 import { workerServiceHeaders } from "@/lib/worker-internal";
 
 const log = createLogger("api.media");
 const WORKER_URL = process.env.WORKER_API_URL || "http://localhost:8787";
 
-/**
- * Derive the display type category from a MIME type.
- */
 function deriveType(mimeType: string): "image" | "video" | "file" {
   if (mimeType.startsWith("image/")) return "image";
   if (mimeType.startsWith("video/")) return "video";
@@ -23,16 +18,14 @@ function deriveType(mimeType: string): "image" | "video" | "file" {
 
 export async function POST(request: NextRequest) {
   try {
-    // 1. Validate session
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
+    let session
+    try {
+      session = await getSupabaseSession()
+    } catch {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const organizationId = session.session.activeOrganizationId;
+    const organizationId = session.organizationId;
     if (!organizationId) {
       return NextResponse.json(
         { error: "No active organization" },
@@ -40,7 +33,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. Parse form data
     const formData = await request.formData();
     const file = formData.get("file");
     const folder = (formData.get("folder") as string) || "/";
@@ -52,10 +44,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const planSlug = await getPlanSlugForUser(session.user.id);
-    const limits = PLAN_LIMITS[planSlug];
+    const ent = await getOrganizationEntitlements(organizationId);
+    const limits = ent.limits;
 
-    // 4. Check per-file size limit
     if (file.size > limits.mediaMaxFileSize) {
       const maxMB = Math.round(limits.mediaMaxFileSize / (1024 * 1024));
       return NextResponse.json(
@@ -67,7 +58,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 5. Check total storage quota
     const [storageResult] = await db
       .select({
         totalSize: sql<number>`COALESCE(SUM(${mediaAssets.size}), 0)`,
@@ -90,11 +80,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 6. Forward to Cloudflare Worker
     const workerFormData = new FormData();
     workerFormData.append("file", file);
     workerFormData.append("organizationId", organizationId);
-    workerFormData.append("userId", session.user.id);
+    workerFormData.append("userId", session.userId);
     workerFormData.append("folder", folder);
 
     const workerResponse = await fetch(`${WORKER_URL}/internal/media/upload`, {
@@ -116,7 +105,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(workerData, { status: workerResponse.status });
     }
 
-    // 7. Save metadata to database
     const mimeType = workerData.mimeType || file.type || "application/octet-stream";
     const publicUrl = `${WORKER_URL}/media/serve/${organizationId}/${workerData.key?.replace(`media/${organizationId}/`, "") || ""}`;
 
@@ -131,7 +119,7 @@ export async function POST(request: NextRequest) {
         mimeType,
         size: file.size,
         organizationId,
-        uploadedBy: session.user.id,
+        uploadedBy: session.userId,
       })
       .returning();
 

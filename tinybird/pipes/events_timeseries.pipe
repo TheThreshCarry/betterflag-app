@@ -1,0 +1,19 @@
+DESCRIPTION >
+    Events over time (pageviews or custom) for an org.
+
+TOKEN "events_read" READ
+
+NODE evs
+SQL >
+    %
+    SELECT
+        toStartOfInterval(timestamp, INTERVAL {{ Int32(bucket_minutes, 60) }} MINUTE) AS ts,
+        event_type,
+        count() AS events,
+        uniq(customer_id) AS uniques
+    FROM events
+    WHERE organization_id = {{ String(organization_id, required=True) }}
+      {% if defined(event_type) %}AND event_type = {{ String(event_type) }}{% end %}
+      AND timestamp BETWEEN {{ DateTime(from) }} AND {{ DateTime(to) }}
+    GROUP BY ts, event_type
+    ORDER BY ts ASC

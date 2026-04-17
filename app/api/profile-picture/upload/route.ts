@@ -1,61 +1,71 @@
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { NextRequest, NextResponse } from "next/server";
-import { createLogger } from "@/lib/logger";
-import { workerServiceHeaders } from "@/lib/worker-internal";
+import { NextRequest, NextResponse } from "next/server"
+import { createLogger } from "@/lib/logger"
+import { createAdminClient } from "@/lib/supabase/admin"
+import {
+  brandImageExt,
+  validateBrandImageFile,
+} from "@/lib/supabase/storage-brand"
+import { getSupabaseSession } from "@/lib/supabase/session"
 
-const log = createLogger("api.profile");
-const WORKER_URL = process.env.WORKER_API_URL || "http://localhost:8787";
+const log = createLogger("api.profile")
+const BUCKET = "avatars"
 
 export async function POST(request: NextRequest) {
   try {
-    // Get the current session
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    let session
+    try {
+      session = await getSupabaseSession()
+    } catch {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Get the form data
-    const formData = await request.formData();
-    const file = formData.get("file");
+    const formData = await request.formData()
+    const file = formData.get("file")
 
     if (!file || !(file instanceof File)) {
+      return NextResponse.json({ error: "No file provided" }, { status: 400 })
+    }
+
+    const check = validateBrandImageFile(file)
+    if (!check.ok) {
+      return NextResponse.json({ error: check.error }, { status: 400 })
+    }
+
+    const ext = brandImageExt(file.type)
+    if (!ext) {
+      return NextResponse.json({ error: "Unsupported image type" }, { status: 400 })
+    }
+
+    const objectPath = `${session.userId}/${Date.now()}.${ext}`
+    const admin = createAdminClient()
+    const body = new Uint8Array(await file.arrayBuffer())
+
+    const { error: upErr } = await admin.storage
+      .from(BUCKET)
+      .upload(objectPath, body, {
+        contentType: file.type,
+        upsert: false,
+      })
+
+    if (upErr) {
+      log.error({ err: upErr }, "avatar upload failed")
       return NextResponse.json(
-        { error: "No file provided" },
-        { status: 400 }
-      );
+        { error: upErr.message ?? "Upload failed" },
+        { status: 500 }
+      )
     }
 
-    // Create new FormData to forward to worker
-    const workerFormData = new FormData();
-    workerFormData.append("file", file);
-    workerFormData.append("userId", session.user.id);
+    const { data: pub } = admin.storage.from(BUCKET).getPublicUrl(objectPath)
 
-    // Forward to Cloudflare Worker
-    const response = await fetch(`${WORKER_URL}/internal/profile-picture/upload`, {
-      method: "POST",
-      headers: workerServiceHeaders(),
-      body: workerFormData,
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      return NextResponse.json(data, { status: response.status });
-    }
-
-    // Update user's image in database
-    // This will be handled by the client after receiving the URL
-
-    return NextResponse.json(data);
+    return NextResponse.json({
+      success: true,
+      url: pub.publicUrl,
+    })
   } catch (error) {
-    log.error({ err: error }, "profile picture upload error");
+    log.error({ err: error }, "profile picture upload error")
     return NextResponse.json(
       { error: "Failed to upload profile picture" },
       { status: 500 }
-    );
+    )
   }
 }

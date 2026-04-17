@@ -4,8 +4,6 @@
 export type Bindings = {
   /** KV namespace for storing feature flags and configs */
   SHIPOS_KV: KVNamespace;
-  /** R2 bucket for profile pictures */
-  PROFILE_PICTURES: R2Bucket;
   /** R2 bucket for media assets */
   MEDIA_ASSETS: R2Bucket;
   /** Static assets binding */
@@ -16,14 +14,20 @@ export type Bindings = {
   POLAR_API_BASE?: string;
   /** Shared secret for internal service-to-service calls (e.g. KV sync from Next.js) */
   SERVICE_SECRET: string;
-  /** ClickHouse connection URL (e.g. https://your-ch-host:8443) */
-  CLICKHOUSE_URL: string;
-  /** ClickHouse username (e.g. default) */
-  CLICKHOUSE_USER: string;
-  /** ClickHouse password (stored as a Worker secret) */
-  CLICKHOUSE_PASSWORD: string;
-  /** ClickHouse database name (e.g. shipos_analytics) */
-  CLICKHOUSE_DATABASE: string;
+  /** ClickHouse connection URL — DEPRECATED, removed in Phase 4. */
+  CLICKHOUSE_URL?: string;
+  /** ClickHouse username — DEPRECATED, removed in Phase 4. */
+  CLICKHOUSE_USER?: string;
+  /** ClickHouse password — DEPRECATED, removed in Phase 4. */
+  CLICKHOUSE_PASSWORD?: string;
+  /** ClickHouse database — DEPRECATED, removed in Phase 4. */
+  CLICKHOUSE_DATABASE?: string;
+  /** Tinybird ingest host, e.g. https://api.tinybird.co */
+  TINYBIRD_HOST?: string;
+  /** Tinybird ingest token (write to events + flag_evaluations) */
+  TINYBIRD_INGEST_TOKEN?: string;
+  /** Next.js app origin (for legacy proxy fallback only). */
+  NEXT_APP_URL?: string;
 };
 
 /**
@@ -68,7 +72,13 @@ export type AppEnv = {
 };
 
 /**
- * KV Key builders for consistent key formatting
+ * KV Key builders for consistent key formatting.
+ *
+ * Two schemes in flight during the Supabase cutover:
+ *   - Legacy v1 scheme: `v1::org_{orgId}::{env}::*` (single-env)
+ *   - Tenant scheme:    `tenant_{orgId}_*`         (multi-env payload)
+ *
+ * Readers try both and prefer the tenant scheme when present.
  */
 export const KVKeys = {
   /** Preferred: v1::apikey_h::{sha256Hex} */
@@ -77,25 +87,55 @@ export const KVKeys = {
   apiKeyLegacy: (rawApiKey: string): string => `v1::apikey::${rawApiKey}`,
 
   /**
-   * Build the flags key (organization-scoped)
+   * Build the flags key (legacy, per-env)
    * Format: v1::org_{orgId}::{env}::flags
    */
   flags: (orgId: string, env: string): string =>
     `v1::org_${orgId}::${env}::flags`,
 
   /**
-   * Build the config key (organization-scoped)
+   * Build the tenant-scheme flags key (plan R2)
+   * Format: tenant_{orgId}_flags — value is `{ [env]: { [key]: bool } }`
+   */
+  flagsTenant: (orgId: string): string => `tenant_${orgId}_flags`,
+
+  /**
+   * Build the config key (legacy, per-env)
    * Format: v1::org_{orgId}::{env}::config::{slug}
    */
   config: (orgId: string, env: string, slug: string): string =>
     `v1::org_${orgId}::${env}::config::${slug}`,
 
   /**
+   * Build the tenant-scheme config key (plan R2)
+   * Format: tenant_{orgId}_config_{slug}
+   */
+  configTenant: (orgId: string, slug: string): string =>
+    `tenant_${orgId}_config_${slug}`,
+
+  /**
    * Build the customer key (organization-scoped)
-   * Format: v1::org_{orgId}::customer::{externalId}
+   * Format: tenant_{orgId}_customer_{externalId}
    */
   customer: (orgId: string, externalId: string): string =>
-    `v1::org_${orgId}::customer::${externalId}`,
+    `tenant_${orgId}_customer_${externalId}`,
+
+  /**
+   * CMS entry key. Format: tenant_{orgId}_cms_{contentTypeSlug}_{entrySlug}
+   */
+  cmsEntry: (orgId: string, ctSlug: string, entrySlug: string): string =>
+    `tenant_${orgId}_cms_${ctSlug}_${entrySlug}`,
+
+  /**
+   * CMS content-type index. Format: tenant_{orgId}_cms_{contentTypeSlug}_index
+   */
+  cmsIndex: (orgId: string, ctSlug: string): string =>
+    `tenant_${orgId}_cms_${ctSlug}_index`,
+
+  /**
+   * Entitlements. Format: tenant_{orgId}_entitlements
+   */
+  entitlements: (orgId: string): string => `tenant_${orgId}_entitlements`,
 };
 
 /**

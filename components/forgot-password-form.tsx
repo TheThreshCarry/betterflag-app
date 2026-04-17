@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { useState } from "react"
-import { authClient } from "@/lib/auth/auth-client"
+import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import {
   Field,
@@ -26,17 +26,21 @@ export function ForgotPasswordForm({
     setError(null)
     setIsLoading(true)
 
-    const { error } = await authClient.requestPasswordReset({
+    const supabase = createClient()
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(
       email,
-      redirectTo: "/auth/reset-password",
-    })
-
-    console.log("Forgot password response:", { error })
+      {
+        redirectTo:
+          typeof window !== "undefined"
+            ? `${window.location.origin}/auth/reset-password`
+            : undefined,
+      },
+    )
 
     setIsLoading(false)
 
-    if (error) {
-      setError(error.message || "Failed to send reset email")
+    if (resetError) {
+      setError(resetError.message || "Failed to send reset email")
       return
     }
 
@@ -113,4 +117,3 @@ export function ForgotPasswordForm({
     </div>
   )
 }
-

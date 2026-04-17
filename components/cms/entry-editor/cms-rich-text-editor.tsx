@@ -225,10 +225,13 @@ export function CmsRichTextEditor({
   const handleNodeChange = useCallback(({ pos }: { pos: number }) => {
     hoveredNodePosRef.current = pos
   }, [])
-  const dragHandlePositionConfig = useMemo(() => ({
-    placement: "left" as const,
-    strategy: "absolute" as const,
-  }), [])
+  const dragHandlePositionConfig = useMemo(
+    () => ({
+      placement: "left-start" as const,
+      strategy: "absolute" as const,
+    }),
+    []
+  )
 
   const contextBlockPosRef = useRef<number>(-1)
 
@@ -339,10 +342,10 @@ export function CmsRichTextEditor({
   }
 
   return (
-    <div>
-      {/* Toolbar */}
+    <div className="min-w-0">
+      {/* Toolbar — align with editor gutter */}
       <div className="sticky top-0 z-30 border-b border-border/60 bg-background py-1.5">
-      <div className="mx-auto max-w-2xl px-8 flex items-center gap-0.5 flex-wrap">
+      <div className="w-full max-w-none pl-12 sm:pl-14 pr-3 flex items-center gap-0.5 flex-wrap">
         <TooltipProvider delayDuration={300}>
           <ToolbarButton
             onClick={() => editor.chain().focus().undo().run()}
@@ -540,7 +543,7 @@ export function CmsRichTextEditor({
         className="z-40 flex items-center gap-0.5 rounded-md border border-border bg-popover p-1 shadow-md"
       >
         <Button
-          variant={editor.isActive("bold") ? "secondary" : "ghost"}
+          variant={editor.isActive("bold") ? "outline" : "ghost"}
           size="icon"
           className="h-7 w-7"
           onClick={() => editor.chain().focus().toggleBold().run()}
@@ -548,7 +551,7 @@ export function CmsRichTextEditor({
           <Bold className="h-3.5 w-3.5" />
         </Button>
         <Button
-          variant={editor.isActive("italic") ? "secondary" : "ghost"}
+          variant={editor.isActive("italic") ? "outline" : "ghost"}
           size="icon"
           className="h-7 w-7"
           onClick={() => editor.chain().focus().toggleItalic().run()}
@@ -556,7 +559,7 @@ export function CmsRichTextEditor({
           <Italic className="h-3.5 w-3.5" />
         </Button>
         <Button
-          variant={editor.isActive("underline") ? "secondary" : "ghost"}
+          variant={editor.isActive("underline") ? "outline" : "ghost"}
           size="icon"
           className="h-7 w-7"
           onClick={() => editor.chain().focus().toggleUnderline().run()}
@@ -564,7 +567,7 @@ export function CmsRichTextEditor({
           <Underline className="h-3.5 w-3.5" />
         </Button>
         <Button
-          variant={editor.isActive("strike") ? "secondary" : "ghost"}
+          variant={editor.isActive("strike") ? "outline" : "ghost"}
           size="icon"
           className="h-7 w-7"
           onClick={() => editor.chain().focus().toggleStrike().run()}
@@ -572,7 +575,7 @@ export function CmsRichTextEditor({
           <Strikethrough className="h-3.5 w-3.5" />
         </Button>
         <Button
-          variant={editor.isActive("code") ? "secondary" : "ghost"}
+          variant={editor.isActive("code") ? "outline" : "ghost"}
           size="icon"
           className="h-7 w-7"
           onClick={() => editor.chain().focus().toggleCode().run()}
@@ -610,14 +613,14 @@ export function CmsRichTextEditor({
       <ContextMenu>
         <ContextMenuTrigger asChild>
           <div
-            className="mx-auto max-w-2xl px-8 pb-24 group"
+            className="w-full max-w-none pl-12 sm:pl-14 pr-3 pb-24 pt-1 group"
             onContextMenu={(e) => {
               contextBlockPosRef.current = resolveBlockPos(e)
             }}
           >
             <EditorContent
               editor={editor}
-              className="prose prose-sm dark:prose-invert max-w-none min-h-[60vh] [&_.tiptap]:outline-none [&_.tiptap]:min-h-[400px]"
+              className="prose prose-sm dark:prose-invert max-w-none min-h-[60vh] [&_.tiptap]:outline-none [&_.tiptap]:min-h-[400px] [&_.tiptap]:box-border"
             />
           </div>
         </ContextMenuTrigger>
@@ -702,7 +705,7 @@ function ToolbarButton({
       <TooltipTrigger asChild>
         <Button
           type="button"
-          variant={isActive ? "secondary" : "ghost"}
+          variant={isActive ? "outline" : "ghost"}
           size="icon"
           className="h-8 w-8"
           onClick={onClick}

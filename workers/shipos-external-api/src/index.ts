@@ -4,7 +4,6 @@ import type { AppEnv } from "./types";
 import { v1Routes } from "./routes/v1";
 import { kvRoutes } from "./routes/internal/kv";
 import { internalMediaRoutes } from "./routes/internal/media";
-import { internalProfileRoutes } from "./routes/internal/profile";
 import { serveMediaAsset } from "./lib/r2-media";
 
 const app = new Hono<AppEnv>();
@@ -57,12 +56,10 @@ app.route("/v1", v1Routes);
  * Internal Service Routes
  * /internal/kv — KV sync (Next.js server actions)
  * /internal/media — R2 media mutations (Next.js API routes only)
- * /internal/profile-picture — profile R2 mutations (Next.js API routes only)
  * Protected by SERVICE_SECRET (not API key auth)
  */
 app.route("/internal/kv", kvRoutes);
 app.route("/internal/media", internalMediaRoutes);
-app.route("/internal/profile-picture", internalProfileRoutes);
 
 /**
  * Serve a media asset (public URL)
@@ -85,32 +82,6 @@ app.get("/media/serve/:orgId/*", async (c) => {
     });
   } catch (error) {
     console.error("Media serve error:", error);
-    return c.json({ error: "Failed to retrieve file" }, 500);
-  }
-});
-
-/**
- * Serve a profile picture (public URL)
- * GET /profile-pictures/*
- */
-app.get("/profile-pictures/*", async (c) => {
-  try {
-    const rest = c.req.param("*") || "";
-    const key = `profile-pictures/${rest}`;
-    const object = await c.env.PROFILE_PICTURES.get(key);
-
-    if (!object) {
-      return c.json({ error: "File not found" }, 404);
-    }
-
-    return new Response(object.body, {
-      headers: {
-        "Content-Type": object.httpMetadata?.contentType || "application/octet-stream",
-        "Cache-Control": "public, max-age=31536000",
-      },
-    });
-  } catch (error) {
-    console.error("Profile picture get error:", error);
     return c.json({ error: "Failed to retrieve file" }, 500);
   }
 });

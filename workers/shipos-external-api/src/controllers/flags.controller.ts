@@ -1,63 +1,77 @@
-import type { FlagsResponse, ApiError } from "../types";
+import type { ApiError, FlagsResponse } from "../types";
 import { KVKeys } from "../types";
 import { createController, controllerRegistry } from "./index";
 import { flagAnalyticsMiddleware } from "../middleware/flag-analytics";
-import db, { DrizzleORM } from "../../../../lib/db";
-import { featureFlags as featureFlagsTable } from "../../../../lib/db/schema";
+import { READ_CACHE_CONTROL, buildEtag } from "../lib/edge-cache";
 
 /**
- * Feature Flags Controller
+ * Feature Flags Controller — KV ONLY (Phase 3 / Rule R3).
  *
- * Handles all feature flag related endpoints.
+ * No Postgres/Drizzle fallback here. The dashboard is the only mutation
+ * surface, and every write syncs KV via withKvSync (see shipos-app Phase 2).
+ * A KV miss returns `{}` and is logged; it does NOT fall back to the DB.
  *
- * Endpoints:
- * - GET /flags - Get all feature flags for the organization
+ * Reads two schemes:
+ *   1. `tenant_{orgId}_flags` (preferred; value = `{ [env]: { [key]: bool } }`)
+ *   2. `v1::org_{orgId}::{env}::flags` (legacy per-env; flat `{ key: bool }`)
  */
 const flagsController = createController(
   {
     name: "flags",
     version: "v1",
     basePath: "/flags",
-    description: "Feature flags management - retrieve feature flags for your organization",
+    description:
+      "Feature flags — read-only, KV-backed. Sub-20ms p50 globally.",
   },
   (router) => {
-    // Track flag evaluations in ClickHouse (non-blocking, via waitUntil)
     router.use("/*", flagAnalyticsMiddleware);
 
-    /**
-     * GET /flags
-     * Returns all feature flags for the authenticated organization and environment.
-     */
     router.get("/", async (c) => {
       const organizationId = c.get("organizationId");
       const environment = c.get("environment");
 
-      const kvKey = KVKeys.flags(organizationId, environment);
-
       try {
-        // Fetch flags from KV
-        const flags = await c.env.SHIPOS_KV.get<FlagsResponse>(kvKey, "json");
-
-        if (flags === null) {
-          const flagsInDatabase = await db.select().from(featureFlagsTable).where(DrizzleORM.and(DrizzleORM.eq(featureFlagsTable.organizationId, organizationId), DrizzleORM.eq(featureFlagsTable.environment, environment)));
-          if (flagsInDatabase.length > 0) {
-            // store them in KV
-            await c.env.SHIPOS_KV.put(kvKey, JSON.stringify(flagsInDatabase.reduce((acc, flag) => {
-              acc[flag.key] = flag.enabled ?? false;
-              return acc;
-            }, {} as Record<string, boolean>)));
-            return c.json(flagsInDatabase.reduce((acc, flag) => {
-              acc[flag.key] = flag.enabled ?? false;
-              return acc;
-            }, {} as Record<string, boolean>), 200);
+        // Prefer tenant-scheme payload (all envs in one blob).
+        const tenantBlob = await c.env.SHIPOS_KV.get<
+          Record<string, Record<string, boolean> | string> & {
+            _updatedAt?: string;
           }
-          // Return empty object if no flags found (not an error)
-          return c.json({});
+        >(KVKeys.flagsTenant(organizationId), "json");
+
+        let flags: FlagsResponse = {};
+        let updatedAt: string | undefined;
+
+        if (tenantBlob) {
+          updatedAt = tenantBlob._updatedAt;
+          const envBlob = tenantBlob[environment];
+          if (envBlob && typeof envBlob === "object") {
+            flags = envBlob as FlagsResponse;
+          }
+        } else {
+          // Legacy per-env key.
+          const legacy = await c.env.SHIPOS_KV.get<FlagsResponse>(
+            KVKeys.flags(organizationId, environment),
+            "json",
+          );
+          if (legacy) flags = legacy;
         }
+
+        const etag = buildEtag(updatedAt);
+        if (etag) {
+          const ifNoneMatch = c.req.header("if-none-match");
+          if (ifNoneMatch === etag) {
+            return new Response(null, {
+              status: 304,
+              headers: { "Cache-Control": READ_CACHE_CONTROL, ETag: etag },
+            });
+          }
+          c.header("ETag", etag);
+        }
+        c.header("Cache-Control", READ_CACHE_CONTROL);
 
         return c.json(flags);
       } catch (err) {
-        console.error("Error fetching flags:", err);
+        console.error("flags: kv read error", err);
         const error: ApiError = {
           error: "Internal server error",
           code: "INTERNAL_ERROR",
@@ -65,10 +79,9 @@ const flagsController = createController(
         return c.json(error, 500);
       }
     });
-  }
+  },
 );
 
-// Register the controller
 controllerRegistry.register(flagsController);
 
 export { flagsController };

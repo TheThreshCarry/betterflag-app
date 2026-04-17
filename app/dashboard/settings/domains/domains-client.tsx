@@ -80,7 +80,7 @@ function getStatusBadge(status: Domain["status"]) {
       )
     default:
       return (
-        <Badge variant="secondary" className="gap-1">
+        <Badge variant="muted" className="gap-1">
           <Clock className="h-3 w-3" />
           Pending
         </Badge>
@@ -391,7 +391,7 @@ export function DomainsClient() {
             <Button variant="outline" onClick={() => setAddOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleAddDomain} disabled={adding}>
+            <Button variant="primary" onClick={handleAddDomain} disabled={adding}>
               {adding ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

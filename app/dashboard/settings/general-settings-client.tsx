@@ -32,7 +32,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { authClient } from "@/lib/auth/auth-client"
+import {
+  updateOrganization,
+  deleteOrganization,
+} from "@/lib/actions/organizations"
 
 // ---------------------------------------------------------------------------
 // Types
@@ -66,42 +69,102 @@ export function GeneralSettingsClient({ organization }: GeneralSettingsClientPro
   return <GeneralSettingsForm organization={organization} />
 }
 
+const ORG_LOGO_STORAGE_MARKER = "/storage/v1/object/public/org-logos/"
+
 function GeneralSettingsForm({ organization }: { organization: Organization }) {
   const router = useRouter()
   const [name, setName] = useState(organization.name)
-  const [slug, setSlug] = useState(organization.slug)
   const [logo, setLogo] = useState(organization.logo ?? "")
   const [description, setDescription] = useState(organization.description)
   const [saving, setSaving] = useState(false)
+  const [logoUploading, setLogoUploading] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState("")
   const [deleting, setDeleting] = useState(false)
+
+  const uploadOrgLogo = async (file: File) => {
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"]
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed")
+      return
+    }
+    const maxSize = 5 * 1024 * 1024
+    if (file.size > maxSize) {
+      toast.error("File size exceeds 5MB limit")
+      return
+    }
+
+    setLogoUploading(true)
+    const previous = logo
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+      const response = await fetch("/api/org-logo/upload", {
+        method: "POST",
+        body: formData,
+      })
+      const data = (await response.json()) as { error?: string; url?: string }
+      if (!response.ok) {
+        throw new Error(data.error || "Upload failed")
+      }
+      if (!data.url) {
+        throw new Error("Upload failed")
+      }
+      setLogo(data.url)
+      if (
+        previous &&
+        previous.includes(ORG_LOGO_STORAGE_MARKER) &&
+        previous !== data.url
+      ) {
+        await fetch("/api/org-logo/delete", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: previous }),
+        })
+      }
+      toast.success("Logo uploaded. Save to persist organization settings.")
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to upload logo")
+    } finally {
+      setLogoUploading(false)
+    }
+  }
+
+  const clearOrgLogo = async () => {
+    if (!logo) return
+    setLogoUploading(true)
+    try {
+      if (logo.includes(ORG_LOGO_STORAGE_MARKER)) {
+        const response = await fetch("/api/org-logo/delete", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: logo }),
+        })
+        if (!response.ok) {
+          const data = (await response.json()) as { error?: string }
+          throw new Error(data.error || "Failed to remove logo file")
+        }
+      }
+      setLogo("")
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to remove logo")
+    } finally {
+      setLogoUploading(false)
+    }
+  }
 
   const handleSave = async () => {
     if (!name.trim()) {
       toast.error("Organization name is required")
       return
     }
-    if (!slug.trim()) {
-      toast.error("Organization slug is required")
-      return
-    }
-
     setSaving(true)
     try {
-      // Build metadata with description
-      const metadata = description.trim()
-        ? JSON.stringify({ description: description.trim() })
-        : undefined
-
-      await authClient.organization.update({
+      await updateOrganization({
         organizationId: organization.id,
-        data: {
-          name: name.trim(),
-          slug: slug.trim(),
-          logo: logo.trim() || undefined,
-          metadata,
-        },
+        name: name.trim(),
+        logo: logo.trim() || null,
+        metadata: { description: description.trim() },
       })
       toast.success("Organization settings updated")
       router.refresh()
@@ -117,9 +180,7 @@ function GeneralSettingsForm({ organization }: { organization: Organization }) {
 
     setDeleting(true)
     try {
-      await authClient.organization.delete({
-        organizationId: organization.id,
-      })
+      await deleteOrganization(organization.id)
       toast.success("Organization deleted")
       router.push("/onboarding")
     } catch {
@@ -131,7 +192,6 @@ function GeneralSettingsForm({ organization }: { organization: Organization }) {
 
   const hasChanges =
     name !== organization.name ||
-    slug !== organization.slug ||
     logo !== (organization.logo ?? "") ||
     description !== organization.description
 
@@ -164,19 +224,12 @@ function GeneralSettingsForm({ organization }: { organization: Organization }) {
             <Label htmlFor="org-slug">Slug</Label>
             <Input
               id="org-slug"
-              placeholder="my-organization"
-              value={slug}
-              onChange={(e) =>
-                setSlug(
-                  e.target.value
-                    .toLowerCase()
-                    .replace(/[^a-z0-9-]/g, "-")
-                    .replace(/-+/g, "-")
-                )
-              }
+              readOnly
+              value={organization.slug}
+              className="bg-muted/50 text-muted-foreground"
             />
             <p className="text-xs text-muted-foreground">
-              URL-friendly identifier for your organization
+              Slug is fixed after the organization is created.
             </p>
           </div>
         </div>
@@ -200,26 +253,27 @@ function GeneralSettingsForm({ organization }: { organization: Organization }) {
               <Input
                 id="org-logo"
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                disabled={logoUploading}
                 className="cursor-pointer"
                 onChange={(e) => {
                   const file = e.target.files?.[0]
-                  if (!file) return
-                  const reader = new FileReader()
-                  reader.onload = (ev) => {
-                    setLogo((ev.target?.result as string) ?? "")
-                  }
-                  reader.readAsDataURL(file)
+                  if (file) void uploadOrgLogo(file)
+                  e.target.value = ""
                 }}
               />
               {logo && (
                 <button
                   type="button"
-                  onClick={() => setLogo("")}
+                  disabled={logoUploading}
+                  onClick={() => void clearOrgLogo()}
                   className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline text-left w-fit"
                 >
                   Remove image
                 </button>
+              )}
+              {logoUploading && (
+                <p className="text-xs text-muted-foreground">Uploading…</p>
               )}
             </div>
           </div>
@@ -253,7 +307,11 @@ function GeneralSettingsForm({ organization }: { organization: Organization }) {
               year: "numeric",
             })}
           </p>
-          <Button onClick={handleSave} disabled={saving || !hasChanges}>
+          <Button
+            variant="primary"
+            onClick={handleSave}
+            disabled={saving || logoUploading || !hasChanges}
+          >
             {saving ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -323,9 +381,10 @@ function GeneralSettingsForm({ organization }: { organization: Organization }) {
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
+              variant="destructive"
               onClick={handleDelete}
               disabled={deleteConfirm !== organization.name || deleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="cursor-pointer"
             >
               {deleting ? (
                 <>

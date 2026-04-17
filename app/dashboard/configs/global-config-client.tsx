@@ -579,7 +579,7 @@ export function GlobalConfigClient({ initialConfigs, selectedId }: GlobalConfigC
                         config.environment === "production"
                           ? "default"
                           : config.environment === "staging"
-                          ? "secondary"
+                          ? "muted"
                           : "outline"
                       }
                       className="font-normal"
@@ -710,7 +710,7 @@ export function GlobalConfigClient({ initialConfigs, selectedId }: GlobalConfigC
             <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreate} disabled={isLoading}>
+            <Button variant="primary" onClick={handleCreate} disabled={isLoading}>
               {isLoading ? "Creating..." : "Create Config"}
             </Button>
           </DialogFooter>
@@ -796,7 +796,7 @@ export function GlobalConfigClient({ initialConfigs, selectedId }: GlobalConfigC
             <Button variant="outline" onClick={() => setIsEditOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleEdit} disabled={isLoading}>
+            <Button variant="primary" onClick={handleEdit} disabled={isLoading}>
               {isLoading ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>
@@ -827,7 +827,7 @@ export function GlobalConfigClient({ initialConfigs, selectedId }: GlobalConfigC
                     selectedConfig?.environment === "production"
                       ? "default"
                       : selectedConfig?.environment === "staging"
-                      ? "secondary"
+                      ? "muted"
                       : "outline"
                   }
                 >
@@ -885,6 +885,7 @@ export function GlobalConfigClient({ initialConfigs, selectedId }: GlobalConfigC
               Close
             </Button>
             <Button
+              variant="primary"
               onClick={() => {
                 setIsViewOpen(false)
                 if (selectedConfig) openEditDialog(selectedConfig)

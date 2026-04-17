@@ -1,11 +1,10 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import * as appSchema from "@/lib/db/schema";
-import * as authSchema from "@/lib/auth/auth-schema";
 
 const { Pool } = pg;
 
-const schema = { ...appSchema, ...authSchema };
+const schema = { ...appSchema };
 
 let pool: pg.Pool | null = null;
 

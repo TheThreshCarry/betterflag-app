@@ -240,7 +240,7 @@ export function FeatureFlagsClient({ initialFlags }: FeatureFlagsClientProps) {
                         flag.environment === "production"
                           ? "default"
                           : flag.environment === "staging"
-                          ? "secondary"
+                          ? "muted"
                           : "outline"
                       }
                       className="font-normal"
@@ -357,7 +357,7 @@ export function FeatureFlagsClient({ initialFlags }: FeatureFlagsClientProps) {
             <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreate} disabled={isLoading}>
+            <Button variant="primary" onClick={handleCreate} disabled={isLoading}>
               {isLoading ? "Creating..." : "Create Flag"}
             </Button>
           </DialogFooter>
@@ -439,7 +439,7 @@ export function FeatureFlagsClient({ initialFlags }: FeatureFlagsClientProps) {
             <Button variant="outline" onClick={() => setIsEditOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleEdit} disabled={isLoading}>
+            <Button variant="primary" onClick={handleEdit} disabled={isLoading}>
               {isLoading ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>

@@ -260,7 +260,7 @@ export function ApiKeysClient({ initialApiKeys }: ApiKeysClientProps) {
             <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreate} disabled={isLoading}>
+            <Button variant="primary" onClick={handleCreate} disabled={isLoading}>
               {isLoading ? "Creating..." : "Create Key"}
             </Button>
           </DialogFooter>
@@ -315,7 +315,7 @@ export function ApiKeysClient({ initialApiKeys }: ApiKeysClientProps) {
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={closeNewKeyDialog}>Done</Button>
+            <Button variant="primary" onClick={closeNewKeyDialog}>Done</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

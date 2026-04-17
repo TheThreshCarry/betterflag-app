@@ -323,7 +323,7 @@ export function LabelsClient({ initialLabels }: LabelsClientProps) {
             <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreate} disabled={isLoading}>
+            <Button variant="primary" onClick={handleCreate} disabled={isLoading}>
               {isLoading ? "Creating..." : "Create Label"}
             </Button>
           </DialogFooter>
@@ -369,7 +369,7 @@ export function LabelsClient({ initialLabels }: LabelsClientProps) {
             <Button variant="outline" onClick={() => setIsEditOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleEdit} disabled={isLoading}>
+            <Button variant="primary" onClick={handleEdit} disabled={isLoading}>
               {isLoading ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>

@@ -126,7 +126,7 @@ export function RelationField({
         {multiple && (
           <Button
             type="button"
-            variant="secondary"
+            variant="outline"
             size="sm"
             disabled={!inputValue.trim()}
             onClick={() => addEntry(inputValue)}
@@ -141,7 +141,7 @@ export function RelationField({
       {items.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {items.map((id) => (
-            <Badge key={id} variant="secondary" className="gap-1 pr-1">
+            <Badge key={id} variant="muted" className="gap-1 pr-1">
               {id}
               <button
                 type="button"

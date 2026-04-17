@@ -60,7 +60,7 @@ export function SchemaFieldCard({
         <Button
           type="button"
           variant="ghost"
-          size="icon-xs"
+          size="icon" className="h-6 w-6 [&_svg]:h-3 [&_svg]:w-3"
           disabled={index === 0}
           onClick={onMoveUp}
           aria-label="Move field up"
@@ -71,7 +71,7 @@ export function SchemaFieldCard({
         <Button
           type="button"
           variant="ghost"
-          size="icon-xs"
+          size="icon" className="h-6 w-6 [&_svg]:h-3 [&_svg]:w-3"
           disabled={index === total - 1}
           onClick={onMoveDown}
           aria-label="Move field down"
@@ -82,7 +82,7 @@ export function SchemaFieldCard({
         <Button
           type="button"
           variant="ghost"
-          size="icon-xs"
+          size="icon" className="h-6 w-6 [&_svg]:h-3 [&_svg]:w-3"
           onClick={onEdit}
           aria-label="Edit field"
         >
@@ -92,8 +92,8 @@ export function SchemaFieldCard({
         <Button
           type="button"
           variant="ghost"
-          size="icon-xs"
-          className="text-muted-foreground hover:text-destructive"
+          size="icon"
+          className="h-6 w-6 [&_svg]:h-3 [&_svg]:w-3 text-muted-foreground hover:text-destructive"
           onClick={onRemove}
           aria-label="Remove field"
         >

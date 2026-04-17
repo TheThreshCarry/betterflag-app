@@ -9,9 +9,10 @@ import {
   type NewChangelog,
 } from "@/lib/db/schema"
 import { getSessionData } from "@/lib/actions/utils"
+import { getSupabaseSessionOptional } from "@/lib/supabase/session"
+import { createActionLogger } from "@/lib/log-context"
 import { createLogger } from "@/lib/logger"
-
-const log = createLogger("actions.changelogs")
+import { captureProductEvent, ProductEvent } from "@/lib/analytics/product-events"
 
 export async function getChangelogs() {
   const { organizationId } = await getSessionData()
@@ -50,6 +51,8 @@ function slugify(text: string): string {
 export async function createChangelog(
   data: Omit<NewChangelog, "id" | "createdAt" | "updatedAt" | "organizationId" | "authorId" | "slug">
 ) {
+  const session = await getSupabaseSessionOptional()
+  const log = session ? createActionLogger("actions.changelogs", session) : createLogger("actions.changelogs")
   const { organizationId, userId } = await getSessionData()
 
   const slug = slugify(data.title)
@@ -65,6 +68,10 @@ export async function createChangelog(
     .returning()
 
   log.info({ id: entry.id, slug }, "changelog created")
+  captureProductEvent(ProductEvent.CHANGELOG_CREATED, session, {
+    changelog_id: entry.id,
+    slug,
+  })
   revalidatePath("/dashboard/changelogs")
   return entry
 }
@@ -73,6 +80,8 @@ export async function updateChangelog(
   id: string,
   data: Partial<Omit<NewChangelog, "id" | "createdAt" | "organizationId" | "authorId">>
 ) {
+  const session = await getSupabaseSessionOptional()
+  const log = session ? createActionLogger("actions.changelogs", session) : createLogger("actions.changelogs")
   const { organizationId } = await getSessionData()
   if (!organizationId) throw new Error("No active organization")
   const updateData: Record<string, unknown> = {
@@ -90,6 +99,9 @@ export async function updateChangelog(
     .returning()
 
   log.info({ id }, "changelog updated")
+  captureProductEvent(ProductEvent.CHANGELOG_UPDATED, session, {
+    changelog_id: id,
+  })
   revalidatePath("/dashboard/changelogs")
   return entry
 }
@@ -181,6 +193,8 @@ export async function undeployChangelog(id: string) {
 }
 
 export async function deleteChangelog(id: string) {
+  const session = await getSupabaseSessionOptional()
+  const log = session ? createActionLogger("actions.changelogs", session) : createLogger("actions.changelogs")
   const { organizationId } = await getSessionData()
   if (!organizationId) throw new Error("No active organization")
   const existing = await db.query.changelogs.findFirst({
@@ -194,6 +208,7 @@ export async function deleteChangelog(id: string) {
 
   await db.delete(changelogs).where(and(eq(changelogs.id, id), eq(changelogs.organizationId, organizationId)))
   log.info({ id }, "changelog deleted")
+  captureProductEvent(ProductEvent.CHANGELOG_DELETED, session, { changelog_id: id })
 
   revalidatePath("/dashboard/changelogs")
 }

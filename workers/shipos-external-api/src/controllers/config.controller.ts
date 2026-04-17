@@ -1,33 +1,28 @@
-import type { ConfigResponse, ApiError } from "../types";
+import type { ApiError, ConfigResponse } from "../types";
 import { KVKeys } from "../types";
 import { createController, controllerRegistry } from "./index";
+import { READ_CACHE_CONTROL, buildEtag } from "../lib/edge-cache";
 
 /**
- * Global Config Controller
+ * Global Config Controller — KV ONLY (Phase 3 / Rule R3).
  *
- * Handles all global configuration related endpoints.
- *
- * Endpoints:
- * - GET /config/:slug - Get a specific config by slug
+ * Reads two schemes:
+ *   1. `tenant_{orgId}_config_{slug}` (preferred; value = `{ data, _updatedAt }`)
+ *   2. `v1::org_{orgId}::{env}::config::{slug}` (legacy per-env)
  */
 const configController = createController(
   {
     name: "config",
     version: "v1",
     basePath: "/config",
-    description: "Global configuration management - retrieve configs by slug",
+    description: "Global configuration — read-only, KV-backed.",
   },
   (router) => {
-    /**
-     * GET /config/:slug
-     * Returns the configuration for the specified slug.
-     */
     router.get("/:slug", async (c) => {
       const organizationId = c.get("organizationId");
       const environment = c.get("environment");
       const slug = c.req.param("slug");
 
-      // Validate slug
       if (!slug || slug.trim() === "") {
         const error: ApiError = {
           error: "Config slug is required",
@@ -36,7 +31,6 @@ const configController = createController(
         return c.json(error, 400);
       }
 
-      // Sanitize slug (alphanumeric, hyphens, underscores only)
       const slugPattern = /^[a-zA-Z0-9_-]+$/;
       if (!slugPattern.test(slug)) {
         const error: ApiError = {
@@ -46,12 +40,24 @@ const configController = createController(
         return c.json(error, 400);
       }
 
-      // Build the KV key using organization ID
-      const kvKey = KVKeys.config(organizationId, environment, slug);
-
       try {
-        // Fetch config from KV
-        const config = await c.env.SHIPOS_KV.get<ConfigResponse>(kvKey, "json");
+        const tenantBlob = await c.env.SHIPOS_KV.get<
+          { data?: ConfigResponse; _updatedAt?: string } | null
+        >(KVKeys.configTenant(organizationId, slug), "json");
+
+        let config: ConfigResponse | null = null;
+        let updatedAt: string | undefined;
+
+        if (tenantBlob) {
+          config = tenantBlob.data ?? null;
+          updatedAt = tenantBlob._updatedAt;
+        } else {
+          const legacy = await c.env.SHIPOS_KV.get<ConfigResponse>(
+            KVKeys.config(organizationId, environment, slug),
+            "json",
+          );
+          if (legacy) config = legacy;
+        }
 
         if (config === null) {
           const error: ApiError = {
@@ -61,9 +67,22 @@ const configController = createController(
           return c.json(error, 404);
         }
 
+        const etag = buildEtag(updatedAt);
+        if (etag) {
+          const ifNoneMatch = c.req.header("if-none-match");
+          if (ifNoneMatch === etag) {
+            return new Response(null, {
+              status: 304,
+              headers: { "Cache-Control": READ_CACHE_CONTROL, ETag: etag },
+            });
+          }
+          c.header("ETag", etag);
+        }
+        c.header("Cache-Control", READ_CACHE_CONTROL);
+
         return c.json(config);
       } catch (err) {
-        console.error("Error fetching config:", err);
+        console.error("config: kv read error", err);
         const error: ApiError = {
           error: "Internal server error",
           code: "INTERNAL_ERROR",
@@ -71,10 +90,9 @@ const configController = createController(
         return c.json(error, 500);
       }
     });
-  }
+  },
 );
 
-// Register the controller
 controllerRegistry.register(configController);
 
 export { configController };

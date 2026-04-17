@@ -5,10 +5,11 @@ import { eq, and, desc, sql, isNull } from "drizzle-orm"
 import db from "@/lib/db"
 import { mediaAssets, mediaFolders } from "@/lib/db/schema"
 import { getSessionData } from "@/lib/actions/utils"
+import { getSupabaseSessionOptional } from "@/lib/supabase/session"
+import { createActionLogger } from "@/lib/log-context"
 import { createLogger } from "@/lib/logger"
+import { captureProductEvent, ProductEvent } from "@/lib/analytics/product-events"
 import { workerServiceHeaders } from "@/lib/worker-internal"
-
-const log = createLogger("actions.media")
 
 // ---------------------------------------------------------------------------
 // Media Assets
@@ -46,6 +47,8 @@ export async function getMediaAsset(id: string) {
 }
 
 export async function deleteMediaAsset(id: string) {
+  const session = await getSupabaseSessionOptional()
+  const log = session ? createActionLogger("actions.media", session) : createLogger("actions.media")
   const { organizationId } = await getSessionData()
 
   if (!organizationId) {
@@ -78,6 +81,9 @@ export async function deleteMediaAsset(id: string) {
 
   await db.delete(mediaAssets).where(eq(mediaAssets.id, id))
   log.info({ id, key: asset.key, orgId: organizationId }, "media asset deleted")
+  captureProductEvent(ProductEvent.MEDIA_ASSET_DELETED, session, {
+    asset_id: id,
+  })
 
   revalidatePath("/dashboard/media")
 }

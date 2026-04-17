@@ -177,7 +177,7 @@ function ModuleCard({
       {/* Coming soon badge */}
       {module.comingSoon && (
         <Badge
-          variant="secondary"
+          variant="muted"
           className="absolute right-2 top-2 text-[10px]"
         >
           Soon

@@ -216,11 +216,11 @@ export function EntriesList({ contentType, entries }: EntriesListProps) {
           <span className="text-muted-foreground font-medium">
             {selected.size} selected
           </span>
-          <Button size="sm" variant="secondary" onClick={handleBulkPublish}>
+          <Button size="sm" variant="outline" onClick={handleBulkPublish}>
             <Send className="mr-1 size-3" />
             Publish
           </Button>
-          <Button size="sm" variant="secondary" onClick={handleBulkUnpublish}>
+          <Button size="sm" variant="outline" onClick={handleBulkUnpublish}>
             <ArchiveRestore className="mr-1 size-3" />
             Unpublish
           </Button>

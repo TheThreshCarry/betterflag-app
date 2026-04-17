@@ -18,9 +18,10 @@ import {
   getCachedContentTypeBySlug,
   invalidateContentTypeCache,
 } from "@/lib/cache/content-types"
+import { getSupabaseSessionOptional } from "@/lib/supabase/session"
+import { createActionLogger } from "@/lib/log-context"
 import { createLogger } from "@/lib/logger"
-
-const log = createLogger("actions.cms")
+import { captureProductEvent, ProductEvent } from "@/lib/analytics/product-events"
 
 function slugify(text: string): string {
   return text
@@ -72,6 +73,8 @@ export async function getContentTypeBySlug(slug: string) {
 export async function createContentType(
   data: Omit<NewContentType, "id" | "createdAt" | "updatedAt" | "organizationId" | "slug">
 ) {
+  const session = await getSupabaseSessionOptional()
+  const log = session ? createActionLogger("actions.cms", session) : createLogger("actions.cms")
   const { organizationId } = await getSessionData()
 
   const slug = slugify(data.name)
@@ -87,6 +90,10 @@ export async function createContentType(
 
   await invalidateContentTypeCache(organizationId)
   log.info({ id: entry.id, slug, orgId: organizationId }, "content type created")
+  captureProductEvent(ProductEvent.CONTENT_TYPE_CREATED, session, {
+    content_type_id: entry.id,
+    slug,
+  })
   revalidatePath("/dashboard/cms")
   return entry
 }
@@ -95,6 +102,8 @@ export async function updateContentType(
   id: string,
   data: Partial<Omit<NewContentType, "id" | "createdAt" | "organizationId">>
 ) {
+  const session = await getSupabaseSessionOptional()
+  const log = session ? createActionLogger("actions.cms", session) : createLogger("actions.cms")
   const { organizationId } = await getSessionData()
   if (!organizationId) throw new Error("No active organization")
   const updateData: Record<string, unknown> = {
@@ -113,11 +122,17 @@ export async function updateContentType(
 
   await invalidateContentTypeCache(entry.organizationId, id, entry.slug)
   log.info({ id, slug: entry.slug }, "content type updated")
+  captureProductEvent(ProductEvent.CONTENT_TYPE_UPDATED, session, {
+    content_type_id: id,
+    slug: entry.slug,
+  })
   revalidatePath("/dashboard/cms")
   return entry
 }
 
 export async function deleteContentType(id: string) {
+  const session = await getSupabaseSessionOptional()
+  const log = session ? createActionLogger("actions.cms", session) : createLogger("actions.cms")
   const { organizationId } = await getSessionData()
   if (!organizationId) throw new Error("No active organization")
   const ct = await db.query.contentTypes.findFirst({
@@ -129,6 +144,10 @@ export async function deleteContentType(id: string) {
 
   if (ct) await invalidateContentTypeCache(ct.organizationId, id, ct.slug)
   log.info({ id, slug: ct?.slug }, "content type deleted")
+  captureProductEvent(ProductEvent.CONTENT_TYPE_DELETED, session, {
+    content_type_id: id,
+    slug: ct?.slug,
+  })
   revalidatePath("/dashboard/cms")
 }
 
@@ -136,6 +155,7 @@ export async function setContentTypeStatus(
   id: string,
   status: "draft" | "active" | "deprecated"
 ) {
+  const session = await getSupabaseSessionOptional()
   const { organizationId } = await getSessionData()
   if (!organizationId) throw new Error("No active organization")
   const [entry] = await db
@@ -145,6 +165,10 @@ export async function setContentTypeStatus(
     .returning()
 
   await invalidateContentTypeCache(entry.organizationId, id, entry.slug)
+  captureProductEvent(ProductEvent.CONTENT_TYPE_STATUS_CHANGED, session, {
+    content_type_id: id,
+    status,
+  })
   revalidatePath("/dashboard/cms")
   return entry
 }
@@ -240,6 +264,15 @@ export async function updateContentTypeSchema(
   await invalidateContentTypeCache(ct.organizationId, contentTypeId, ct.slug)
   revalidatePath("/dashboard/cms")
 
+  const session = await getSupabaseSessionOptional()
+  captureProductEvent(ProductEvent.CONTENT_TYPE_SCHEMA_UPDATED, session, {
+    content_type_id: contentTypeId,
+    slug: ct.slug,
+    from_version: ct.version ?? 1,
+    to_version: newVersion,
+    change_count: changes.length,
+  })
+
   return {
     success: true,
     contentType: updated,
@@ -284,5 +317,11 @@ export async function upgradeLegacySchema(
 
   await invalidateContentTypeCache(ct.organizationId, contentTypeId, ct.slug)
   revalidatePath("/dashboard/cms")
+  const session = await getSupabaseSessionOptional()
+  captureProductEvent(ProductEvent.CONTENT_TYPE_SCHEMA_UPDATED, session, {
+    content_type_id: contentTypeId,
+    slug: ct.slug,
+    legacy_upgrade: true,
+  })
   return { success: true }
 }

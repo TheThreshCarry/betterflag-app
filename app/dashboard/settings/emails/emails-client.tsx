@@ -73,7 +73,7 @@ export function EmailsClient() {
               Configure how outgoing emails appear to recipients
             </p>
           </div>
-          <Badge variant="secondary" className="font-normal">Coming Soon</Badge>
+          <Badge variant="muted" className="font-normal">Coming Soon</Badge>
         </div>
         <div className="space-y-6 max-w-2xl">
           <div className="grid gap-4 sm:grid-cols-2">
@@ -121,7 +121,7 @@ export function EmailsClient() {
           <Separator />
 
           <div className="flex justify-end">
-            <Button onClick={handleSaveSender} disabled={savingSender}>
+            <Button variant="primary" onClick={handleSaveSender} disabled={savingSender}>
               {savingSender ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -147,7 +147,7 @@ export function EmailsClient() {
               Customize the templates used for transactional emails
             </p>
           </div>
-          <Badge variant="secondary" className="font-normal">Coming Soon</Badge>
+          <Badge variant="muted" className="font-normal">Coming Soon</Badge>
         </div>
         <div>
           <div className="space-y-3 max-w-3xl">

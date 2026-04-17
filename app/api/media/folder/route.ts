@@ -1,5 +1,4 @@
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { getSupabaseSession } from "@/lib/supabase/session";
 import { NextRequest, NextResponse } from "next/server";
 import { eq, and } from "drizzle-orm";
 import db from "@/lib/db";
@@ -14,15 +13,14 @@ const log = createLogger("api.media");
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
+    let session
+    try {
+      session = await getSupabaseSession()
+    } catch {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const organizationId = session.session.activeOrganizationId;
+    const organizationId = session.organizationId;
     if (!organizationId) {
       return NextResponse.json(
         { error: "No active organization" },
@@ -79,7 +77,7 @@ export async function POST(request: NextRequest) {
         path: fullPath,
         parentPath,
         organizationId,
-        createdBy: session.user.id,
+        createdBy: session.userId,
       })
       .returning();
 
@@ -99,15 +97,14 @@ export async function POST(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
+    let session
+    try {
+      session = await getSupabaseSession()
+    } catch {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const organizationId = session.session.activeOrganizationId;
+    const organizationId = session.organizationId;
     if (!organizationId) {
       return NextResponse.json(
         { error: "No active organization" },

@@ -114,7 +114,7 @@ function TemplateCard({
           </p>
           <div className="flex flex-wrap gap-1.5">
             {template.fields.slice(0, 5).map((field) => (
-              <Badge key={field.uid} variant="secondary" className="text-xs">
+              <Badge key={field.uid} variant="muted" className="text-xs">
                 {field.label || field.name}
               </Badge>
             ))}
@@ -342,7 +342,7 @@ export function NewContentTypeWizard() {
 
           {selectedTemplate && (
             <div className="flex justify-end">
-              <Button onClick={handleContinueFromTemplate}>
+              <Button variant="primary" onClick={handleContinueFromTemplate}>
                 Continue with {selectedTemplate.name}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
@@ -367,7 +367,7 @@ export function NewContentTypeWizard() {
               </Label>
               <Input
                 id="ct-name"
-                placeholder="e.g. Blog Post"
+                placeholder="e.g. Product"
                 value={name}
                 onChange={(e) => handleNameChange(e.target.value)}
                 autoFocus
@@ -378,7 +378,7 @@ export function NewContentTypeWizard() {
               <Label htmlFor="ct-slug">Slug</Label>
               <Input
                 id="ct-slug"
-                placeholder="e.g. blog-post"
+                placeholder="e.g. product"
                 value={slug}
                 onChange={(e) => handleSlugChange(e.target.value)}
               />
@@ -394,7 +394,7 @@ export function NewContentTypeWizard() {
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back
               </Button>
-              <Button onClick={handleContinueToSchema}>
+              <Button variant="primary" onClick={handleContinueToSchema}>
                 Continue
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
@@ -452,7 +452,7 @@ export function NewContentTypeWizard() {
                 <p className="text-xs font-medium uppercase text-muted-foreground">
                   Fields
                 </p>
-                <Badge variant="secondary">{fields.length}</Badge>
+                <Badge variant="muted">{fields.length}</Badge>
               </div>
             </div>
 
@@ -503,7 +503,7 @@ export function NewContentTypeWizard() {
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back
               </Button>
-              <Button onClick={handleCreate} disabled={isCreating}>
+              <Button variant="primary" onClick={handleCreate} disabled={isCreating}>
                 {isCreating && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}

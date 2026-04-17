@@ -160,7 +160,7 @@ export function ContentTypesClient({
                         </code>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="secondary">
+                        <Badge variant="muted">
                           {fields.length} {fields.length === 1 ? "field" : "fields"}
                         </Badge>
                       </TableCell>

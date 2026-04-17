@@ -436,7 +436,7 @@ export function ChangelogEditor({
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant="outline"
+                  variant="primary"
                   onClick={handleSave}
                   disabled={isSaving || isPublishing}
                 >
@@ -453,6 +453,7 @@ export function ChangelogEditor({
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
+                  variant="primary"
                   onClick={handlePublish}
                   disabled={isSaving || isPublishing}
                 >
@@ -649,7 +650,7 @@ export function ChangelogEditor({
                   className="flex items-center gap-0.5 rounded-md border border-border bg-popover p-1 shadow-md"
                 >
                   <Button
-                    variant={editor.isActive("bold") ? "secondary" : "ghost"}
+                    variant={editor.isActive("bold") ? "outline" : "ghost"}
                     size="icon"
                     className="h-7 w-7"
                     onClick={() => editor.chain().focus().toggleBold().run()}
@@ -657,7 +658,7 @@ export function ChangelogEditor({
                     <Bold className="h-3.5 w-3.5" />
                   </Button>
                   <Button
-                    variant={editor.isActive("italic") ? "secondary" : "ghost"}
+                    variant={editor.isActive("italic") ? "outline" : "ghost"}
                     size="icon"
                     className="h-7 w-7"
                     onClick={() => editor.chain().focus().toggleItalic().run()}
@@ -665,7 +666,7 @@ export function ChangelogEditor({
                     <Italic className="h-3.5 w-3.5" />
                   </Button>
                   <Button
-                    variant={editor.isActive("underline") ? "secondary" : "ghost"}
+                    variant={editor.isActive("underline") ? "outline" : "ghost"}
                     size="icon"
                     className="h-7 w-7"
                     onClick={() =>
@@ -675,7 +676,7 @@ export function ChangelogEditor({
                     <Underline className="h-3.5 w-3.5" />
                   </Button>
                   <Button
-                    variant={editor.isActive("strike") ? "secondary" : "ghost"}
+                    variant={editor.isActive("strike") ? "outline" : "ghost"}
                     size="icon"
                     className="h-7 w-7"
                     onClick={() => editor.chain().focus().toggleStrike().run()}
@@ -683,7 +684,7 @@ export function ChangelogEditor({
                     <Strikethrough className="h-3.5 w-3.5" />
                   </Button>
                   <Button
-                    variant={editor.isActive("code") ? "secondary" : "ghost"}
+                    variant={editor.isActive("code") ? "outline" : "ghost"}
                     size="icon"
                     className="h-7 w-7"
                     onClick={() => editor.chain().focus().toggleCode().run()}
@@ -1047,6 +1048,7 @@ export function ChangelogEditor({
               Cancel
             </Button>
             <Button
+              variant="primary"
               onClick={insertImage}
               disabled={!imageUrl && !imagePreview}
             >
@@ -1081,7 +1083,7 @@ function ToolbarButton({
       <TooltipTrigger asChild>
         <Button
           type="button"
-          variant={isActive ? "secondary" : "ghost"}
+          variant={isActive ? "outline" : "ghost"}
           size="icon"
           className="h-8 w-8"
           onClick={onClick}

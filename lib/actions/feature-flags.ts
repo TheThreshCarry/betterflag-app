@@ -6,9 +6,10 @@ import db from "@/lib/db"
 import { featureFlags, type NewFeatureFlag } from "@/lib/db/schema"
 import { syncFlags } from "@/lib/sync/kv-sync"
 import { getOrganizationId } from "@/lib/actions/utils"
+import { getSupabaseSessionOptional } from "@/lib/supabase/session"
+import { createActionLogger } from "@/lib/log-context"
 import { createLogger } from "@/lib/logger"
-
-const log = createLogger("actions.flags")
+import { captureProductEvent, ProductEvent } from "@/lib/analytics/product-events"
 
 /**
  * Sync all flags for an organization to KV
@@ -66,6 +67,8 @@ export async function getFeatureFlag(id: string) {
 }
 
 export async function createFeatureFlag(data: Omit<NewFeatureFlag, "id" | "createdAt" | "updatedAt" | "organizationId">) {
+  const session = await getSupabaseSessionOptional()
+  const log = session ? createActionLogger("actions.flags", session) : createLogger("actions.flags")
   const organizationId = await getOrganizationId()
   
   const [flag] = await db
@@ -78,6 +81,11 @@ export async function createFeatureFlag(data: Omit<NewFeatureFlag, "id" | "creat
 
   await syncFlagsToKV(organizationId)
   log.info({ id: flag.id, key: data.key, orgId: organizationId }, "feature flag created")
+  captureProductEvent(ProductEvent.FEATURE_FLAG_CREATED, session, {
+    flag_id: flag.id,
+    flag_key: data.key,
+    environment: data.environment ?? "production",
+  })
 
   revalidatePath("/dashboard/flags")
   return flag
@@ -87,6 +95,8 @@ export async function updateFeatureFlag(
   id: string,
   data: Partial<Omit<NewFeatureFlag, "id" | "createdAt" | "organizationId">>
 ) {
+  const session = await getSupabaseSessionOptional()
+  const log = session ? createActionLogger("actions.flags", session) : createLogger("actions.flags")
   const organizationId = await getOrganizationId()
   if (!organizationId) throw new Error("No active organization")
   const [flag] = await db
@@ -102,6 +112,12 @@ export async function updateFeatureFlag(
     await syncFlagsToKV(flag.organizationId)
   }
   log.info({ id, key: flag?.key, enabled: flag?.enabled }, "feature flag updated")
+  captureProductEvent(ProductEvent.FEATURE_FLAG_UPDATED, session, {
+    flag_id: id,
+    flag_key: flag?.key,
+    enabled: flag?.enabled,
+    keys_updated: Object.keys(data),
+  })
 
   revalidatePath("/dashboard/flags")
   revalidatePath(`/dashboard/flags/${id}`)
@@ -113,6 +129,8 @@ export async function toggleFeatureFlag(id: string, enabled: boolean) {
 }
 
 export async function deleteFeatureFlag(id: string) {
+  const session = await getSupabaseSessionOptional()
+  const log = session ? createActionLogger("actions.flags", session) : createLogger("actions.flags")
   const organizationId = await getOrganizationId()
   if (!organizationId) throw new Error("No active organization")
   const flag = await db.query.featureFlags.findFirst({
@@ -126,6 +144,10 @@ export async function deleteFeatureFlag(id: string) {
     await syncFlagsToKV(flag.organizationId)
   }
   log.info({ id, key: flag?.key }, "feature flag deleted")
+  captureProductEvent(ProductEvent.FEATURE_FLAG_DELETED, session, {
+    flag_id: id,
+    flag_key: flag?.key,
+  })
   
   revalidatePath("/dashboard/flags")
 }

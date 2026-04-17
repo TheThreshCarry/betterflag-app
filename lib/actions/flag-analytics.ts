@@ -1,13 +1,13 @@
 "use server"
 
 import { z } from "zod"
-import { getClickHouseClient } from "@/lib/clickhouse"
 import { getOrganizationId } from "@/lib/actions/utils"
+import { getSupabaseSessionOptional } from "@/lib/supabase/session"
+import { createActionLogger } from "@/lib/log-context"
 import { createLogger } from "@/lib/logger"
+import { queryPipe, toIsoDate, daysAgo } from "@/lib/tinybird"
 
-const log = createLogger("actions.analytics")
-
-// ─── Schemas ─────────────────────────────────────────────────────────────────
+// ─── Schemas ────────────────────────────────────────────────────────────────
 
 const TimeseriesPointSchema = z.object({
   date: z.string(),
@@ -37,242 +37,173 @@ const GeoPointSchema = z.object({
   unique_users: z.number(),
 })
 
-// ─── Types (inferred from schemas) ──────────────────────────────────────────
-
 export type TimeseriesPoint = z.infer<typeof TimeseriesPointSchema>
 export type CountryBreakdown = z.infer<typeof CountryBreakdownSchema>
 export type FlagSummaryStats = z.infer<typeof FlagSummaryStatsSchema>
 export type GeoPoint = z.infer<typeof GeoPointSchema>
 
-// ─── Queries ────────────────────────────────────────────────────────────────
+// ─── Queries (Tinybird Pipes) ───────────────────────────────────────────────
 
 /**
- * Evaluations over time for a specific flag (last 30 days, grouped by day).
- * Used by the area chart on the flag detail page.
+ * Evaluations over time for a specific flag (last 30 days, daily buckets).
+ * Backed by `tinybird/pipes/flag_evals_timeseries.pipe`.
  */
 export async function getFlagEvaluationsTimeseries(
-  flagKey: string
+  flagKey: string,
 ): Promise<TimeseriesPoint[]> {
+  const session = await getSupabaseSessionOptional()
+  const log = session ? createActionLogger("actions.analytics", session) : createLogger("actions.analytics")
   const orgId = await getOrganizationId()
   if (!orgId) return []
 
-  const client = getClickHouseClient()
-  const result = await client.query({
-    query: `
-      SELECT
-        toDate(timestamp) AS date,
-        count()            AS evaluations,
-        uniq(customer_id)  AS unique_users
-      FROM feature_flag_evaluations
-      WHERE organization_id = {org_id:String}
-        AND flag_key         = {flag_key:String}
-        AND timestamp       >= now() - INTERVAL 30 DAY
-      GROUP BY date
-      ORDER BY date
-    `,
-    format: "JSONEachRow",
-    query_params: { org_id: orgId, flag_key: flagKey },
-  })
+  try {
+    const { data } = await queryPipe<{
+      ts: string
+      flag_key: string
+      enabled_count: number
+      disabled_count: number
+      total: number
+    }>("flag_evals_timeseries", {
+      organization_id: orgId,
+      flag_key: flagKey,
+      from: toIsoDate(daysAgo(30)),
+      to: toIsoDate(new Date()),
+      bucket_minutes: 1440,
+    })
 
-  const rows = (await result.json()) as Record<string, unknown>[]
-
-  // ClickHouse returns numbers as strings in JSON — cast them
-  const parsed = z.array(TimeseriesPointSchema).safeParse(
-    rows.map((r) => ({
-      date: r.date,
-      evaluations: Number(r.evaluations),
-      unique_users: Number(r.unique_users),
-    }))
-  )
-
-  if (!parsed.success) {
-    log.error({ flagKey, errors: parsed.error.flatten() }, "getFlagEvaluationsTimeseries validation failed")
+    const parsed = z.array(TimeseriesPointSchema).safeParse(
+      data.map((r) => ({
+        date: r.ts,
+        evaluations: Number(r.total),
+        unique_users: 0,
+      })),
+    )
+    if (!parsed.success) {
+      log.error(
+        { flagKey, errors: parsed.error.flatten() },
+        "timeseries validation failed",
+      )
+      return []
+    }
+    return parsed.data
+  } catch (err) {
+    log.error({ flagKey, err }, "timeseries query failed")
     return []
   }
-
-  return parsed.data
 }
 
 /**
- * Top 10 countries by evaluation count for a specific flag (last 30 days).
+ * Top 10 countries for a flag (last 30 days).
+ * Backed by `tinybird/pipes/flag_evals_by_country.pipe`.
  */
 export async function getFlagCountryBreakdown(
-  flagKey: string
+  flagKey: string,
 ): Promise<CountryBreakdown[]> {
+  const session = await getSupabaseSessionOptional()
+  const log = session ? createActionLogger("actions.analytics", session) : createLogger("actions.analytics")
   const orgId = await getOrganizationId()
   if (!orgId) return []
 
-  const client = getClickHouseClient()
-  const result = await client.query({
-    query: `
-      SELECT
-        country,
-        count()            AS evaluations,
-        uniq(customer_id)  AS unique_users
-      FROM feature_flag_evaluations
-      WHERE organization_id = {org_id:String}
-        AND flag_key         = {flag_key:String}
-        AND timestamp       >= now() - INTERVAL 30 DAY
-        AND country         != ''
-      GROUP BY country
-      ORDER BY evaluations DESC
-      LIMIT 10
-    `,
-    format: "JSONEachRow",
-    query_params: { org_id: orgId, flag_key: flagKey },
-  })
+  try {
+    const { data } = await queryPipe<{
+      country: string
+      evaluations: number
+      customers: number
+    }>("flag_evals_by_country", {
+      organization_id: orgId,
+      flag_key: flagKey,
+      from: toIsoDate(daysAgo(30)),
+      to: toIsoDate(new Date()),
+      limit: 10,
+    })
 
-  const rows = (await result.json()) as Record<string, unknown>[]
-
-  const parsed = z.array(CountryBreakdownSchema).safeParse(
-    rows.map((r) => ({
-      country: r.country,
-      evaluations: Number(r.evaluations),
-      unique_users: Number(r.unique_users),
-    }))
-  )
-
-  if (!parsed.success) {
-    log.error({ flagKey, errors: parsed.error.flatten() }, "getFlagCountryBreakdown validation failed")
+    const parsed = z.array(CountryBreakdownSchema).safeParse(
+      data
+        .filter((r) => r.country)
+        .map((r) => ({
+          country: r.country,
+          evaluations: Number(r.evaluations),
+          unique_users: Number(r.customers),
+        })),
+    )
+    if (!parsed.success) {
+      log.error(
+        { flagKey, errors: parsed.error.flatten() },
+        "country validation failed",
+      )
+      return []
+    }
+    return parsed.data
+  } catch (err) {
+    log.error({ flagKey, err }, "country query failed")
     return []
   }
-
-  return parsed.data
 }
 
 /**
- * Summary stats for a specific flag (last 30 days).
+ * Summary stats for a flag (last 30 days).
+ * Combines variant-breakdown + country pipes.
  */
 export async function getFlagSummaryStats(
-  flagKey: string
+  flagKey: string,
 ): Promise<FlagSummaryStats> {
+  const session = await getSupabaseSessionOptional()
+  const log = session ? createActionLogger("actions.analytics", session) : createLogger("actions.analytics")
   const orgId = await getOrganizationId()
-  if (!orgId)
-    return {
-      total_evaluations: 0,
-      unique_users: 0,
-      top_country: "-",
-      avg_daily_evaluations: 0,
-    }
-
-  const client = getClickHouseClient()
-
-  // Summary aggregates
-  const summaryResult = await client.query({
-    query: `
-      SELECT
-        count()                                           AS total_evaluations,
-        uniq(customer_id)                                 AS unique_users,
-        round(count() / greatest(dateDiff('day',
-          toDate(min(timestamp)), toDate(max(timestamp))) + 1, 1)) AS avg_daily_evaluations
-      FROM feature_flag_evaluations
-      WHERE organization_id = {org_id:String}
-        AND flag_key         = {flag_key:String}
-        AND timestamp       >= now() - INTERVAL 30 DAY
-    `,
-    format: "JSONEachRow",
-    query_params: { org_id: orgId, flag_key: flagKey },
-  })
-
-  const summaryRows = (await summaryResult.json()) as Record<string, unknown>[]
-  const summary = summaryRows[0] || {
+  const empty: FlagSummaryStats = {
     total_evaluations: 0,
     unique_users: 0,
+    top_country: "-",
     avg_daily_evaluations: 0,
   }
+  if (!orgId) return empty
 
-  // Top country
-  const countryResult = await client.query({
-    query: `
-      SELECT country
-      FROM feature_flag_evaluations
-      WHERE organization_id = {org_id:String}
-        AND flag_key         = {flag_key:String}
-        AND timestamp       >= now() - INTERVAL 30 DAY
-        AND country         != ''
-      GROUP BY country
-      ORDER BY count() DESC
-      LIMIT 1
-    `,
-    format: "JSONEachRow",
-    query_params: { org_id: orgId, flag_key: flagKey },
-  })
+  try {
+    const from = toIsoDate(daysAgo(30))
+    const to = toIsoDate(new Date())
 
-  const countryRows = (await countryResult.json()) as Record<string, unknown>[]
-  const topCountryRow = countryRows[0] as { country?: string } | undefined
+    const [variant, country] = await Promise.all([
+      queryPipe<{
+        flag_key: string
+        enabled: number
+        disabled: number
+      }>("flag_evals_variant_breakdown", {
+        organization_id: orgId,
+        flag_key: flagKey,
+        from,
+        to,
+      }),
+      queryPipe<{ country: string; evaluations: number }>(
+        "flag_evals_by_country",
+        { organization_id: orgId, flag_key: flagKey, from, to, limit: 1 },
+      ),
+    ])
 
-  const parsed = FlagSummaryStatsSchema.safeParse({
-    total_evaluations: Number(summary.total_evaluations),
-    unique_users: Number(summary.unique_users),
-    top_country: topCountryRow?.country || "-",
-    avg_daily_evaluations: Number(summary.avg_daily_evaluations),
-  })
+    const row = variant.data.find((r) => r.flag_key === flagKey) ?? variant.data[0]
+    const total = (Number(row?.enabled ?? 0) + Number(row?.disabled ?? 0)) || 0
+    const topCountry = country.data[0]?.country || "-"
 
-  if (!parsed.success) {
-    log.error({ flagKey, errors: parsed.error.flatten() }, "getFlagSummaryStats validation failed")
-    return {
-      total_evaluations: 0,
+    const parsed = FlagSummaryStatsSchema.safeParse({
+      total_evaluations: total,
       unique_users: 0,
-      top_country: "-",
-      avg_daily_evaluations: 0,
-    }
+      top_country: topCountry,
+      avg_daily_evaluations: Math.round(total / 30),
+    })
+    if (!parsed.success) return empty
+    return parsed.data
+  } catch (err) {
+    log.error({ flagKey, err }, "summary query failed")
+    return empty
   }
-
-  return parsed.data
 }
 
 /**
- * Geo-aggregated evaluation points for a specific flag (last 30 days).
- * Groups by city + country and returns average coordinates with counts.
- * Used by the map visualization on the flag detail page.
+ * Geo-aggregated evaluation points for a flag — not yet exposed as a pipe
+ * (kept here as an empty-array stub to preserve the server action contract).
+ * Add `flag_evals_geo.pipe` in a follow-up if the flag detail map needs it.
  */
 export async function getFlagGeoPoints(
-  flagKey: string
+  _flagKey: string,
 ): Promise<GeoPoint[]> {
-  const orgId = await getOrganizationId()
-  if (!orgId) return []
-
-  const client = getClickHouseClient()
-  const result = await client.query({
-    query: `
-      SELECT
-        city,
-        country,
-        round(avg(latitude), 4)  AS lat,
-        round(avg(longitude), 4) AS lng,
-        count()                  AS evaluations,
-        uniq(customer_id)        AS unique_users
-      FROM feature_flag_evaluations
-      WHERE organization_id = {org_id:String}
-        AND flag_key         = {flag_key:String}
-        AND timestamp       >= now() - INTERVAL 30 DAY
-        AND latitude         != 0
-        AND longitude        != 0
-      GROUP BY city, country
-      ORDER BY evaluations DESC
-      LIMIT 500
-    `,
-    format: "JSONEachRow",
-    query_params: { org_id: orgId, flag_key: flagKey },
-  })
-
-  const rows = (await result.json()) as Record<string, unknown>[]
-
-  const parsed = z.array(GeoPointSchema).safeParse(
-    rows.map((r) => ({
-      city: r.city,
-      country: r.country,
-      latitude: Number(r.lat),
-      longitude: Number(r.lng),
-      evaluations: Number(r.evaluations),
-      unique_users: Number(r.unique_users),
-    }))
-  )
-
-  if (!parsed.success) {
-    log.error({ flagKey, errors: parsed.error.flatten() }, "getFlagGeoPoints validation failed")
-    return []
-  }
-
-  return parsed.data
+  return []
 }

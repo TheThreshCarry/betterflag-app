@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
-import { authClient } from "@/lib/auth/auth-client"
+import { getBillingState, listBillingOrders } from "@/lib/actions/billing"
 
 // ---------------------------------------------------------------------------
 // Plan definitions
@@ -72,10 +72,9 @@ const PLANS = {
 type PlanSlug = keyof typeof PLANS
 
 // ---------------------------------------------------------------------------
-// Polar Customer State — matches the ACTUAL Polar API response shape.
-//
-// The `data` returned by `authClient.customer.state()` IS the customer object,
-// NOT a wrapper like `{ customer, subscriptions }`.
+// Polar Customer State — local shape for the UI. We resolve billing state from
+// our own Supabase `subscriptions` table (populated by webhooks), NOT a live
+// round-trip to Polar.
 // ---------------------------------------------------------------------------
 
 interface PolarSubscription {
@@ -183,18 +182,50 @@ export function BillingClient({ productIds }: BillingClientProps) {
   useEffect(() => {
     async function fetchState() {
       try {
-        const response = await authClient.customer.state()
-        // `response.data` IS the customer object directly
-        const data = response?.data as unknown as PolarCustomerState | null
-        if (data?.id) {
-          setCustomerState(data)
-          setCustomerExists(true)
-        } else {
+        const state = await getBillingState()
+        if (!state.polarCustomerId) {
           setCustomerState(null)
           setCustomerExists(false)
+          return
         }
+        const planProductId =
+          state.plan === "team"
+            ? productIds.team
+            : state.plan === "pro"
+              ? productIds.pro
+              : ""
+        const subs: PolarSubscription[] =
+          state.plan === "free"
+            ? []
+            : [
+                {
+                  id: state.polarCustomerId,
+                  status: state.status === "none" ? "active" : state.status,
+                  productId: planProductId,
+                  amount: 0,
+                  currency: "USD",
+                  recurringInterval: "month",
+                  currentPeriodStart: null,
+                  currentPeriodEnd: state.currentPeriodEnd,
+                  cancelAtPeriodEnd: state.cancelAtPeriodEnd,
+                  canceledAt: null,
+                  startedAt: null,
+                  endsAt: null,
+                  trialStart: null,
+                  trialEnd: null,
+                },
+              ]
+        setCustomerState({
+          id: state.polarCustomerId,
+          email: "",
+          name: null,
+          externalId: "",
+          activeSubscriptions: subs,
+          grantedBenefits: [],
+          activeMeters: [],
+        })
+        setCustomerExists(true)
       } catch {
-        // Customer doesn't exist in Polar yet — show free tier
         setCustomerState(null)
         setCustomerExists(false)
       } finally {
@@ -202,7 +233,7 @@ export function BillingClient({ productIds }: BillingClientProps) {
       }
     }
     fetchState()
-  }, [])
+  }, [productIds.pro, productIds.team])
 
   const currentPlan = customerState
     ? detectPlan(customerState.activeSubscriptions, productIds)
@@ -220,18 +251,24 @@ export function BillingClient({ productIds }: BillingClientProps) {
   const handleCheckout = async (slug: string) => {
     setCheckoutLoading(slug)
     try {
-      await authClient.checkout({ slug })
+      const productId =
+        slug === "team" ? productIds.team : slug === "pro" ? productIds.pro : ""
+      if (!productId) {
+        toast.error("No product configured for this plan.")
+        setCheckoutLoading(null)
+        return
+      }
+      window.location.href = `/api/billing/checkout?products=${encodeURIComponent(productId)}`
     } catch (error) {
       console.error("Checkout failed:", error)
       toast.error("Failed to start checkout. Please try again.")
-    } finally {
       setCheckoutLoading(null)
     }
   }
 
-  const handlePortal = async () => {
+  const handlePortal = () => {
     try {
-      await authClient.customer.portal()
+      window.location.href = "/api/billing/portal"
     } catch (error) {
       console.error("Portal redirect failed:", error)
       toast.error("Failed to open customer portal. Please try again.")
@@ -261,7 +298,7 @@ export function BillingClient({ productIds }: BillingClientProps) {
             </p>
           </div>
           <Badge
-            variant={currentPlan === "free" ? "secondary" : "default"}
+            variant={currentPlan === "free" ? "muted" : "default"}
             className="text-sm font-normal"
           >
             {planDetails.name}
@@ -443,6 +480,7 @@ export function BillingClient({ productIds }: BillingClientProps) {
                       )
                     ) : (
                       <Button
+                        variant="primary"
                         className="w-full"
                         onClick={() => handleCheckout(slug)}
                         disabled={checkoutLoading === slug}
@@ -540,14 +578,17 @@ function OrderHistory() {
   useEffect(() => {
     async function fetchOrders() {
       try {
-        const response = await authClient.customer.orders.list({
-          query: { page: 1, limit: 10 },
-        })
-        // Polar response shape: { data: { result: { items: [...], pagination: {...} } } }
-        const data = response?.data as unknown as Record<string, unknown>
-        const result = data?.result as Record<string, unknown> | undefined
-        const items = Array.isArray(result?.items) ? result.items : []
-        setOrders(items as typeof orders)
+        const rows = await listBillingOrders(10)
+        setOrders(
+          rows.map((o) => ({
+            id: o.id,
+            createdAt: o.createdAt,
+            totalAmount: o.amount,
+            currency: o.currency,
+            description: null,
+            product: o.productName ? { name: o.productName } : undefined,
+          })),
+        )
       } catch {
         // Silently fail — customer may not have orders yet
       } finally {

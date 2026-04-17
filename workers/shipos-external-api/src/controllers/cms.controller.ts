@@ -1,153 +1,129 @@
 /**
- * CMS Controller
+ * CMS Controller — KV ONLY (Phase 3 / Rule R3).
  *
- * Headless CMS API endpoints for content management.
- * These endpoints proxy to the Next.js API routes under /api/cms/.
+ * No more Next proxy. Every read resolves from Cloudflare KV via the
+ * tenant-scheme keys:
+ *   - tenant_{orgId}_cms_{ctSlug}_index  → list of entries
+ *   - tenant_{orgId}_cms_{ctSlug}_{entrySlug} → single entry
  *
  * Endpoints:
- * - GET /cms/content-types - List content types (filter by status=active)
- * - GET /cms/content-types/:slug - Get content type by slug
- * - GET /cms/entries - List entries (query: contentType, status, limit, offset)
- * - GET /cms/entries/:slug - Get entry by slug (scoped by contentType query)
- * - GET /cms/media/:slug - Get CMS media by slug
+ *   GET /cms/entries/:contentType           → list (array of slug + metadata)
+ *   GET /cms/entries/:contentType/:slug     → single entry payload
  */
 
 import type { ApiError } from "../types";
+import { KVKeys } from "../types";
 import { createController, controllerRegistry } from "./index";
+import { READ_CACHE_CONTROL, buildEtag } from "../lib/edge-cache";
+
+const SLUG_RE = /^[a-zA-Z0-9_-]+$/;
+
+type CmsIndex = {
+  entries: Array<{ slug: string; title?: string; updatedAt?: string }>;
+  _updatedAt?: string;
+};
+
+type CmsEntry = {
+  data?: unknown;
+  _updatedAt?: string;
+} & Record<string, unknown>;
 
 const cmsController = createController(
   {
     name: "cms",
     version: "v1",
     basePath: "/cms",
-    description: "CMS management - retrieve content types, entries, and media",
+    description: "Headless CMS — read-only, KV-backed.",
   },
   (router) => {
-    router.get("/content-types", async (c) => {
+    router.get("/entries/:contentType", async (c) => {
       const orgId = c.get("organizationId");
-      const status = c.req.query("status") || "active";
+      const contentType = c.req.param("contentType");
+
+      if (!SLUG_RE.test(contentType)) {
+        const error: ApiError = {
+          error: "Invalid contentType slug",
+          code: "INVALID_SLUG",
+        };
+        return c.json(error, 400);
+      }
 
       try {
-        const url = new URL(
-          "/api/cms/content-types",
-          c.env.NEXT_APP_URL || "http://localhost:3000"
+        const blob = await c.env.SHIPOS_KV.get<CmsIndex>(
+          KVKeys.cmsIndex(orgId, contentType),
+          "json",
         );
-        url.searchParams.set("status", status);
-        if (orgId) url.searchParams.set("organizationId", orgId);
+        if (!blob) {
+          const error: ApiError = {
+            error: `No entries for content type '${contentType}'`,
+            code: "NOT_FOUND",
+          };
+          return c.json(error, 404);
+        }
 
-        const res = await fetch(url.toString());
-        const data = await res.json();
-        return c.json(data, res.status as 200);
-      } catch {
-        const error: ApiError = {
-          error: "Failed to fetch content types",
-          code: "INTERNAL_ERROR",
-        };
+        const etag = buildEtag(blob._updatedAt);
+        if (etag) {
+          if (c.req.header("if-none-match") === etag) {
+            return new Response(null, {
+              status: 304,
+              headers: { "Cache-Control": READ_CACHE_CONTROL, ETag: etag },
+            });
+          }
+          c.header("ETag", etag);
+        }
+        c.header("Cache-Control", READ_CACHE_CONTROL);
+
+        return c.json({ entries: blob.entries });
+      } catch (err) {
+        console.error("cms: kv list error", err);
+        const error: ApiError = { error: "Internal server error", code: "INTERNAL_ERROR" };
         return c.json(error, 500);
       }
     });
 
-    router.get("/content-types/:slug", async (c) => {
+    router.get("/entries/:contentType/:slug", async (c) => {
       const orgId = c.get("organizationId");
+      const contentType = c.req.param("contentType");
       const slug = c.req.param("slug");
 
-      try {
-        const url = new URL(
-          `/api/cms/content-types/${slug}`,
-          c.env.NEXT_APP_URL || "http://localhost:3000"
-        );
-        if (orgId) url.searchParams.set("organizationId", orgId);
+      if (!SLUG_RE.test(contentType) || !SLUG_RE.test(slug)) {
+        const error: ApiError = { error: "Invalid slug", code: "INVALID_SLUG" };
+        return c.json(error, 400);
+      }
 
-        const res = await fetch(url.toString());
-        const data = await res.json();
-        return c.json(data, res.status as 200);
-      } catch {
-        const error: ApiError = {
-          error: "Failed to fetch content type",
-          code: "INTERNAL_ERROR",
-        };
+      try {
+        const blob = await c.env.SHIPOS_KV.get<CmsEntry>(
+          KVKeys.cmsEntry(orgId, contentType, slug),
+          "json",
+        );
+        if (!blob) {
+          const error: ApiError = {
+            error: `Entry '${slug}' not found in '${contentType}'`,
+            code: "NOT_FOUND",
+          };
+          return c.json(error, 404);
+        }
+
+        const etag = buildEtag(blob._updatedAt);
+        if (etag) {
+          if (c.req.header("if-none-match") === etag) {
+            return new Response(null, {
+              status: 304,
+              headers: { "Cache-Control": READ_CACHE_CONTROL, ETag: etag },
+            });
+          }
+          c.header("ETag", etag);
+        }
+        c.header("Cache-Control", READ_CACHE_CONTROL);
+
+        return c.json(blob);
+      } catch (err) {
+        console.error("cms: kv entry read error", err);
+        const error: ApiError = { error: "Internal server error", code: "INTERNAL_ERROR" };
         return c.json(error, 500);
       }
     });
-
-    router.get("/entries", async (c) => {
-      const orgId = c.get("organizationId");
-      const contentType = c.req.query("contentType");
-      const status = c.req.query("status") || "published";
-      const limit = c.req.query("limit") || "20";
-      const offset = c.req.query("offset") || "0";
-
-      try {
-        const url = new URL(
-          "/api/cms/entries",
-          c.env.NEXT_APP_URL || "http://localhost:3000"
-        );
-        if (orgId) url.searchParams.set("organizationId", orgId);
-        if (contentType) url.searchParams.set("contentType", contentType);
-        url.searchParams.set("status", status);
-        url.searchParams.set("limit", limit);
-        url.searchParams.set("offset", offset);
-
-        const res = await fetch(url.toString());
-        const data = await res.json();
-        return c.json(data, res.status as 200);
-      } catch {
-        const error: ApiError = {
-          error: "Failed to fetch entries",
-          code: "INTERNAL_ERROR",
-        };
-        return c.json(error, 500);
-      }
-    });
-
-    router.get("/entries/:slug", async (c) => {
-      const orgId = c.get("organizationId");
-      const slug = c.req.param("slug");
-      const contentType = c.req.query("contentType");
-
-      try {
-        const url = new URL(
-          `/api/cms/entries/${slug}`,
-          c.env.NEXT_APP_URL || "http://localhost:3000"
-        );
-        if (orgId) url.searchParams.set("organizationId", orgId);
-        if (contentType) url.searchParams.set("contentType", contentType);
-
-        const res = await fetch(url.toString());
-        const data = await res.json();
-        return c.json(data, res.status as 200);
-      } catch {
-        const error: ApiError = {
-          error: "Failed to fetch entry",
-          code: "INTERNAL_ERROR",
-        };
-        return c.json(error, 500);
-      }
-    });
-
-    router.get("/media/:slug", async (c) => {
-      const orgId = c.get("organizationId");
-      const slug = c.req.param("slug");
-
-      try {
-        const url = new URL(
-          `/api/cms/media/${slug}`,
-          c.env.NEXT_APP_URL || "http://localhost:3000"
-        );
-        if (orgId) url.searchParams.set("organizationId", orgId);
-
-        const res = await fetch(url.toString());
-        const data = await res.json();
-        return c.json(data, res.status as 200);
-      } catch {
-        const error: ApiError = {
-          error: "Failed to fetch media",
-          code: "INTERNAL_ERROR",
-        };
-        return c.json(error, 500);
-      }
-    });
-  }
+  },
 );
 
 controllerRegistry.register(cmsController);

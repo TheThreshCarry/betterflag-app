@@ -1,19 +1,13 @@
-import { LoopsClient } from "loops";
+import { Resend } from "resend";
 import { createLogger } from "@/lib/logger";
+import { MagicLinkEmail } from "./components/magic-link";
+import { OTPEmail } from "./components/otp";
+import { VerificationEmail } from "./components/verification";
 
 const log = createLogger("email");
-const loops = new LoopsClient(process.env.LOOPS_API_KEY as string);
 
-// Transactional email IDs from Loops dashboard
-// You'll need to create these transactional emails in Loops and add their IDs here
-const TRANSACTIONAL_IDS = {
-  magicLink: process.env.LOOPS_MAGIC_LINK_ID || "magic_link",
-  otpSignIn: process.env.LOOPS_OTP_SIGNIN_ID || "otp_sign_in",
-  otpVerification: process.env.LOOPS_OTP_VERIFICATION_ID || "otp_verification",
-  otpPasswordReset: process.env.LOOPS_OTP_PASSWORD_RESET_ID || "otp_password_reset",
-  emailVerification: process.env.LOOPS_EMAIL_VERIFICATION_ID || "email_verification",
-  passwordReset: process.env.LOOPS_PASSWORD_RESET_ID || "password_reset",
-};
+const resend = new Resend(process.env.RESEND_API_KEY);
+const from = process.env.RESEND_FROM || "ShipOS <contact@shipos.app>";
 
 export async function sendMagicLinkEmail({
   email,
@@ -24,29 +18,29 @@ export async function sendMagicLinkEmail({
   url: string;
   token: string;
 }) {
-  try {
-    log.info({ email, type: "magic-link" }, "sending magic link email");
-    const resp = await loops.sendTransactionalEmail({
-      transactionalId: TRANSACTIONAL_IDS.magicLink,
-      email,
-      dataVariables: {
-        magicLinkUrl: url,
-        token,
-      },
-    });
+  log.info({ email, type: "magic-link" }, "sending magic link email");
 
-    if (!resp.success) {
-      log.error({ email, type: "magic-link", resp }, "magic link email failed");
-      throw new Error("Failed to send magic link email");
-    }
+  const { data, error } = await resend.emails.send({
+    from,
+    to: [email],
+    subject: "Sign in to ShipOS",
+    react: MagicLinkEmail({ url }),
+  });
 
-    log.info({ email, type: "magic-link" }, "magic link email sent");
-    return resp;
-  } catch (error) {
-    log.error({ email, type: "magic-link", err: error }, "magic link email error");
-    throw error;
+  if (error) {
+    log.error({ email, type: "magic-link", error }, "magic link email failed");
+    throw new Error(`Failed to send magic link email: ${error.message}`);
   }
+
+  log.info({ email, type: "magic-link", id: data?.id }, "magic link email sent");
+  return data;
 }
+
+const OTP_SUBJECTS: Record<string, string> = {
+  "sign-in": "Your ShipOS sign-in code",
+  "email-verification": "Verify your ShipOS email",
+  "forget-password": "Reset your ShipOS password",
+};
 
 export async function sendOTPEmail({
   email,
@@ -57,49 +51,24 @@ export async function sendOTPEmail({
   otp: string;
   type: "sign-in" | "email-verification" | "forget-password";
 }) {
-  try {
-    let transactionalId: string;
+  log.info({ email, type }, "sending OTP email");
 
-    switch (type) {
-      case "sign-in":
-        transactionalId = TRANSACTIONAL_IDS.otpSignIn;
-        break;
-      case "email-verification":
-        transactionalId = TRANSACTIONAL_IDS.otpVerification;
-        break;
-      case "forget-password":
-        transactionalId = TRANSACTIONAL_IDS.otpPasswordReset;
-        break;
-      default:
-        transactionalId = TRANSACTIONAL_IDS.otpVerification;
-    }
+  const { data, error } = await resend.emails.send({
+    from,
+    to: [email],
+    subject: OTP_SUBJECTS[type] ?? "Your ShipOS code",
+    react: OTPEmail({ otp, type }),
+  });
 
-    log.info({ email, type, transactionalId }, "sending OTP email");
-
-    const resp = await loops.sendTransactionalEmail({
-      transactionalId,
-      email,
-      dataVariables: {
-        otp,
-        otpCode: otp,
-        type,
-      },
-    });
-
-    if (!resp.success) {
-      log.error({ email, type, resp }, "OTP email failed");
-      throw new Error("Failed to send OTP email");
-    }
-
-    log.info({ email, type }, "OTP email sent");
-    return resp;
-  } catch (error) {
-    log.error({ email, type, err: error }, "OTP email error");
-    throw error;
+  if (error) {
+    log.error({ email, type, error }, "OTP email failed");
+    throw new Error(`Failed to send OTP email: ${error.message}`);
   }
+
+  log.info({ email, type, id: data?.id }, "OTP email sent");
+  return data;
 }
 
-// Send verification email (for signup email verification and password reset)
 export async function sendVerificationEmail({
   email,
   url,
@@ -109,67 +78,27 @@ export async function sendVerificationEmail({
   url: string;
   type: "email-verification" | "password-reset";
 }) {
-  try {
-    const transactionalId =
-      type === "email-verification"
-        ? TRANSACTIONAL_IDS.emailVerification
-        : TRANSACTIONAL_IDS.passwordReset;
+  log.info({ email, type }, "sending verification email");
 
-    log.info({ email, type }, "sending verification email");
+  const subject =
+    type === "email-verification"
+      ? "Verify your ShipOS account"
+      : "Reset your ShipOS password";
 
-    const resp = await loops.sendTransactionalEmail({
-      transactionalId,
-      email,
-      dataVariables: {
-        verificationUrl: url,
-        resetUrl: url,
-        url,
-      },
-    });
+  const { data, error } = await resend.emails.send({
+    from,
+    to: [email],
+    subject,
+    react: VerificationEmail({ url, type }),
+  });
 
-    if (!resp.success) {
-      log.error({ email, type, resp }, "verification email failed");
-      throw new Error("Failed to send verification email");
-    }
-
-    log.info({ email, type }, "verification email sent");
-    return resp;
-  } catch (error) {
-    log.error({ email, type, err: error }, "verification email error");
-    throw error;
+  if (error) {
+    log.error({ email, type, error }, "verification email failed");
+    throw new Error(`Failed to send verification email: ${error.message}`);
   }
+
+  log.info({ email, type, id: data?.id }, "verification email sent");
+  return data;
 }
 
-// Helper to sync a user to Loops contacts when they sign up
-export async function syncUserToLoops({
-  email,
-  userId,
-  name,
-}: {
-  email: string;
-  userId: string;
-  name?: string;
-}) {
-  try {
-    log.info({ email, userId }, "syncing user to Loops");
-    const resp = await loops.updateContact({
-      email,
-      userId,
-      properties: {
-        firstName: name?.split(" ")[0] || "",
-        lastName: name?.split(" ").slice(1).join(" ") || "",
-      },
-    });
-
-    if (!resp.success) {
-      log.error({ email, userId, resp }, "failed to sync user to Loops");
-    }
-
-    return resp;
-  } catch (error) {
-    log.error({ email, userId, err: error }, "error syncing user to Loops");
-  }
-}
-
-export { loops };
-
+export { resend };

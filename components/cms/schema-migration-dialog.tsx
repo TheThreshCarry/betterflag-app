@@ -50,7 +50,7 @@ function severityBadge(severity: SchemaChange["severity"]) {
   switch (severity) {
     case "safe":
       return (
-        <Badge variant="secondary" className="text-xs">
+        <Badge variant="muted" className="text-xs">
           Safe
         </Badge>
       )

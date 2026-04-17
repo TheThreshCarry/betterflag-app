@@ -1,5 +1,4 @@
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { getSupabaseSession } from "@/lib/supabase/session";
 import { NextRequest, NextResponse } from "next/server";
 import { eq, and } from "drizzle-orm";
 import db from "@/lib/db";
@@ -13,15 +12,14 @@ const WORKER_URL = process.env.WORKER_API_URL || "http://localhost:8787";
 export async function POST(request: NextRequest) {
   try {
     // 1. Validate session
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session) {
+    let session
+    try {
+      session = await getSupabaseSession()
+    } catch {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const organizationId = session.session.activeOrganizationId;
+    const organizationId = session.organizationId;
     if (!organizationId) {
       return NextResponse.json(
         { error: "No active organization" },

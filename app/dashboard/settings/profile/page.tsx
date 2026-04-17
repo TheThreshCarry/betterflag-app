@@ -1,17 +1,23 @@
-import { headers } from "next/headers"
 import { redirect } from "next/navigation"
-import { auth } from "@/lib/auth"
+import { createClient } from "@/lib/supabase/server"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProfileClient } from "./profile-client"
 
 export default async function ProfilePage() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  })
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-  if (!session) {
+  if (!user) {
     redirect("/auth/login")
   }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("name, email, username, image")
+    .eq("id", user.id)
+    .maybeSingle()
 
   return (
     <DashboardLayout
@@ -23,11 +29,11 @@ export default async function ProfilePage() {
     >
       <ProfileClient
         user={{
-          name: session.user.name,
-          email: session.user.email,
-          image: session.user.image,
-          emailVerified: session.user.emailVerified,
-          username: (session.user as Record<string, unknown>).username as string | null ?? null,
+          name: profile?.name ?? "",
+          email: profile?.email ?? user.email ?? "",
+          image: profile?.image ?? null,
+          emailVerified: Boolean(user.email_confirmed_at),
+          username: profile?.username ?? null,
         }}
       />
     </DashboardLayout>

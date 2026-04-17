@@ -1,47 +1,15 @@
 import { createMiddleware } from "hono/factory";
 import type { AppEnv, ApiKeyData } from "../types";
 import { KVKeys } from "../types";
-import db from "../../../../lib/db";
-import { apikey } from "../../../../lib/auth/auth-schema";
-import { DrizzleORM } from "../../../../lib/db";
 import { hashApiKey } from "../../../../lib/api-key-hash";
-
-function parsePermissions(
-  raw: string | null | undefined
-): string[] | undefined {
-  if (raw == null || raw === "") return undefined;
-  try {
-    const v = JSON.parse(raw) as unknown;
-    if (Array.isArray(v)) {
-      return v.filter((x): x is string => typeof x === "string");
-    }
-  } catch {
-    /* ignore */
-  }
-  return undefined;
-}
-
-function rowToApiKeyData(row: typeof apikey.$inferSelect): ApiKeyData | null {
-  if (!row.organizationId) {
-    return null;
-  }
-  return {
-    organizationId: row.organizationId,
-    userId: row.userId,
-    enabled: row.enabled ?? true,
-    expiresAt: row.expiresAt ? new Date(row.expiresAt).toISOString() : null,
-    permissions: parsePermissions(row.permissions ?? undefined),
-    rateLimitEnabled: row.rateLimitEnabled ?? undefined,
-    rateLimitTimeWindow: row.rateLimitTimeWindow ?? undefined,
-    rateLimitMax: row.rateLimitMax ?? undefined,
-  };
-}
 
 /**
  * API Key Authentication Middleware
  *
- * KV lookup order: hashed key → legacy raw-key entry → database (by key hash).
- * Legacy KV entries are migrated to hashed keys on read.
+ * KV-only lookup (Rule 3: public SDK read path never hits Supabase). Hashed
+ * KV entries are the source of truth; legacy raw-key entries are migrated
+ * to hashed keys on read. KV is populated by the dashboard write path
+ * (see lib/actions/api-keys.ts + lib/sync/kv-sync.ts).
  */
 export const authMiddleware = createMiddleware<AppEnv>(async (c, next) => {
   const apiKeyHeader = c.req.header("x-shipos-key");
@@ -88,38 +56,12 @@ export const authMiddleware = createMiddleware<AppEnv>(async (c, next) => {
   }
 
   if (!apiKeyData) {
-    const apiKeyDataRaw = await db
-      .select()
-      .from(apikey)
-      .where(DrizzleORM.eq(apikey.key, keyHash));
-    const row = apiKeyDataRaw[0];
-
-    if (!row) {
-      return c.json(
-        {
-          error: "Invalid API key",
-          code: "API_KEY_NOT_FOUND",
-        },
-        401
-      );
-    }
-
-    const fromRow = rowToApiKeyData(row);
-    if (!fromRow) {
-      return c.json(
-        {
-          error: "Invalid API key",
-          code: "API_KEY_NOT_FOUND",
-        },
-        401
-      );
-    }
-
-    apiKeyData = fromRow;
-    await c.env.SHIPOS_KV.put(hashedKvKey, JSON.stringify(apiKeyData)).catch(
-      (error) => {
-        console.error("Error caching API key in KV:", error);
-      }
+    return c.json(
+      {
+        error: "Invalid API key",
+        code: "API_KEY_NOT_FOUND",
+      },
+      401
     );
   }
 

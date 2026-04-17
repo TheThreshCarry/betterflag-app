@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { ProfilePictureUpload } from "@/components/profile-picture-upload"
-import { authClient } from "@/lib/auth/auth-client"
+import { updateProfile } from "@/lib/actions/profile"
 
 // ---------------------------------------------------------------------------
 // Types
@@ -53,7 +53,7 @@ export function ProfileClient({ user }: ProfileClientProps) {
 
     setSaving(true)
     try {
-      await authClient.updateUser({
+      await updateProfile({
         name: name.trim(),
         username: username.trim() || undefined,
       })
@@ -137,7 +137,7 @@ export function ProfileClient({ user }: ProfileClientProps) {
                   Verified
                 </Badge>
               ) : (
-                <Badge variant="secondary" className="font-normal">Unverified</Badge>
+                <Badge variant="muted" className="font-normal">Unverified</Badge>
               )}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -148,7 +148,7 @@ export function ProfileClient({ user }: ProfileClientProps) {
           <Separator />
 
           <div className="flex justify-end">
-            <Button onClick={handleSave} disabled={saving || !hasChanges}>
+            <Button variant="primary" onClick={handleSave} disabled={saving || !hasChanges}>
               {saving ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

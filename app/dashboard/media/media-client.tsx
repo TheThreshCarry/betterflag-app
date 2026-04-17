@@ -121,12 +121,12 @@ function getTypeIcon(type: string) {
   }
 }
 
-function getTypeBadgeVariant(type: string): "default" | "secondary" | "outline" {
+function getTypeBadgeVariant(type: string): "default" | "muted" | "outline" {
   switch (type) {
     case "image":
       return "default"
     case "video":
-      return "secondary"
+      return "muted"
     default:
       return "outline"
   }
@@ -446,7 +446,7 @@ export function MediaClient({
           {/* View toggle */}
           <div className="flex rounded-md border">
             <Button
-              variant={viewMode === "grid" ? "secondary" : "ghost"}
+              variant={viewMode === "grid" ? "outline" : "ghost"}
               size="icon"
               className="h-8 w-8 rounded-r-none"
               onClick={() => setViewMode("grid")}
@@ -454,7 +454,7 @@ export function MediaClient({
               <Grid3X3 className="h-4 w-4" />
             </Button>
             <Button
-              variant={viewMode === "list" ? "secondary" : "ghost"}
+              variant={viewMode === "list" ? "outline" : "ghost"}
               size="icon"
               className="h-8 w-8 rounded-l-none"
               onClick={() => setViewMode("list")}
@@ -903,7 +903,7 @@ function GridView({
                 <div className="absolute right-2 top-2 opacity-0 transition-opacity group-hover:opacity-100">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="secondary" size="icon" className="h-7 w-7">
+                      <Button variant="outline" size="icon" className="h-7 w-7">
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>

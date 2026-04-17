@@ -114,7 +114,7 @@ export function ContentTypeDetail({
               {schemaFields.map((field) => (
                 <Badge
                   key={field.name}
-                  variant="secondary"
+                  variant="muted"
                   className="flex items-center gap-1.5 px-2.5 py-1"
                 >
                   <FieldTypeIcon type={field.type} className="size-3.5" />

@@ -208,7 +208,7 @@ export function ChangelogsClient({
                               entry.status === "published"
                                 ? "default"
                                 : entry.status === "archived"
-                                  ? "secondary"
+                                  ? "muted"
                                   : "outline"
                             }
                             className="font-normal"

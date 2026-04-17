@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { ImageIcon, Loader2, ArrowRight } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -13,7 +13,11 @@ import {
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field"
-import { authClient } from "@/lib/auth/auth-client"
+import {
+  createOrganization,
+  updateOrganization,
+} from "@/lib/actions/organizations"
+import { setActiveOrganization } from "@/lib/actions/profile"
 
 interface OnboardingFormProps {
   userName: string
@@ -28,11 +32,18 @@ export function OnboardingForm({
 }: OnboardingFormProps) {
   const [name, setName] = useState("")
   const [slug, setSlug] = useState("")
-  const [logo, setLogo] = useState("")
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [description, setDescription] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [slugTouched, setSlugTouched] = useState(false)
+
+  useEffect(() => {
+    return () => {
+      if (logoPreview) URL.revokeObjectURL(logoPreview)
+    }
+  }, [logoPreview])
 
   const handleNameChange = (value: string) => {
     setName(value)
@@ -80,41 +91,65 @@ export function OnboardingForm({
     setIsLoading(true)
 
     try {
-      const result = await authClient.organization.create({
+      const org = await createOrganization({
         name: name.trim(),
         slug: slug.trim(),
-        logo: logo.trim() || undefined,
+        logo: null,
         metadata: description.trim()
-          ? JSON.stringify({ description: description.trim() })
-          : undefined,
+          ? { description: description.trim() }
+          : {},
       })
 
-      if (result.error) {
-        setError(result.error.message || "Failed to create organization")
-        setIsLoading(false)
-        return
-      }
+      await setActiveOrganization(org.id)
 
-      // Set the new org as active
-      if (result.data?.id) {
-        await authClient.organization.setActive({
-          organizationId: result.data.id,
+      if (logoFile) {
+        const formData = new FormData()
+        formData.append("file", logoFile)
+        const res = await fetch("/api/org-logo/upload", {
+          method: "POST",
+          body: formData,
         })
-
-        // Call the callback if provided (wizard mode)
-        if (onOrgCreated) {
-          onOrgCreated(result.data.id, description.trim())
+        const payload = (await res.json()) as { error?: string; url?: string }
+        if (!res.ok) {
+          throw new Error(payload.error || "Logo upload failed")
+        }
+        if (payload.url) {
+          await updateOrganization({
+            organizationId: org.id,
+            logo: payload.url,
+          })
         }
       }
-    } catch {
-      setError("Something went wrong. Please try again.")
+
+      if (onOrgCreated) {
+        onOrgCreated(org.id, description.trim())
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.")
+    } finally {
       setIsLoading(false)
     }
   }
 
+  const handleLogoFile = (file: File | undefined) => {
+    if (!file) return
+    const allowed = ["image/jpeg", "image/png", "image/webp", "image/gif"]
+    if (!allowed.includes(file.type)) {
+      setError("Logo must be JPEG, PNG, WebP, or GIF")
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Logo must be 5MB or smaller")
+      return
+    }
+    setError(null)
+    if (logoPreview) URL.revokeObjectURL(logoPreview)
+    setLogoFile(file)
+    setLogoPreview(URL.createObjectURL(file))
+  }
+
   return (
     <div className={cn("flex flex-col gap-6", className)}>
-      <Card>
         <div className="text-center mb-8">
           <h1 className="text-2xl font-semibold tracking-tight">
             Welcome, {userName.split(" ")[0]}!
@@ -131,20 +166,16 @@ export function OnboardingForm({
                 </Field>
               )}
 
-              {/* Logo preview + URL */}
               <Field>
-                <FieldLabel>Logo</FieldLabel>
+                <FieldLabel htmlFor="onboarding-org-logo">Logo</FieldLabel>
                 <div className="flex items-start gap-3">
                   <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border-2 border-dashed bg-muted">
-                    {logo ? (
+                    {logoPreview ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
                       <img
-                        src={logo}
+                        src={logoPreview}
                         alt="Organization logo"
                         className="h-full w-full object-cover"
-                        onError={(e) => {
-                          ;(e.target as HTMLImageElement).style.display = "none"
-                        }}
                       />
                     ) : (
                       <ImageIcon className="h-6 w-6 text-muted-foreground" />
@@ -152,13 +183,31 @@ export function OnboardingForm({
                   </div>
                   <div className="flex flex-1 flex-col gap-1.5">
                     <Input
-                      placeholder="https://example.com/logo.png"
-                      value={logo}
-                      onChange={(e) => setLogo(e.target.value)}
+                      id="onboarding-org-logo"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      disabled={isLoading}
+                      onChange={(e) => {
+                        handleLogoFile(e.target.files?.[0])
+                        e.target.value = ""
+                      }}
                     />
                     <FieldDescription>
-                      Paste a URL to your logo image (optional)
+                      Optional. JPEG, PNG, WebP, or GIF up to 5MB.
                     </FieldDescription>
+                    {logoPreview && (
+                      <button
+                        type="button"
+                        className="text-left text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline w-fit"
+                        onClick={() => {
+                          if (logoPreview) URL.revokeObjectURL(logoPreview)
+                          setLogoPreview(null)
+                          setLogoFile(null)
+                        }}
+                      >
+                        Remove image
+                      </button>
+                    )}
                   </div>
                 </div>
               </Field>

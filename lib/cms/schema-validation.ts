@@ -109,16 +109,48 @@ export function buildZodSchema(fields: SchemaField[]) {
   return z.object(shape)
 }
 
+/** True when TipTap JSON is empty (or legacy empty string). */
+export function richtextIsEmpty(value: unknown): boolean {
+  if (value == null) return true
+  if (typeof value === "string") return value.trim().length === 0
+  if (typeof value === "object" && value !== null && "type" in value) {
+    const doc = value as { type?: string; content?: unknown[] }
+    if (doc.type !== "doc") return false
+    const c = doc.content
+    if (!Array.isArray(c) || c.length === 0) return true
+    return c.every((node) => {
+      if (!node || typeof node !== "object") return true
+      const n = node as { type?: string; content?: unknown[] }
+      if (n.type === "paragraph" || n.type === "heading") {
+        return !n.content || n.content.length === 0
+      }
+      return false
+    })
+  }
+  return false
+}
+
 export function buildFieldSchema(field: SchemaField): z.ZodTypeAny {
   const { type, required, validation } = field
   let schema: z.ZodTypeAny
 
   switch (type) {
     case "text":
-    case "richtext":
     case "password":
       schema = buildTextSchema(validation)
       break
+
+    case "richtext": {
+      schema = z.unknown()
+      if (required) {
+        schema = schema.refine((val) => !richtextIsEmpty(val), {
+          message: "This field is required",
+        })
+      } else {
+        schema = schema.optional().nullable()
+      }
+      return schema
+    }
 
     case "email":
       schema = buildEmailSchema(validation)
@@ -413,6 +445,10 @@ export function coerceFieldValues(
       case "float":
         const num = Number(value)
         result[field.name] = isNaN(num) ? null : num
+        break
+
+      case "richtext":
+        result[field.name] = value
         break
 
       case "boolean":

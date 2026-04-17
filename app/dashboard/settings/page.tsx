@@ -1,41 +1,49 @@
-import { headers } from "next/headers"
 import { redirect } from "next/navigation"
-import { auth } from "@/lib/auth"
+import { createClient } from "@/lib/supabase/server"
+import { getSupabaseSession } from "@/lib/supabase/session"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { GeneralSettingsClient } from "./general-settings-client"
 
 export default async function GeneralSettingsPage() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  })
-
-  if (!session) {
+  let session
+  try {
+    session = await getSupabaseSession()
+  } catch {
     redirect("/auth/login")
   }
 
-  // DashboardLayout guarantees an active org, but we need the data for the form
-  const activeOrgId = session.session.activeOrganizationId
-  let organization = null
+  const supabase = await createClient()
+  let organization: {
+    id: string
+    name: string
+    slug: string
+    logo: string | null
+    metadata: Record<string, unknown> | null
+    created_at: string
+  } | null = null
 
-  if (activeOrgId) {
-    organization = await auth.api.getFullOrganization({
-      headers: await headers(),
-      query: { organizationId: activeOrgId },
-    })
+  if (session.organizationId) {
+    const { data } = await supabase
+      .from("organizations")
+      .select("id, name, slug, logo, metadata, created_at")
+      .eq("id", session.organizationId)
+      .maybeSingle()
+    organization = data ?? null
   }
 
-  // Parse description from metadata
   let description = ""
   if (organization?.metadata) {
-    try {
-      const meta =
-        typeof organization.metadata === "string"
-          ? JSON.parse(organization.metadata)
-          : organization.metadata
-      description = meta?.description ?? ""
-    } catch {
-      // ignore parse errors
-    }
+    const meta =
+      typeof organization.metadata === "string"
+        ? (() => {
+            try {
+              return JSON.parse(organization!.metadata as unknown as string)
+            } catch {
+              return {}
+            }
+          })()
+        : organization.metadata
+    description = (meta as Record<string, unknown>)?.description as string ?? ""
   }
 
   return (
@@ -55,7 +63,7 @@ export default async function GeneralSettingsPage() {
                 slug: organization.slug,
                 logo: organization.logo,
                 description,
-                createdAt: organization.createdAt.toISOString(),
+                createdAt: organization.created_at,
               }
             : null
         }

@@ -1,75 +1,29 @@
 # ShipOS Email Templates
 
-This folder contains MJML templates for all authentication-related transactional emails, organized into folders ready to zip and upload to Loops.
+Transactional emails are sent via **Resend** using **React Email** components defined in `lib/email/components/`.
 
-## Folder Structure
+The MJML files in this folder are the original design references used to build the React Email components. They are kept for visual reference only and are **not** used at runtime.
 
-```
-templates/
-├── magic-link/          # Passwordless sign-in via magic link
-│   ├── index.mjml
-│   └── logo.png
-├── otp-sign-in/         # OTP-based sign-in code
-│   ├── index.mjml
-│   └── logo.png
-├── otp-verification/    # Email verification OTP (signup)
-│   ├── index.mjml
-│   └── logo.png
-├── otp-password-reset/  # Password reset OTP code
-│   ├── index.mjml
-│   └── logo.png
-├── email-verification/  # Email verification link (signup)
-│   ├── index.mjml
-│   └── logo.png
-├── password-reset/      # Password reset link
-│   ├── index.mjml
-│   └── logo.png
-└── welcome/             # Welcome email after signup
-    ├── index.mjml
-    └── logo.png
+## React Email components
+
+| Component | File | Purpose |
+|-----------|------|---------|
+| `MagicLinkEmail` | `components/magic-link.tsx` | Passwordless sign-in link |
+| `OTPEmail` | `components/otp.tsx` | OTP codes for sign-in, email verification, and password reset |
+| `VerificationEmail` | `components/verification.tsx` | Link-based email verification and password reset |
+
+Shared layout (logo, card, footer) lives in `components/layout.tsx`.
+
+## Environment variables
+
+```env
+RESEND_API_KEY=re_xxxxx
+RESEND_FROM="ShipOS <auth@yourdomain.com>"
 ```
 
-## Data Variables
+Verify your sending domain at [resend.com/domains](https://resend.com/domains) before going to production.
 
-| Template | Data Variables |
-|----------|----------------|
-| `magic-link` | `magicLinkUrl` |
-| `otp-sign-in` | `otpCode` |
-| `otp-verification` | `otpCode` |
-| `otp-password-reset` | `otpCode` |
-| `email-verification` | `verificationUrl` |
-| `password-reset` | `resetUrl` |
-| `welcome` | None (static) |
-
-## How to Upload to Loops
-
-1. **Zip each folder** individually:
-   ```bash
-   cd templates
-   zip -r magic-link.zip magic-link/
-   zip -r otp-sign-in.zip otp-sign-in/
-   # ... repeat for each folder
-   ```
-
-2. **Create Transactional Emails in Loops**:
-   - Go to your [Loops Dashboard](https://app.loops.so)
-   - Navigate to Transactional → Create New
-   - Upload the zip file
-   - Set up the data variables as shown in the table above
-
-3. **Update Environment Variables**:
-   Add the transactional email IDs to your `.env`:
-   ```env
-   LOOPS_MAGIC_LINK_ID=your_magic_link_id
-   LOOPS_OTP_SIGNIN_ID=your_otp_signin_id
-   LOOPS_OTP_VERIFICATION_ID=your_otp_verification_id
-   LOOPS_OTP_PASSWORD_RESET_ID=your_otp_password_reset_id
-   LOOPS_EMAIL_VERIFICATION_ID=your_email_verification_id
-   LOOPS_PASSWORD_RESET_ID=your_password_reset_id
-   LOOPS_WELCOME_ID=your_welcome_id
-   ```
-
-## Design System
+## Design system
 
 All templates follow a consistent design:
 
@@ -83,14 +37,25 @@ All templates follow a consistent design:
 - **Border Radius**: `12px` for cards, `8px` for buttons
 - **Font**: SF Pro Display with system fallbacks
 
-## Quick Zip All Script
+## MJML reference folders
 
-```bash
-cd templates
-for dir in */; do
-  if [ -d "$dir" ]; then
-    zip -r "${dir%/}.zip" "$dir"
-  fi
-done
+```
+templates/
+├── magic-link/          # Passwordless sign-in via magic link
+├── otp-sign-in/         # OTP-based sign-in code
+├── otp-verification/    # Email verification OTP (signup)
+├── otp-password-reset/  # Password reset OTP code
+├── email-verification/  # Email verification link (signup)
+├── password-reset/      # Password reset link
+└── welcome/             # Welcome email after signup
 ```
 
+| Template | Data variables |
+|----------|----------------|
+| `magic-link` | `magicLinkUrl` |
+| `otp-sign-in` | `otpCode` |
+| `otp-verification` | `otpCode` |
+| `otp-password-reset` | `otpCode` |
+| `email-verification` | `verificationUrl` |
+| `password-reset` | `resetUrl` |
+| `welcome` | None (static) |

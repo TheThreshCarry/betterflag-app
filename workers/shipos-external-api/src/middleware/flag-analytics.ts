@@ -1,29 +1,21 @@
 import { createMiddleware } from "hono/factory";
 import type { AppEnv } from "../types";
-import { createClickHouseClient } from "../lib/clickhouse";
+import { sendEvents } from "../lib/tinybird";
 
 /**
- * Flag Analytics Middleware
+ * Flag Analytics Middleware — Tinybird variant (Phase 4).
  *
- * Intercepts responses from the flags endpoint, extracts context
- * (geo, device, SDK version), and inserts one row per flag into
- * ClickHouse asynchronously via `waitUntil`.
- *
- * Geo data comes from Cloudflare's `cf` object on the request,
- * which is free and automatic in CF Workers.
- *
- * Uses async_insert so ClickHouse batches individual inserts server-side.
+ * Intercepts successful /v1/flags responses, builds one row per flag, and
+ * fire-and-forgets an NDJSON batch into the Tinybird `flag_evaluations`
+ * datasource. Bypasses Supabase entirely per Rule R5.
  */
 export const flagAnalyticsMiddleware = createMiddleware<AppEnv>(
   async (c, next) => {
     await next();
 
-    // Only track successful flag responses
     if (c.res.status !== 200) return;
 
-    // Don't block on analytics — clone response to read flags
     const clonedRes = c.res.clone();
-
     let flags: Record<string, boolean>;
     try {
       flags = await clonedRes.json();
@@ -35,11 +27,10 @@ export const flagAnalyticsMiddleware = createMiddleware<AppEnv>(
       return;
     }
 
-    // Extract Cloudflare geo data from the request
-    const cf = (c.req.raw as any).cf || {};
+    const cf = (c.req.raw as unknown as { cf?: Record<string, unknown> }).cf ?? {};
     const requestId = crypto.randomUUID();
-    // ClickHouse DateTime64 expects 'YYYY-MM-DD HH:MM:SS.sss' — no T, no Z
-    const now = new Date().toISOString().replace("T", " ").replace("Z", "");
+    // Tinybird DateTime64 expects ISO; JSON parser handles the "T"/"Z" fine.
+    const now = new Date().toISOString();
 
     const organizationId = c.get("organizationId");
     const environment = c.get("environment");
@@ -47,45 +38,29 @@ export const flagAnalyticsMiddleware = createMiddleware<AppEnv>(
     const userAgent = c.req.header("user-agent") || "";
     const sdkVersion = c.req.header("x-shipos-sdk-version") || "";
 
-    // Build one row per flag
     const rows = Object.entries(flags).map(([key, value]) => ({
       organization_id: organizationId,
       environment,
       customer_id: customerId,
       flag_key: key,
-      flag_value: value,
+      flag_value: value ? 1 : 0,
       timestamp: now,
-      country: cf.country || "",
-      city: cf.city || "",
-      region: cf.region || "",
-      continent: cf.continent || "",
-      latitude: parseFloat(cf.latitude) || 0,
-      longitude: parseFloat(cf.longitude) || 0,
-      timezone: cf.timezone || "",
+      country: (cf.country as string) || "",
+      city: (cf.city as string) || "",
+      region: (cf.region as string) || "",
+      continent: (cf.continent as string) || "",
+      latitude: parseFloat(cf.latitude as string) || 0,
+      longitude: parseFloat(cf.longitude as string) || 0,
+      timezone: (cf.timezone as string) || "",
       user_agent: userAgent,
       sdk_version: sdkVersion,
       request_id: requestId,
     }));
 
-    // Fire-and-forget: insert into ClickHouse without blocking the response
-    let client: ReturnType<typeof createClickHouseClient> | null = null;
     try {
-      client = createClickHouseClient(c.env);
+      c.executionCtx.waitUntil(sendEvents(c.env, "flag_evaluations", rows));
     } catch (err) {
-      console.error("[FlagAnalytics] Error creating ClickHouse client:", err);
+      console.error("[FlagAnalytics] waitUntil failed:", err);
     }
-    if (!client) {
-      console.error("[FlagAnalytics] No ClickHouse client found");
-      return;
-    }
-    try {
-      c.executionCtx.waitUntil(client.insert({
-        table: "feature_flag_evaluations",
-        values: rows,
-        format: "JSONEachRow",
-      }));
-    } catch (err: any) {
-      console.error("[FlagAnalytics] Insert failed:", err?.message || err);
-    }
-  }
+  },
 );

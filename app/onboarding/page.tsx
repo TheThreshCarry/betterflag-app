@@ -1,66 +1,71 @@
-import { headers } from "next/headers"
 import { redirect } from "next/navigation"
-import { auth } from "@/lib/auth"
+import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
+import { getSupabaseSession } from "@/lib/supabase/session"
 import { OnboardingWizard } from "./onboarding-wizard"
 
 export default async function OnboardingPage() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  })
-
-  if (!session) {
+  let session
+  try {
+    session = await getSupabaseSession()
+  } catch {
     redirect("/auth/login")
   }
 
-  // Check if the user already has organizations
-  const orgs = await auth.api.listOrganizations({
-    headers: await headers(),
-  })
+  const supabase = await createClient()
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("name, active_organization_id")
+    .eq("id", session.userId)
+    .maybeSingle()
 
-  if (orgs && orgs.length > 0) {
-    // Parse org metadata to check onboarding status
+  const userName = profile?.name ?? session.email.split("@")[0] ?? ""
+
+  const { data: memberships } = await supabase
+    .from("organization_members")
+    .select("organization_id, organizations(id, name, slug, metadata)")
+    .eq("user_id", session.userId)
+    .order("created_at", { ascending: true })
+
+  if (memberships && memberships.length > 0) {
     const activeOrgId =
-      session.session.activeOrganizationId || orgs[0].id
-    const activeOrg = orgs.find((o) => o.id === activeOrgId) || orgs[0]
+      session.organizationId ?? profile?.active_organization_id ?? memberships[0].organization_id
+    const active = memberships.find(
+      (m) => m.organization_id === activeOrgId,
+    ) ?? memberships[0]
 
-    let metadata: Record<string, unknown> = {}
-    try {
-      metadata = JSON.parse(activeOrg.metadata || "{}")
-    } catch {
-      metadata = {}
-    }
+    const org = Array.isArray(active.organizations)
+      ? active.organizations[0]
+      : (active.organizations as { id: string; metadata: Record<string, unknown> | null } | null)
+    const metadata = (org?.metadata ?? {}) as Record<string, unknown>
 
-    // If onboarding is completed, go to dashboard
     if (metadata.onboardingCompleted === true) {
-      // Set active org if not already
-      if (!session.session.activeOrganizationId) {
-        await auth.api.setActiveOrganization({
-          headers: await headers(),
-          body: { organizationId: activeOrg.id },
-        })
+      if (!session.organizationId && org?.id) {
+        const admin = createAdminClient()
+        await admin
+          .from("profiles")
+          .update({ active_organization_id: org.id })
+          .eq("id", session.userId)
       }
       redirect("/dashboard")
     }
 
-    // Onboarding NOT completed — set org active and resume at module selection
-    if (!session.session.activeOrganizationId) {
-      await auth.api.setActiveOrganization({
-        headers: await headers(),
-        body: { organizationId: activeOrg.id },
-      })
+    if (!session.organizationId && org?.id) {
+      const admin = createAdminClient()
+      await admin
+        .from("profiles")
+        .update({ active_organization_id: org.id })
+        .eq("id", session.userId)
     }
 
     return (
       <OnboardingWizard
-        userName={session.user.name}
-        initialStep="select-modules"
-        organizationId={activeOrg.id}
+        userName={userName}
+        initialStep="pick-product"
+        organizationId={active.organization_id}
       />
     )
   }
 
-  // No orgs — start from the beginning
-  return (
-    <OnboardingWizard userName={session.user.name} initialStep="create-org" />
-  )
+  return <OnboardingWizard userName={userName} initialStep="create-org" />
 }

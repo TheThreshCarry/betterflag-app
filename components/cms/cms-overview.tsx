@@ -74,8 +74,8 @@ export function CmsOverview({ contentTypes, entries }: CmsOverviewProps) {
           <FileText className="text-muted-foreground mb-4 size-10" />
           <h2 className="text-lg font-semibold">No content types yet</h2>
           <p className="text-sm text-muted-foreground mt-2 max-w-md">
-            Content types define the structure of your posts. Start with a
-            template like Blog Post, or build your own from scratch.
+            Content types define the fields for your entries. Start from a
+            template or build a schema from scratch.
           </p>
           <div className="mt-6 flex items-center gap-3">
             <Button asChild>

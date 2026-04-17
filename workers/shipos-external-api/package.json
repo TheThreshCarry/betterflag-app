@@ -7,7 +7,6 @@
 		"cf-typegen": "wrangler types --env-interface CloudflareBindings"
 	},
 	"dependencies": {
-		"@clickhouse/client-web": "^1.17.0",
 		"drizzle-orm": "^0.39.2",
 		"hono": "^4.11.3"
 	},

@@ -182,7 +182,7 @@ function ImageBlockView({
             </div>
             <div className="flex gap-2">
               <Button 
-                variant="secondary" 
+                variant="outline" 
                 size="sm"
                 onClick={() => {
                   const input = document.createElement("input")
@@ -206,7 +206,7 @@ function ImageBlockView({
                 if (!open) setEmbedUrl("")
               }}>
                 <PopoverTrigger asChild>
-                  <Button variant="secondary" size="sm">
+                  <Button variant="outline" size="sm">
                     Embed Link
                   </Button>
                 </PopoverTrigger>

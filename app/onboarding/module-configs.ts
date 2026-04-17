@@ -26,6 +26,7 @@ export interface ModuleConfig {
   icon: LucideIcon
   description: string
   hasSetup: boolean
+  route?: string
   comingSoon?: boolean
   createLabel?: string
   fields?: ModuleField[]
@@ -39,6 +40,7 @@ export const ONBOARDING_MODULES: ModuleConfig[] = [
     description:
       "Control feature rollouts with flags you can toggle instantly without redeploying.",
     hasSetup: true,
+    route: "/dashboard/flags",
     createLabel: "Create your first feature flag",
     fields: [
       {
@@ -67,6 +69,7 @@ export const ONBOARDING_MODULES: ModuleConfig[] = [
     description:
       "Keep your users informed about new features, improvements, and bug fixes with beautiful release notes.",
     hasSetup: true,
+    route: "/dashboard/changelogs",
     createLabel: "Create your first changelog",
     fields: [
       {
@@ -95,6 +98,7 @@ export const ONBOARDING_MODULES: ModuleConfig[] = [
     description:
       "Manage remote configuration values that your app can fetch without code changes.",
     hasSetup: true,
+    route: "/dashboard/configs",
     createLabel: "Create your first config",
     fields: [
       {
@@ -123,6 +127,7 @@ export const ONBOARDING_MODULES: ModuleConfig[] = [
     description:
       "Track and manage your customer base, segment users, and manage their metadata.",
     hasSetup: true,
+    route: "/dashboard/customers",
     createLabel: "Add your first customer",
     fields: [
       {
@@ -146,6 +151,7 @@ export const ONBOARDING_MODULES: ModuleConfig[] = [
     description:
       "Upload and organize files, images, and assets in a central media library.",
     hasSetup: true,
+    route: "/dashboard/media",
     createLabel: "Create your first folder",
     fields: [
       {
@@ -156,13 +162,14 @@ export const ONBOARDING_MODULES: ModuleConfig[] = [
       },
     ],
   },
-{
+  {
     id: "cms",
     title: "CMS",
     icon: FileText,
     description:
       "Publish and manage content with a built-in content management system.",
     hasSetup: false,
+    route: "/dashboard/cms",
   },
   {
     id: "docs",
@@ -171,6 +178,7 @@ export const ONBOARDING_MODULES: ModuleConfig[] = [
     description:
       "Create versioned documentation with structured navigation for your product.",
     hasSetup: false,
+    route: "/dashboard/docs",
   },
   {
     id: "announcements",
@@ -179,6 +187,7 @@ export const ONBOARDING_MODULES: ModuleConfig[] = [
     description:
       "Display banners, modals, and toasts to communicate with your users in-app.",
     hasSetup: false,
+    route: "/dashboard/announcements",
   },
   {
     id: "newsletters",

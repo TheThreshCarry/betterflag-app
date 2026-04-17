@@ -190,7 +190,7 @@ export function MediaField({
         />
         <Button
           type="button"
-          variant="secondary"
+          variant="outline"
           size="sm"
           disabled={!urlInput.trim()}
           onClick={() => addUrl(urlInput)}

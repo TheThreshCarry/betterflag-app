@@ -149,7 +149,7 @@ export function EditSchemaClient({
           {isLegacy ? (
             <Badge variant="destructive">Legacy</Badge>
           ) : (
-            <Badge variant="secondary">Current</Badge>
+            <Badge variant="muted">Current</Badge>
           )}
         </div>
 

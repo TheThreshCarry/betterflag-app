@@ -148,7 +148,7 @@ export function SchemaBuilder({
 
       {/* Sticky bottom bar */}
       <div className="sticky bottom-0 z-10 -mx-1 flex items-center gap-3 border-t bg-background px-1 py-4">
-        <Button onClick={handleSave} disabled={saving}>
+        <Button variant="primary" onClick={handleSave} disabled={saving}>
           {saving && <Loader2 className="h-4 w-4 animate-spin" />}
           {saving ? "Saving..." : "Save Schema"}
         </Button>

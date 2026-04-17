@@ -263,7 +263,7 @@ export function SubscribersClient({
             <Button variant="outline" onClick={() => setIsAddOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleAdd} disabled={isLoading}>
+            <Button variant="primary" onClick={handleAdd} disabled={isLoading}>
               {isLoading ? "Adding..." : "Add Subscriber"}
             </Button>
           </DialogFooter>

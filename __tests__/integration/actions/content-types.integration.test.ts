@@ -19,8 +19,8 @@ describe("content types CRUD (integration)", () => {
     const [ct] = await db
       .insert(contentTypes)
       .values({
-        name: "Blog Post",
-        slug: "blog-post",
+        name: "Article",
+        slug: "article",
         organizationId: TEST_ORG,
         schema: {
           version: 2,
@@ -33,13 +33,13 @@ describe("content types CRUD (integration)", () => {
       .returning();
 
     expect(ct.id).toBeDefined();
-    expect(ct.slug).toBe("blog-post");
+    expect(ct.slug).toBe("article");
     expect(ct.version).toBe(1);
 
     const found = await db.query.contentTypes.findFirst({
       where: eq(contentTypes.id, ct.id),
     });
-    expect(found?.name).toBe("Blog Post");
+    expect(found?.name).toBe("Article");
     expect((found?.schema as any).version).toBe(2);
     expect((found?.schema as any).fields).toHaveLength(2);
   });

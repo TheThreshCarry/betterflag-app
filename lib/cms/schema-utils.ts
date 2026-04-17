@@ -258,17 +258,17 @@ export function getFieldSummary(field: SchemaField): string {
 
 export function getStatusBadgeVariant(
   status: string | null | undefined
-): "default" | "secondary" | "outline" {
+): "default" | "muted" | "outline" {
   switch (status) {
     case "active":
     case "published":
       return "default"
     case "draft":
-      return "secondary"
+      return "muted"
     case "deprecated":
     case "archived":
       return "outline"
     default:
-      return "secondary"
+      return "muted"
   }
 }

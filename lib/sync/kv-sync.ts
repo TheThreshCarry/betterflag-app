@@ -15,6 +15,10 @@ const SERVICE_SECRET = process.env.SERVICE_SECRET
 
 /**
  * KV Key builders (must match the Worker's KVKeys)
+ *
+ * Scheme: `v1::org_<id>::<env>::*` (legacy) and
+ *         `tenant_<id>_*` aliases (plan R2). Both are written for the
+ *         cutover window; the worker reads either.
  */
 export const KVKeys = {
   /** Preferred: lookup by SHA-256 hex hash of the raw API key (no secret material in the key). */
@@ -23,8 +27,18 @@ export const KVKeys = {
   apiKeyLegacy: (rawApiKey: string): string => `v1::apikey::${rawApiKey}`,
   flags: (orgId: string, env: string): string =>
     `v1::org_${orgId}::${env}::flags`,
+  flagsTenant: (orgId: string): string => `tenant_${orgId}_flags`,
   config: (orgId: string, env: string, slug: string): string =>
     `v1::org_${orgId}::${env}::config::${slug}`,
+  configTenant: (orgId: string, slug: string): string =>
+    `tenant_${orgId}_config_${slug}`,
+  cmsEntry: (orgId: string, ctSlug: string, entrySlug: string): string =>
+    `tenant_${orgId}_cms_${ctSlug}_${entrySlug}`,
+  cmsIndex: (orgId: string, ctSlug: string): string =>
+    `tenant_${orgId}_cms_${ctSlug}_index`,
+  customer: (orgId: string, externalId: string): string =>
+    `tenant_${orgId}_customer_${externalId}`,
+  entitlements: (orgId: string): string => `tenant_${orgId}_entitlements`,
 }
 
 /**
@@ -188,4 +202,111 @@ export async function deleteConfigFromKV(
 ): Promise<boolean> {
   const key = KVKeys.config(organizationId, environment, slug)
   return deleteFromKV(key)
+}
+
+// ============================================
+// Tenant-scheme writers (plan R2 — `tenant_<orgId>_*`)
+// ============================================
+
+export async function syncFlagsTenant(
+  organizationId: string,
+  flagsByEnv: Record<string, Record<string, boolean>>,
+): Promise<boolean> {
+  return writeToKV(KVKeys.flagsTenant(organizationId), {
+    ...flagsByEnv,
+    _updatedAt: new Date().toISOString(),
+  })
+}
+
+export async function syncConfigTenant(
+  organizationId: string,
+  slug: string,
+  data: Record<string, unknown>,
+): Promise<boolean> {
+  return writeToKV(KVKeys.configTenant(organizationId, slug), {
+    data,
+    _updatedAt: new Date().toISOString(),
+  })
+}
+
+export async function syncCmsEntryTenant(
+  organizationId: string,
+  contentTypeSlug: string,
+  entrySlug: string,
+  entry: Record<string, unknown>,
+): Promise<boolean> {
+  return writeToKV(
+    KVKeys.cmsEntry(organizationId, contentTypeSlug, entrySlug),
+    { ...entry, _updatedAt: new Date().toISOString() },
+  )
+}
+
+export async function syncCmsIndexTenant(
+  organizationId: string,
+  contentTypeSlug: string,
+  index: Array<{ slug: string; title?: string; updatedAt?: string }>,
+): Promise<boolean> {
+  return writeToKV(KVKeys.cmsIndex(organizationId, contentTypeSlug), {
+    entries: index,
+    _updatedAt: new Date().toISOString(),
+  })
+}
+
+export async function deleteCmsEntryTenant(
+  organizationId: string,
+  contentTypeSlug: string,
+  entrySlug: string,
+): Promise<boolean> {
+  return deleteFromKV(
+    KVKeys.cmsEntry(organizationId, contentTypeSlug, entrySlug),
+  )
+}
+
+export async function syncCustomerTenant(
+  organizationId: string,
+  externalId: string,
+  data: Record<string, unknown>,
+): Promise<boolean> {
+  return writeToKV(KVKeys.customer(organizationId, externalId), {
+    ...data,
+    _updatedAt: new Date().toISOString(),
+  })
+}
+
+export async function syncEntitlementsTenant(
+  organizationId: string,
+  entitlements: Record<string, unknown>,
+): Promise<boolean> {
+  return writeToKV(KVKeys.entitlements(organizationId), {
+    ...entitlements,
+    _updatedAt: new Date().toISOString(),
+  })
+}
+
+// ============================================
+// Retry queue — writes that fail land here; worker cron drains.
+// ============================================
+
+type PendingOp = {
+  operation: "put" | "delete"
+  key: string
+  payload?: unknown
+}
+
+/**
+ * Enqueue a failed KV op into public.kv_sync_retries for background retry.
+ * Uses the Supabase service-role client so no RLS is in the way.
+ */
+export async function enqueueKvRetry(op: PendingOp): Promise<void> {
+  try {
+    const { createAdminClient } = await import("@/lib/supabase/admin")
+    const supabase = createAdminClient()
+    await supabase.from("kv_sync_retries").insert({
+      operation: op.operation,
+      key: op.key,
+      payload: op.payload ?? null,
+    })
+  } catch (err) {
+    log.error({ err, op }, "failed to enqueue kv retry")
+  }
 }

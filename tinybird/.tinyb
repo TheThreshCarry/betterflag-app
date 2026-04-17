@@ -1,0 +1,4 @@
+{
+  "token": "$TINYBIRD_ADMIN_TOKEN",
+  "host": "$TINYBIRD_HOST"
+}

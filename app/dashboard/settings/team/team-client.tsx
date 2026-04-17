@@ -54,7 +54,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Separator } from "@/components/ui/separator"
-import { authClient } from "@/lib/auth/auth-client"
+import {
+  inviteMember,
+  cancelInvitation,
+  updateMemberRole,
+  removeMember,
+} from "@/lib/actions/organizations"
 
 // ---------------------------------------------------------------------------
 // Types
@@ -115,7 +120,7 @@ function getRoleBadge(role: string) {
       )
     case "admin":
       return (
-        <Badge variant="secondary" className="gap-1">
+        <Badge variant="muted" className="gap-1">
           <Shield className="h-3 w-3" />
           Admin
         </Badge>
@@ -176,7 +181,7 @@ export function TeamClient({
 
     setInviting(true)
     try {
-      await authClient.organization.inviteMember({
+      await inviteMember({
         organizationId: organization.id,
         email: inviteEmail.trim(),
         role: inviteRole as "member" | "admin",
@@ -208,9 +213,7 @@ export function TeamClient({
 
   const handleCancelInvitation = async (invitationId: string) => {
     try {
-      await authClient.organization.cancelInvitation({
-        invitationId,
-      })
+      await cancelInvitation(invitationId)
       setInvitations(invitations.filter((i) => i.id !== invitationId))
       toast.success("Invitation cancelled")
     } catch {
@@ -221,8 +224,7 @@ export function TeamClient({
   const handleRoleChange = async (memberId: string, newRole: MemberRole) => {
     setRoleLoading(memberId)
     try {
-      await authClient.organization.updateMemberRole({
-        organizationId: organization.id,
+      await updateMemberRole({
         memberId,
         role: newRole as "member" | "admin",
       })
@@ -242,10 +244,7 @@ export function TeamClient({
 
     setRemoving(true)
     try {
-      await authClient.organization.removeMember({
-        organizationId: organization.id,
-        memberIdOrEmail: memberToRemove.userId,
-      })
+      await removeMember(memberToRemove.id)
       setMembers(members.filter((m) => m.id !== memberToRemove.id))
       setRemoveOpen(false)
       setMemberToRemove(null)
@@ -421,7 +420,7 @@ export function TeamClient({
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="font-normal text-xs">Pending</Badge>
+                    <Badge variant="muted" className="font-normal text-xs">Pending</Badge>
                     {isOwnerOrAdmin && (
                       <Button
                         variant="ghost"
@@ -492,7 +491,7 @@ export function TeamClient({
             <Button variant="outline" onClick={() => setInviteOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleInvite} disabled={inviting}>
+            <Button variant="primary" onClick={handleInvite} disabled={inviting}>
               {inviting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

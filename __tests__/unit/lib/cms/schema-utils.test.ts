@@ -243,10 +243,10 @@ describe("display helpers", () => {
   it("getStatusBadgeVariant maps statuses correctly", () => {
     expect(getStatusBadgeVariant("active")).toBe("default");
     expect(getStatusBadgeVariant("published")).toBe("default");
-    expect(getStatusBadgeVariant("draft")).toBe("secondary");
+    expect(getStatusBadgeVariant("draft")).toBe("muted");
     expect(getStatusBadgeVariant("deprecated")).toBe("outline");
     expect(getStatusBadgeVariant("archived")).toBe("outline");
-    expect(getStatusBadgeVariant(null)).toBe("secondary");
-    expect(getStatusBadgeVariant(undefined)).toBe("secondary");
+    expect(getStatusBadgeVariant(null)).toBe("muted");
+    expect(getStatusBadgeVariant(undefined)).toBe("muted");
   });
 });

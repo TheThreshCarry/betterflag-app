@@ -212,7 +212,7 @@ export function FlagDetailClient({
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-xl font-semibold">{flag.name}</h1>
-                <Badge variant={enabled ? "default" : "secondary"}>
+                <Badge variant={enabled ? "default" : "muted"}>
                   {enabled ? "Enabled" : "Disabled"}
                 </Badge>
                 <Badge
@@ -220,7 +220,7 @@ export function FlagDetailClient({
                     flag.environment === "production"
                       ? "default"
                       : flag.environment === "staging"
-                        ? "secondary"
+                        ? "muted"
                         : "outline"
                   }
                 >
@@ -311,7 +311,7 @@ export function FlagDetailClient({
             </div>
           </div>
           <div className="mt-6 flex justify-end">
-            <Button onClick={handleSave} disabled={isLoading}>
+            <Button variant="primary" onClick={handleSave} disabled={isLoading}>
               {isLoading ? "Saving..." : "Save Changes"}
             </Button>
           </div>

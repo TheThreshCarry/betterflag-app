@@ -3,8 +3,16 @@
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { useState } from "react"
-import { authClient } from "@/lib/auth/auth-client"
+import { createClient } from "@/lib/supabase/client"
+import { checkAlphaAccess } from "@/lib/actions/alpha-gate"
 import { Button } from "@/components/ui/button"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import {
   Field,
   FieldGroup,
@@ -23,6 +31,7 @@ export function SignupForm({
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
+  const [alphaBlocked, setAlphaBlocked] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -40,21 +49,58 @@ export function SignupForm({
 
     setIsLoading(true)
 
-    const { error } = await authClient.signUp.email({
-      name,
+    const hasAccess = await checkAlphaAccess(email)
+    if (!hasAccess) {
+      setIsLoading(false)
+      setAlphaBlocked(true)
+      return
+    }
+
+    const supabase = createClient()
+    const { error: signUpError } = await supabase.auth.signUp({
       email,
       password,
-      callbackURL: "/onboarding",
+      options: {
+        data: { name },
+        emailRedirectTo:
+          typeof window !== "undefined"
+            ? `${window.location.origin}/onboarding`
+            : undefined,
+      },
     })
 
     setIsLoading(false)
 
-    if (error) {
-      setError(error.message || "Failed to create account")
+    if (signUpError) {
+      setError(signUpError.message || "Failed to create account")
       return
     }
 
     setEmailSent(true)
+  }
+
+  if (alphaBlocked) {
+    return (
+      <div className={cn("flex flex-col gap-6 text-center", className)} {...props}>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          ShipOS is in Alpha
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          We&apos;re currently in private alpha and access is limited to
+          approved users.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Contact{" "}
+          <a href="mailto:hi@shipos.app" className="text-primary hover:underline">
+            hi@shipos.app
+          </a>{" "}
+          for more information or to request access.
+        </p>
+        <Button variant="outline" onClick={() => setAlphaBlocked(false)}>
+          Try a different email
+        </Button>
+      </div>
+    )
   }
 
   if (emailSent) {
