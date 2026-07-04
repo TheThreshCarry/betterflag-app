@@ -1,0 +1,40 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "shipos-mcp",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-06-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Control-plane origin the tools proxy to. Override for local dev:
+  //   wrangler dev --var SHIPOS_API_URL:http://localhost:3000
+  "vars": {
+    "SHIPOS_API_URL": "https://app.shipos.app"
+  },
+
+  // The agents SDK backs each MCP session with a Durable Object.
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "MCP_OBJECT",
+        "class_name": "ShipOSMcp"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["ShipOSMcp"]
+    }
+  ],
+
+  "routes": [
+    {
+      "pattern": "mcp.shipos.app",
+      "custom_domain": true
+    }
+  ],
+
+  "observability": {
+    "enabled": true
+  }
+}
