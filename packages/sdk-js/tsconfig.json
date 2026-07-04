@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // fetch/Response/Headers types come from the DOM lib; at runtime the
+    // platform (Node >= 18 or the browser) supplies them. Zero runtime deps.
+    "lib": ["ES2022", "DOM"]
+  },
+  "include": ["src", "test"]
+}
