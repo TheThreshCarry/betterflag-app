@@ -1,1 +1,0 @@
-ALTER TABLE "changelogs" ADD COLUMN "deployed_at" timestamp;

@@ -1,0 +1,37 @@
+[
+  {
+    "flagKey": "checkout-v2",
+    "userId": "user-1",
+    "bucket": 61
+  },
+  {
+    "flagKey": "checkout-v2",
+    "userId": "user-2",
+    "bucket": 36
+  },
+  {
+    "flagKey": "checkout-v2",
+    "userId": "a5f9d3e0-6a2b-4c1d-9e8f-7a6b5c4d3e2f",
+    "bucket": 38
+  },
+  {
+    "flagKey": "new-onboarding",
+    "userId": "user-1",
+    "bucket": 89
+  },
+  {
+    "flagKey": "dark-mode",
+    "userId": "mehdi@shipos.app",
+    "bucket": 20
+  },
+  {
+    "flagKey": "flag.with.dots",
+    "userId": "user_with_underscores",
+    "bucket": 28
+  },
+  {
+    "flagKey": "unicode-flag",
+    "userId": "usér-ünïcode-λ",
+    "bucket": 80
+  }
+]
