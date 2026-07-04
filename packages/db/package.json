@@ -1,0 +1,19 @@
+{
+  "name": "@shipos/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "gen-types": "supabase gen types typescript --linked --schema public > src/database.types.ts"
+  },
+  "dependencies": {
+    "@shipos/core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2"
+  }
+}

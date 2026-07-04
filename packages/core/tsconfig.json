@@ -1,4 +1,10 @@
 {
   "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // TextEncoder/crypto come from the platform; DOM lib supplies the types
+    // here. Consumers compiling this source bring their own (DOM or
+    // workers-types) — keep the source free of ambient declarations.
+    "lib": ["ES2022", "DOM"]
+  },
   "include": ["src", "test"]
 }

@@ -1,4 +1,15 @@
 export { murmur3_32 } from "./murmur3";
+export {
+  formatApiKey,
+  keyPrefixOf,
+  kindOfKey,
+  sha256Hex,
+  timingSafeEqualHex,
+  API_KEY_RE,
+  API_KEY_PREFIX_LENGTH,
+  type ApiKeyKind,
+  type SdkKeyKvEntry,
+} from "./apiKeys";
 export { fnv1a64, hashUserId } from "./hash64";
 export { bucketFor, inRollout } from "./bucket";
 export { parseSemver, compareSemver, type ParsedSemver } from "./semver";
