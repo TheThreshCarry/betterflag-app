@@ -1,0 +1,1149 @@
+openapi: 3.1.0
+info:
+  title: ShipOS Control Plane API
+  version: 1.0.0
+  description: |
+    REST API for the ShipOS control plane (`app.shipos.app/api/v1`).
+
+    ## Auth
+    Two modes:
+    - **Supabase session cookie** — dashboard users. Session users may pass
+      `?orgId=<uuid>` on any endpoint to act in another org they are a
+      member of (defaults to their first membership).
+    - **`Authorization: Bearer sos_agt_*` or `sos_adm_*`** — machine keys.
+      SDK keys (`sos_sdk_*`) are rejected on the control plane; they only
+      evaluate flags at the edge.
+
+    ## Guardrails
+    Agent keys (`sos_agt_*`) are guardrail-checked; session users and admin
+    keys are not. When a guardrail matching (org, environment-or-null,
+    action) requires approval, the mutation is NOT executed. An approval row
+    is staged and the endpoint replies **202** with
+    `{ approvalRequired: true, approvalId, message }`. Guardrail actions:
+    `kill_switch` (kill endpoint), `rollout_100` (config PUT with
+    rolloutPct=100), `promote_prod` (promote into the `prod` environment).
+
+    ## Audit
+    Every mutation lands an audit row atomically (via Postgres RPCs).
+    Session users audit as `actor_type: user`; agent AND admin keys audit as
+    `actor_type: agent` with their key prefix.
+
+    ## Errors
+    All errors share one shape: `{ "error": { "code": string, "message": string } }`
+    with status 400/401/403/404/409/422. Version conflicts from optimistic
+    concurrency (`expectedVersion`) return 409 with code `version_conflict`.
+servers:
+  - url: https://app.shipos.app
+    description: Production
+  - url: http://localhost:3000
+    description: Local development
+
+security:
+  - bearerAuth: []
+  - cookieAuth: []
+
+tags:
+  - name: Projects
+  - name: Flags
+  - name: Flag configs
+  - name: Keys
+  - name: Audit
+  - name: Usage
+  - name: Approvals
+  - name: Orgs
+
+paths:
+  /api/v1/projects:
+    get:
+      tags: [Projects]
+      summary: List the caller's org projects (with environments)
+      operationId: listProjects
+      responses:
+        "200":
+          description: Projects with their environments.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [projects]
+                properties:
+                  projects:
+                    type: array
+                    items: { $ref: "#/components/schemas/Project" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      tags: [Projects]
+      summary: Create a project (dev/staging/prod environments included)
+      description: |
+        Runs the `create_project_with_envs` RPC (project + three
+        environments + audit, atomically). Enforces `PLAN_LIMITS.projects`
+        — exceeding it returns 403 with code `plan_limit`.
+      operationId: createProject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, slug]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 120 }
+                slug:
+                  type: string
+                  pattern: "^[a-z0-9][a-z0-9-]{0,62}$"
+      responses:
+        "201":
+          description: Created project.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [project]
+                properties:
+                  project: { $ref: "#/components/schemas/Project" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/PlanLimit" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /api/v1/projects/{id}/flags:
+    parameters:
+      - $ref: "#/components/parameters/ProjectId"
+    get:
+      tags: [Flags]
+      summary: List a project's flags with per-environment configs
+      operationId: listFlags
+      parameters:
+        - name: key
+          in: query
+          required: false
+          schema: { type: string }
+          description: Return only the flag with this exact key.
+      responses:
+        "200":
+          description: Non-archived flags with their configs.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [flags]
+                properties:
+                  flags:
+                    type: array
+                    items: { $ref: "#/components/schemas/FlagWithConfigs" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    post:
+      tags: [Flags]
+      summary: Create a flag (configs created in every environment)
+      description: Runs the `create_flag_with_configs` RPC.
+      operationId: createFlag
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [key, name, kind]
+              properties:
+                key:
+                  type: string
+                  pattern: "^[a-zA-Z0-9][a-zA-Z0-9._-]*$"
+                  maxLength: 128
+                name: { type: string, minLength: 1, maxLength: 160 }
+                description: { type: string, maxLength: 2000 }
+                kind: { $ref: "#/components/schemas/FlagKind" }
+                defaultValue: { $ref: "#/components/schemas/JsonValue" }
+      responses:
+        "201":
+          description: Created flag.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [flag]
+                properties:
+                  flag: { $ref: "#/components/schemas/Flag" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /api/v1/flags/lookup:
+    get:
+      tags: [Flags]
+      summary: Look up a flag by project slug + flag key (MCP uses this)
+      operationId: lookupFlag
+      parameters:
+        - name: projectSlug
+          in: query
+          required: true
+          schema: { type: string }
+        - name: key
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Flag with configs and environments.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [project, flag, configs]
+                properties:
+                  project: { $ref: "#/components/schemas/Project" }
+                  flag: { $ref: "#/components/schemas/Flag" }
+                  configs:
+                    type: array
+                    items: { $ref: "#/components/schemas/FlagConfigWithEnvironment" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404":
+          description: Missing project or flag — code `flag_not_found`.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/flags/{id}:
+    parameters:
+      - $ref: "#/components/parameters/FlagId"
+    get:
+      tags: [Flags]
+      summary: Get a flag with its per-environment configs
+      operationId: getFlag
+      responses:
+        "200":
+          description: Flag detail.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [flag, project, configs]
+                properties:
+                  flag: { $ref: "#/components/schemas/Flag" }
+                  project:
+                    type: object
+                    required: [id, name, slug]
+                    properties:
+                      id: { type: string, format: uuid }
+                      name: { type: string }
+                      slug: { type: string }
+                  configs:
+                    type: array
+                    items: { $ref: "#/components/schemas/FlagConfigWithEnvironment" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      tags: [Flags]
+      summary: Update a flag's name/description
+      operationId: updateFlag
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              minProperties: 1
+              properties:
+                name: { type: string, minLength: 1, maxLength: 160 }
+                description: { type: string, maxLength: 2000 }
+      responses:
+        "200":
+          description: Updated flag.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [flag]
+                properties:
+                  flag: { $ref: "#/components/schemas/Flag" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    delete:
+      tags: [Flags]
+      summary: Archive a flag (soft delete)
+      description: |
+        Sets `archivedAt`; the flag drops out of every environment snapshot.
+        Idempotent — archiving an archived flag returns it unchanged.
+      operationId: archiveFlag
+      responses:
+        "200":
+          description: Archived flag.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [flag]
+                properties:
+                  flag: { $ref: "#/components/schemas/Flag" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/flags/{id}/environments/{env}/config:
+    parameters:
+      - $ref: "#/components/parameters/FlagId"
+      - $ref: "#/components/parameters/EnvSlug"
+    put:
+      tags: [Flag configs]
+      summary: Update a flag's config in one environment
+      description: |
+        Partial update through the `update_flag_config` RPC — omitted fields
+        keep their current value. `expectedVersion` enables optimistic
+        concurrency (mismatch → 409 `version_conflict`). `clearKill: true`
+        lifts an active kill switch.
+
+        Guardrail (agent keys only): `rolloutPct: 100` may stage an approval
+        (`rollout_100`) and return 202 instead of executing.
+      operationId: updateFlagConfig
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                enabled: { type: boolean }
+                rolloutPct: { type: integer, minimum: 0, maximum: 100 }
+                rules:
+                  type: array
+                  maxItems: 64
+                  items: { $ref: "#/components/schemas/TargetingRule" }
+                valueOn: { $ref: "#/components/schemas/JsonValue" }
+                valueOff: { $ref: "#/components/schemas/JsonValue" }
+                clearKill: { type: boolean }
+                expectedVersion: { type: integer, minimum: 1 }
+      responses:
+        "200":
+          description: Updated config (version bumped).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [config]
+                properties:
+                  config: { $ref: "#/components/schemas/FlagConfig" }
+        "202": { $ref: "#/components/responses/ApprovalStaged" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/VersionConflict" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /api/v1/flags/{id}/environments/{env}/kill:
+    parameters:
+      - $ref: "#/components/parameters/FlagId"
+      - $ref: "#/components/parameters/EnvSlug"
+    post:
+      tags: [Flag configs]
+      summary: Kill switch — serve OFF to everyone in this environment
+      description: |
+        Runs the `kill_flag` RPC, then synchronously rebuilds the snapshot
+        and writes it straight to edge KV (fast path), then enqueues a
+        reconciliation sync. `killed` survives config edits until cleared
+        with `clearKill`.
+
+        Guardrail (agent keys only): `kill_switch` may stage an approval and
+        return 202 — nothing changes until a human approves.
+      operationId: killFlag
+      responses:
+        "200":
+          description: "Config with `killed: true`, already pushed to the edge."
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [config]
+                properties:
+                  config: { $ref: "#/components/schemas/FlagConfig" }
+        "202": { $ref: "#/components/responses/ApprovalStaged" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/flags/{id}/environments/{env}/promote:
+    parameters:
+      - $ref: "#/components/parameters/FlagId"
+      - $ref: "#/components/parameters/EnvSlug"
+    post:
+      tags: [Flag configs]
+      summary: Copy a flag's config from another environment
+      description: |
+        Copies `enabled`, `rolloutPct`, `rules`, `valueOn`, `valueOff` from
+        the source environment's config into `{env}` via the
+        `update_flag_config` RPC. Null `valueOn`/`valueOff` on the source are
+        not copied (the target keeps its own values; null means "kind
+        default" anyway). Does not copy or clear the kill switch.
+
+        Guardrail (agent keys only): promoting into `prod` may stage an
+        approval (`promote_prod`) and return 202. The source config is
+        captured at stage time, so what the human reviews is exactly what
+        executes.
+      operationId: promoteFlagConfig
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fromEnv]
+              properties:
+                fromEnv:
+                  type: string
+                  description: Source environment slug (e.g. `staging`).
+      responses:
+        "200":
+          description: Target environment's updated config.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [config]
+                properties:
+                  config: { $ref: "#/components/schemas/FlagConfig" }
+        "202": { $ref: "#/components/responses/ApprovalStaged" }
+        "400":
+          description: Source and target are the same (`invalid_promote`).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /api/v1/flags/{id}/environments/{env}/stats:
+    parameters:
+      - $ref: "#/components/parameters/FlagId"
+      - $ref: "#/components/parameters/EnvSlug"
+    get:
+      tags: [Flag configs]
+      summary: Hourly per-variation evaluation counts (ClickHouse)
+      description: |
+        Reads `evals_per_flag_hour`. Returns an empty series when ClickHouse
+        is unconfigured (dev) or the flag has no traffic.
+      operationId: flagStats
+      parameters:
+        - name: period
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [24h, 7d, 30d]
+            default: 24h
+      responses:
+        "200":
+          description: Hourly series.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Stats" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/keys:
+    get:
+      tags: [Keys]
+      summary: List the org's API keys (hashes never returned)
+      operationId: listKeys
+      responses:
+        "200":
+          description: All keys, including revoked ones.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [keys]
+                properties:
+                  keys:
+                    type: array
+                    items: { $ref: "#/components/schemas/ApiKey" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      tags: [Keys]
+      summary: Create an API key (plaintext returned exactly once)
+      description: |
+        - `sdk` keys require `projectId` + `environmentId` (must belong to
+          the org) and are written to edge KV so the edge never touches
+          Postgres.
+        - `agent` keys enforce `PLAN_LIMITS.agentKeys` over unrevoked agent
+          keys (403 `plan_limit`).
+        - The full key is returned once as `plaintext`; only its SHA-256
+          hash is stored.
+      operationId: createKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [kind, name]
+              properties:
+                kind: { $ref: "#/components/schemas/ApiKeyKind" }
+                name: { type: string, minLength: 1, maxLength: 120 }
+                projectId: { type: string, format: uuid }
+                environmentId: { type: string, format: uuid }
+      responses:
+        "201":
+          description: Created key + one-time plaintext.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [apiKey, plaintext]
+                properties:
+                  apiKey: { $ref: "#/components/schemas/ApiKey" }
+                  plaintext:
+                    type: string
+                    description: Full key (`sos_<tag>_<40 hex>`), shown only here.
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/PlanLimit" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /api/v1/keys/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    delete:
+      tags: [Keys]
+      summary: Revoke an API key
+      description: |
+        Sets `revokedAt`. For `sdk` keys the KV entry is updated with
+        `revoked: true` so the edge rejects the key within seconds.
+        Idempotent.
+      operationId: revokeKey
+      responses:
+        "200":
+          description: The revoked key.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [apiKey]
+                properties:
+                  apiKey: { $ref: "#/components/schemas/ApiKey" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/audit:
+    get:
+      tags: [Audit]
+      summary: List audit entries, newest first
+      operationId: listAudit
+      parameters:
+        - name: actorType
+          in: query
+          required: false
+          schema: { type: string, enum: [user, agent] }
+        - name: projectId
+          in: query
+          required: false
+          schema: { type: string, format: uuid }
+        - name: before
+          in: query
+          required: false
+          schema: { type: string, format: date-time }
+          description: Cursor — entries strictly older than this timestamp.
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+      responses:
+        "200":
+          description: Audit entries.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [entries]
+                properties:
+                  entries:
+                    type: array
+                    items: { $ref: "#/components/schemas/AuditEntry" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /api/v1/usage:
+    get:
+      tags: [Usage]
+      summary: Org plan, trial state and evaluations-per-day series
+      description: |
+        Series comes from ClickHouse `evals_per_org_day`; empty when
+        unconfigured. `used` is the sum over the requested window.
+      operationId: getUsage
+      parameters:
+        - name: days
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 90, default: 30 }
+      responses:
+        "200":
+          description: Usage summary.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Usage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/v1/approvals:
+    get:
+      tags: [Approvals]
+      summary: List approvals (newest first)
+      operationId: listApprovals
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema: { type: string, enum: [pending, approved, rejected] }
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 200, default: 100 }
+      responses:
+        "200":
+          description: Approvals.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [approvals]
+                properties:
+                  approvals:
+                    type: array
+                    items: { $ref: "#/components/schemas/Approval" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/v1/approvals/{id}/approve:
+    parameters:
+      - $ref: "#/components/parameters/ApprovalId"
+    post:
+      tags: [Approvals]
+      summary: Approve — replay the staged action
+      description: |
+        Session owners/admins only (API keys get 403). Replays the staged
+        action through the same RPCs (`kill_flag` / `update_flag_config`);
+        the executed mutation is audited as the requesting agent key, the
+        approval as the human. Kills take the synchronous KV fast path.
+      operationId: approveApproval
+      responses:
+        "200":
+          description: Resolved approval + resulting config.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [approval, config]
+                properties:
+                  approval: { $ref: "#/components/schemas/Approval" }
+                  config: { $ref: "#/components/schemas/FlagConfig" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: Approval already resolved (`approval_not_pending`) or staged `expectedVersion` conflicts.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/approvals/{id}/reject:
+    parameters:
+      - $ref: "#/components/parameters/ApprovalId"
+    post:
+      tags: [Approvals]
+      summary: Reject — discard the staged action
+      description: Session owners/admins only. Nothing is executed.
+      operationId: rejectApproval
+      responses:
+        "200":
+          description: Resolved approval.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [approval]
+                properties:
+                  approval: { $ref: "#/components/schemas/Approval" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: Approval already resolved (`approval_not_pending`).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /api/v1/orgs:
+    get:
+      tags: [Orgs]
+      summary: List the caller's orgs (session only)
+      description: |
+        Onboarding endpoint — session auth only; Bearer keys get 401
+        (`session_required`). `?members=1` includes the member list with
+        best-effort emails.
+      operationId: listOrgs
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: members
+          in: query
+          required: false
+          schema: { type: string, enum: ["1"] }
+      responses:
+        "200":
+          description: Orgs with the caller's role.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [orgs]
+                properties:
+                  orgs:
+                    type: array
+                    items: { $ref: "#/components/schemas/Org" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      tags: [Orgs]
+      summary: Create an org (session only)
+      description: |
+        The one mutation not backed by an RPC: inserts the org, adds the
+        caller as `owner`, records an `org.create` audit row.
+      operationId: createOrg
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 120 }
+      responses:
+        "201":
+          description: Created org (caller is owner).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [org]
+                properties:
+                  org: { $ref: "#/components/schemas/Org" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        `sos_agt_*` (agent, guardrail-checked) or `sos_adm_*` (admin) key.
+        `sos_sdk_*` keys are rejected.
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sb-auth-token
+      description: |
+        Supabase session cookie set by the dashboard (actual cookie name is
+        project-specific, `sb-<ref>-auth-token`).
+
+  parameters:
+    ProjectId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    FlagId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    EnvSlug:
+      name: env
+      in: path
+      required: true
+      schema: { type: string }
+      description: Environment slug within the flag's project (`dev`, `staging`, `prod`).
+    ApprovalId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  responses:
+    Unauthorized:
+      description: Missing/invalid session or API key (codes `unauthenticated`, `invalid_api_key`, `sdk_key_rejected`, `session_required`).
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Forbidden:
+      description: Insufficient role or key scope (codes `forbidden`, `key_scope`, `no_org`, `not_org_member`).
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    PlanLimit:
+      description: Plan limit reached — code `plan_limit`.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: Resource not found (codes `not_found`, `project_not_found`, `flag_not_found`, `environment_not_found`, `config_not_found`, `key_not_found`, `approval_not_found`, `org_not_found`).
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Conflict:
+      description: Uniqueness conflict — code `conflict` (e.g. duplicate slug/key).
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    VersionConflict:
+      description: Optimistic-concurrency failure — code `version_conflict`.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    ValidationError:
+      description: Request body/query failed validation — code `validation_error` (422).
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    ApprovalStaged:
+      description: |
+        Guardrail hit (agent keys only): the mutation was staged as an
+        approval, NOT executed.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ApprovalRequired" }
+
+  schemas:
+    JsonValue:
+      description: Any JSON value (string, number, boolean, null, array, object).
+
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+
+    ApprovalRequired:
+      type: object
+      required: [approvalRequired, approvalId, message]
+      properties:
+        approvalRequired: { type: boolean, const: true }
+        approvalId: { type: string, format: uuid }
+        message:
+          type: string
+          description: |
+            Human/agent-readable explanation: what was staged, that nothing
+            changed yet, who can approve, and how to poll.
+
+    FlagKind:
+      type: string
+      enum: [boolean, string, number, json]
+
+    ApiKeyKind:
+      type: string
+      enum: [sdk, agent, admin]
+
+    Environment:
+      type: object
+      required: [id, projectId, name, slug, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        projectId: { type: string, format: uuid }
+        name: { type: string }
+        slug: { type: string }
+        createdAt: { type: string, format: date-time }
+
+    Project:
+      type: object
+      required: [id, orgId, name, slug, createdAt, environments]
+      properties:
+        id: { type: string, format: uuid }
+        orgId: { type: string, format: uuid }
+        name: { type: string }
+        slug: { type: string }
+        createdAt: { type: string, format: date-time }
+        environments:
+          type: array
+          items: { $ref: "#/components/schemas/Environment" }
+
+    Flag:
+      type: object
+      required: [id, projectId, key, name, description, kind, defaultValue, archivedAt, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        projectId: { type: string, format: uuid }
+        key: { type: string }
+        name: { type: string }
+        description: { type: string }
+        kind: { $ref: "#/components/schemas/FlagKind" }
+        defaultValue: { $ref: "#/components/schemas/JsonValue" }
+        archivedAt:
+          type: [string, "null"]
+          format: date-time
+        createdAt: { type: string, format: date-time }
+
+    FlagWithConfigs:
+      allOf:
+        - $ref: "#/components/schemas/Flag"
+        - type: object
+          required: [configs]
+          properties:
+            configs:
+              type: array
+              items: { $ref: "#/components/schemas/FlagConfig" }
+
+    FlagConfig:
+      type: object
+      required:
+        [id, flagId, environmentId, enabled, killed, rolloutPct, rules, valueOn, valueOff, version, updatedAt, updatedBy, updatedByKeyPrefix]
+      properties:
+        id: { type: string, format: uuid }
+        flagId: { type: string, format: uuid }
+        environmentId: { type: string, format: uuid }
+        enabled: { type: boolean }
+        killed:
+          type: boolean
+          description: "Kill switch: emergency OFF that survives `enabled` edits. Precedence: killed > disabled > rules."
+        rolloutPct: { type: integer, minimum: 0, maximum: 100 }
+        rules:
+          type: array
+          items: { $ref: "#/components/schemas/TargetingRule" }
+        valueOn: { $ref: "#/components/schemas/JsonValue" }
+        valueOff: { $ref: "#/components/schemas/JsonValue" }
+        version:
+          type: integer
+          description: Bumped on every change; use as `expectedVersion` for optimistic concurrency.
+        updatedAt: { type: string, format: date-time }
+        updatedBy:
+          type: [string, "null"]
+          format: uuid
+        updatedByKeyPrefix:
+          type: [string, "null"]
+          description: Key prefix of the machine actor that last changed this config.
+
+    FlagConfigWithEnvironment:
+      allOf:
+        - $ref: "#/components/schemas/FlagConfig"
+        - type: object
+          properties:
+            environment: { $ref: "#/components/schemas/Environment" }
+
+    RuleCondition:
+      type: object
+      required: [attribute, op, value]
+      properties:
+        attribute:
+          type: string
+          maxLength: 128
+          description: Context attribute to test; `userId` targets the context's userId.
+        op:
+          type: string
+          enum: [eq, neq, in, not_in, contains, gt, gte, lt, lte, semver_eq, semver_gt, semver_lt]
+        value: { $ref: "#/components/schemas/JsonValue" }
+
+    TargetingRule:
+      type: object
+      required: [id, conditions, serve]
+      properties:
+        id: { type: string, maxLength: 64 }
+        description: { type: string, maxLength: 512 }
+        conditions:
+          type: array
+          maxItems: 32
+          description: All conditions must match (AND). Empty array matches everyone.
+          items: { $ref: "#/components/schemas/RuleCondition" }
+        serve:
+          type: string
+          enum: [on, off]
+        rolloutPct:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Optional per-rule rollout of the matched population.
+
+    ApiKey:
+      type: object
+      required: [id, orgId, projectId, environmentId, kind, name, prefix, scopes, lastUsedAt, createdAt, revokedAt]
+      properties:
+        id: { type: string, format: uuid }
+        orgId: { type: string, format: uuid }
+        projectId:
+          type: [string, "null"]
+          format: uuid
+        environmentId:
+          type: [string, "null"]
+          format: uuid
+        kind: { $ref: "#/components/schemas/ApiKeyKind" }
+        name: { type: string }
+        prefix:
+          type: string
+          description: First 16 chars of the key (e.g. `sos_agt_ab12cd34`) — safe to display.
+        scopes:
+          type: array
+          items: { type: string }
+        lastUsedAt:
+          type: [string, "null"]
+          format: date-time
+        createdAt: { type: string, format: date-time }
+        revokedAt:
+          type: [string, "null"]
+          format: date-time
+
+    StagedAction:
+      type: object
+      required: [action, flagId, flagKey, projectId, environmentId, envSlug]
+      properties:
+        action:
+          type: string
+          enum: [kill_flag, update_flag_config, promote]
+        flagId: { type: string, format: uuid }
+        flagKey: { type: string }
+        projectId: { type: string, format: uuid }
+        environmentId: { type: string, format: uuid }
+        envSlug: { type: string }
+        fromEnvSlug:
+          type: string
+          description: Present on `promote` — the source environment slug.
+        patch:
+          type: object
+          description: Config patch replayed via `update_flag_config` on approval.
+          properties:
+            enabled: { type: boolean }
+            rolloutPct: { type: integer, minimum: 0, maximum: 100 }
+            rules:
+              type: array
+              items: { $ref: "#/components/schemas/TargetingRule" }
+            valueOn: { $ref: "#/components/schemas/JsonValue" }
+            valueOff: { $ref: "#/components/schemas/JsonValue" }
+            clearKill: { type: boolean }
+            expectedVersion: { type: integer }
+
+    Approval:
+      type: object
+      required: [id, orgId, requestedByKey, action, status, resolvedBy, resolvedAt, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        orgId: { type: string, format: uuid }
+        requestedByKey:
+          type: string
+          description: Prefix of the agent key that staged the action.
+        action: { $ref: "#/components/schemas/StagedAction" }
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+        resolvedBy:
+          type: [string, "null"]
+          format: uuid
+        resolvedAt:
+          type: [string, "null"]
+          format: date-time
+        createdAt: { type: string, format: date-time }
+
+    AuditEntry:
+      type: object
+      required: [id, orgId, projectId, actorType, actorId, actorKeyPrefix, action, subject, before, after, createdAt]
+      properties:
+        id: { type: integer, format: int64 }
+        orgId: { type: string, format: uuid }
+        projectId:
+          type: [string, "null"]
+          format: uuid
+        actorType:
+          type: string
+          enum: [user, agent]
+          description: Session users are `user`; agent AND admin keys are `agent`.
+        actorId:
+          type: [string, "null"]
+          format: uuid
+        actorKeyPrefix:
+          type: [string, "null"]
+        action:
+          type: string
+          description: e.g. `flag.create`, `flag.config.update`, `flag.kill`, `flag.archive`, `key.create`, `key.revoke`, `approval.request`, `approval.approve`, `approval.reject`, `project.create`, `org.create`.
+        subject:
+          type: string
+          description: e.g. `flag:checkout-v2`, `key:sos_agt_ab12cd34`, `approval:<uuid>`.
+        before: { $ref: "#/components/schemas/JsonValue" }
+        after: { $ref: "#/components/schemas/JsonValue" }
+        createdAt: { type: string, format: date-time }
+
+    OrgMember:
+      type: object
+      required: [userId, role, email, createdAt]
+      properties:
+        userId: { type: string, format: uuid }
+        role:
+          type: string
+          enum: [owner, admin, member]
+        email:
+          type: [string, "null"]
+          description: Best-effort; null when resolution fails.
+        createdAt: { type: string, format: date-time }
+
+    Org:
+      type: object
+      required: [id, name, plan, trialEndsAt, createdAt, role]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        plan:
+          type: string
+          enum: [trial, starter, launch, scale]
+        trialEndsAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+        role:
+          type: string
+          enum: [owner, admin, member]
+          description: The caller's role in this org.
+        members:
+          type: array
+          description: Present when requested with `?members=1`.
+          items: { $ref: "#/components/schemas/OrgMember" }
+
+    UsagePoint:
+      type: object
+      required: [day, evaluations]
+      properties:
+        day: { type: string, format: date }
+        evaluations: { type: integer }
+
+    Usage:
+      type: object
+      required: [plan, trialEndsAt, includedEvalsPerMonth, used, series]
+      properties:
+        plan:
+          type: string
+          enum: [trial, starter, launch, scale]
+        trialEndsAt: { type: string, format: date-time }
+        includedEvalsPerMonth: { type: integer }
+        used:
+          type: integer
+          description: Sum of evaluations over the requested window.
+        series:
+          type: array
+          items: { $ref: "#/components/schemas/UsagePoint" }
+
+    StatsPoint:
+      type: object
+      required: [hour, variation, evaluations]
+      properties:
+        hour: { type: string }
+        variation: { type: string }
+        evaluations: { type: integer }
+
+    Stats:
+      type: object
+      required: [period, series]
+      properties:
+        period:
+          type: string
+          enum: [24h, 7d, 30d]
+        series:
+          type: array
+          items: { $ref: "#/components/schemas/StatsPoint" }

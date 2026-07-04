@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+/*
+ * ShipOS design tokens (DESIGN.md): warm paper canvas, charcoal ink,
+ * color only via chips. No gradients, no dark sections.
+ */
+@theme {
+  --color-canvas: #ffffff;
+  --color-surface: #f6f5f3;
+  --color-surface-alt: #f4f3f1;
+  --color-line: #e8e4de;
+  --color-line-strong: #c8c4be;
+  --color-ink: #171717;
+  --color-ink-muted: #737373;
+
+  --color-chip-blue: #0067f4;
+  --color-chip-pink: #ff2c5f;
+  --color-chip-green: #00bc72;
+  --color-chip-orange: #ff5a1a;
+  --color-chip-gray: #737373;
+
+  --color-window-dark: #21252b;
+  --color-terminal-dark: #16181d;
+
+  --font-sans: var(--font-jakarta), "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), "Geist Mono", ui-monospace, "SFMono-Regular", monospace;
+
+  --radius-chip: 9999px;
+  --radius-button: 16px;
+  --radius-control: 12px;
+  --radius-card: 24px;
+  --radius-panel: 28px;
+  --radius-section: 32px;
+
+  --shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.04);
+  --shadow-mockup: 0 12px 48px rgba(0, 0, 0, 0.09), 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 15px;
+  }
+
+  ::selection {
+    background: rgba(255, 90, 26, 0.15);
+  }
+}
+
+/* Range slider styled to the design system (rollout sliders). */
+input[type="range"].shipos-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--color-line);
+  outline: none;
+}
+input[type="range"].shipos-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: var(--color-ink);
+  border: 3px solid #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+}
+input[type="range"].shipos-range::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: var(--color-ink);
+  border: 3px solid #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+}

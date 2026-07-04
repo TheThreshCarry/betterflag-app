@@ -1,0 +1,89 @@
+/**
+ * Snapshot rebuild + push. Used by the kill-switch fast path (synchronous
+ * KV write so the flag dies in seconds) and by approval replays. Normal
+ * config edits only enqueue a config-sync message; the ingest worker does
+ * the same rebuild via buildSnapshot, so the two can never drift.
+ */
+
+import { buildSnapshot, type FlagConfigRowLike, type FlagRowLike } from "@shipos/core";
+import type { FlagConfigRow, FlagRow } from "@shipos/db";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+import { enqueueConfigSync, kvPutSnapshot } from "./cloudflare";
+import { unwrap } from "./errors";
+
+export async function rebuildAndPushSnapshot(
+  service: SupabaseClient,
+  projectId: string,
+  environmentId: string,
+  envSlug: string,
+  orgId: string,
+): Promise<void> {
+  const flagRows = unwrap(
+    await service
+      .from("flags")
+      .select("id, key, kind, default_value, archived_at")
+      .eq("project_id", projectId)
+      .is("archived_at", null),
+  ) as Pick<FlagRow, "id" | "key" | "kind" | "default_value" | "archived_at">[];
+
+  const configRows =
+    flagRows.length === 0
+      ? []
+      : (unwrap(
+          await service
+            .from("flag_configs")
+            .select("*")
+            .eq("environment_id", environmentId)
+            .in(
+              "flag_id",
+              flagRows.map((f) => f.id),
+            ),
+        ) as FlagConfigRow[]);
+
+  const keyByFlagId = new Map(flagRows.map((f) => [f.id, f.key]));
+
+  const flags: FlagRowLike[] = flagRows.map((f) => ({
+    key: f.key,
+    kind: f.kind,
+    default_value: f.default_value,
+    archived_at: f.archived_at,
+  }));
+
+  const configs: FlagConfigRowLike[] = [];
+  for (const config of configRows) {
+    const flagKey = keyByFlagId.get(config.flag_id);
+    if (!flagKey) continue;
+    configs.push({
+      flag_key: flagKey,
+      enabled: config.enabled,
+      killed: config.killed,
+      rollout_pct: config.rollout_pct,
+      rules: config.rules,
+      value_on: config.value_on,
+      value_off: config.value_off,
+      version: config.version,
+    });
+  }
+
+  const { snapshot, invalidRules } = buildSnapshot({
+    projectId,
+    environment: envSlug,
+    version: Date.now(),
+    generatedAt: new Date().toISOString(),
+    flags,
+    configs,
+  });
+
+  if (invalidRules.length > 0) {
+    console.warn(
+      `[sync] dropped invalid rules while rebuilding ${projectId}/${envSlug}:`,
+      invalidRules,
+    );
+  }
+
+  await kvPutSnapshot(projectId, envSlug, JSON.stringify(snapshot));
+  // Reconciliation message so the ingest worker converges KV even if the
+  // direct write above raced or failed.
+  enqueueConfigSync({ projectId, environmentId, envSlug, orgId });
+}

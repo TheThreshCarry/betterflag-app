@@ -64,6 +64,14 @@ Errors: `{ "error": { "code": string, "message": string } }` with 400/401/403/40
 | POST | /api/v1/approvals/:id/approve | session owner/admin only; replays staged action, marks approved |
 | POST | /api/v1/approvals/:id/reject | session owner/admin only |
 
+Response envelopes (pinned — MCP normalizers and future SDKs rely on these):
+wire format is camelCase; list endpoints wrap in a named key —
+`{projects}`, `{flags}`, `{flag, configs}`, `{project}`, `{config}`,
+`{keys}` / `{apiKey, plaintext}`, `{entries}` (audit), `{approvals}` /
+`{approval}`, `{period, series}` (stats), `{usage…}`. `GET /approvals`
+without `?status=` returns ALL statuses (request_approval_status depends on
+this). API key hashes are never serialized. Full schemas: docs/openapi.yaml.
+
 Guardrail flow (agent keys only): if `guardrails` has a row matching
 (org, environment-or-null, action) with `requires_approval`, DO NOT execute.
 Insert an `approvals` row with the staged action payload and reply **202**:
