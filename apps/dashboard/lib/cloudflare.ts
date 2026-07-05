@@ -53,13 +53,16 @@ export function enqueueConfigSync(message: Omit<ConfigSyncMessage, "type">): voi
   }
 
   const payload: ConfigSyncMessage = { type: "sync", ...message };
+  // Cloudflare's Queues push API expects the message body as a structured
+  // value plus a content_type, NOT a pre-stringified string. Sending a string
+  // is rejected with "Expected object, received string at body" (code 10207).
   void fetch(`${CF_API_BASE}/accounts/${auth.accountId}/queues/${queueId}/messages`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${auth.apiToken}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ body: JSON.stringify(payload) }),
+    body: JSON.stringify({ body: payload, content_type: "json" }),
   })
     .then(async (res) => {
       if (!res.ok) {
