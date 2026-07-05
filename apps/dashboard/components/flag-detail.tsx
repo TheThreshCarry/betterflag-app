@@ -10,6 +10,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { useApp } from "@/components/app-shell";
 import { KIND_COLORS } from "@/components/flags-view";
 import {
   Button,
@@ -128,6 +129,7 @@ export function FlagDetail({ flagId }: { flagId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
+  const { activeEnv } = useApp();
 
   const load = useCallback(async () => {
     try {
@@ -150,6 +152,12 @@ export function FlagDetail({ flagId }: { flagId: string }) {
     (a, b) =>
       ENV_ORDER.indexOf(a.environment?.slug ?? "") - ENV_ORDER.indexOf(b.environment?.slug ?? ""),
   );
+  // Scope to the environment chosen in the sidebar; fall back to all envs if
+  // the active env has no config row for this flag.
+  const scoped = activeEnv
+    ? configs.filter((c) => c.environment?.slug === activeEnv.slug)
+    : configs;
+  const shownConfigs = scoped.length > 0 ? scoped : configs;
 
   return (
     <div>
@@ -189,7 +197,7 @@ export function FlagDetail({ flagId }: { flagId: string }) {
       </div>
 
       <div className="space-y-6">
-        {configs.map((config) => (
+        {shownConfigs.map((config) => (
           <EnvConfigCard key={config.id} flag={flag} config={config} onRefresh={load} />
         ))}
       </div>

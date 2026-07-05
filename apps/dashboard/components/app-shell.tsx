@@ -17,6 +17,8 @@ import type { ApiOrg, ApiProject } from "@/lib/api-types";
 import { api, ApiClientError } from "@/lib/client-api";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 
+type ApiEnvironment = ApiProject["environments"][number];
+
 interface AppContextValue {
   org: ApiOrg;
   orgs: ApiOrg[];
@@ -24,6 +26,9 @@ interface AppContextValue {
   activeProject: ApiProject | null;
   setActiveProjectId: (id: string) => void;
   refreshProjects: () => Promise<void>;
+  environments: ApiEnvironment[];
+  activeEnv: ApiEnvironment | null;
+  setActiveEnvSlug: (slug: string) => void;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -35,6 +40,8 @@ export function useApp(): AppContextValue {
 }
 
 const ACTIVE_PROJECT_KEY = "shipos.activeProjectId";
+const ACTIVE_ENV_KEY = "shipos.activeEnvSlug";
+const DEFAULT_ENV_SLUG = "dev";
 
 const NAV_ITEMS = [
   { href: "/flags", label: "Flags" },
@@ -60,6 +67,7 @@ export function AppShell({
   const [orgs, setOrgs] = useState<ApiOrg[] | null>(null);
   const [projects, setProjects] = useState<ApiProject[]>([]);
   const [activeProjectId, setActiveProjectIdState] = useState<string | null>(null);
+  const [activeEnvSlug, setActiveEnvSlugState] = useState<string>(DEFAULT_ENV_SLUG);
   const [pendingApprovals, setPendingApprovals] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
@@ -124,14 +132,42 @@ export function AppShell({
     };
   }, [pathname]);
 
+  useEffect(() => {
+    const stored =
+      typeof window !== "undefined" ? window.localStorage.getItem(ACTIVE_ENV_KEY) : null;
+    if (stored) setActiveEnvSlugState(stored);
+  }, []);
+
   const setActiveProjectId = useCallback((id: string) => {
     setActiveProjectIdState(id);
     window.localStorage.setItem(ACTIVE_PROJECT_KEY, id);
   }, []);
 
+  const setActiveEnvSlug = useCallback((slug: string) => {
+    setActiveEnvSlugState(slug);
+    window.localStorage.setItem(ACTIVE_ENV_KEY, slug);
+  }, []);
+
   const activeProject = useMemo(
     () => projects.find((p) => p.id === activeProjectId) ?? projects[0] ?? null,
     [projects, activeProjectId],
+  );
+
+  const environments = useMemo<ApiEnvironment[]>(
+    () =>
+      activeProject
+        ? [...activeProject.environments].sort(
+            (a, b) =>
+              ENV_ORDER.indexOf(a.slug as (typeof ENV_ORDER)[number]) -
+              ENV_ORDER.indexOf(b.slug as (typeof ENV_ORDER)[number]),
+          )
+        : [],
+    [activeProject],
+  );
+
+  const activeEnv = useMemo<ApiEnvironment | null>(
+    () => environments.find((e) => e.slug === activeEnvSlug) ?? environments[0] ?? null,
+    [environments, activeEnvSlug],
   );
 
   const org = orgs?.[0] ?? null;
@@ -145,8 +181,21 @@ export function AppShell({
       activeProject,
       setActiveProjectId,
       refreshProjects,
+      environments,
+      activeEnv,
+      setActiveEnvSlug,
     };
-  }, [org, orgs, projects, activeProject, setActiveProjectId, refreshProjects]);
+  }, [
+    org,
+    orgs,
+    projects,
+    activeProject,
+    setActiveProjectId,
+    refreshProjects,
+    environments,
+    activeEnv,
+    setActiveEnvSlug,
+  ]);
 
   async function signOut() {
     setSigningOut(true);
@@ -173,14 +222,6 @@ export function AppShell({
       </div>
     );
   }
-
-  const envSlugs = activeProject
-    ? [...activeProject.environments].sort(
-        (a, b) =>
-          ENV_ORDER.indexOf(a.slug as (typeof ENV_ORDER)[number]) -
-          ENV_ORDER.indexOf(b.slug as (typeof ENV_ORDER)[number]),
-      )
-    : [];
 
   return (
     <AppContext.Provider value={contextValue}>
@@ -218,6 +259,25 @@ export function AppShell({
               </Link>
             )}
           </div>
+
+          {environments.length > 0 ? (
+            <div className="px-4 pb-2">
+              <label className="mb-1 block px-1 text-[11px] font-medium text-ink-muted">
+                Environment
+              </label>
+              <select
+                value={activeEnv?.slug ?? ""}
+                onChange={(event) => setActiveEnvSlug(event.target.value)}
+                className="h-9 w-full rounded-xl border border-line bg-white px-2.5 text-[13px] font-medium outline-none focus:border-line-strong"
+              >
+                {environments.map((env) => (
+                  <option key={env.id} value={env.slug}>
+                    {env.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
 
           <nav className="flex-1 space-y-0.5 px-3 py-2">
             {NAV_ITEMS.map((item) => {
@@ -257,7 +317,7 @@ export function AppShell({
 
         {/* Main */}
         <div className="ml-60 flex-1">
-          <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-line bg-canvas/90 px-8 backdrop-blur">
+          <header className="sticky top-0 z-10 flex h-14 items-center border-b border-line bg-canvas/90 px-8 backdrop-blur">
             <div className="flex items-center gap-2 text-[13px] text-ink-muted">
               {activeProject ? (
                 <>
@@ -268,22 +328,22 @@ export function AppShell({
                 <span>No project selected</span>
               )}
             </div>
-            <div className="flex items-center gap-1.5">
-              {envSlugs.map((env) => (
-                <Chip
-                  key={env.id}
-                  color={env.slug === "prod" ? "orange" : env.slug === "staging" ? "blue" : "gray"}
-                  className="!px-2.5 !py-0.5 text-[12px]"
-                  title={env.name}
-                >
-                  {env.slug}
-                </Chip>
-              ))}
-              <Chip color={contextValue.org.plan === "trial" ? "orange" : "green"} className="ml-2 !px-2.5 !py-0.5 text-[12px]">
-                {contextValue.org.plan}
-              </Chip>
-            </div>
           </header>
+          {activeEnv && activeEnv.slug !== "prod" ? (
+            <div className="flex items-center gap-2 border-b border-line bg-surface px-8 py-2.5 text-[13px]">
+              <span
+                aria-hidden
+                className={`inline-block h-2 w-2 rounded-full ${
+                  activeEnv.slug === "staging" ? "bg-chip-blue" : "bg-chip-gray"
+                }`}
+              />
+              <span className="text-ink-muted">
+                You&rsquo;re in the{" "}
+                <span className="font-medium text-ink">{activeEnv.name}</span> environment — changes
+                here don&rsquo;t affect <span className="font-medium text-ink">production</span>.
+              </span>
+            </div>
+          ) : null}
           <main className="mx-auto max-w-5xl px-8 py-8">{children ?? <PageLoading />}</main>
         </div>
       </div>
