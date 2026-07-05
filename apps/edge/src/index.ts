@@ -149,7 +149,9 @@ export async function loadSnapshot(
   projectId: string,
   envSlug: string,
 ): Promise<ProjectSnapshot | null> {
-  const raw = await kv.get(snapshotKvKey(projectId, envSlug), { type: "json", cacheTtl: 15 });
+  // Cloudflare KV enforces a minimum cacheTtl of 60s; snapshot freshness is
+  // driven by explicit KV.put on config change, not by TTL expiry.
+  const raw = await kv.get(snapshotKvKey(projectId, envSlug), { type: "json", cacheTtl: 60 });
   if (raw === null || raw === undefined) return null;
   const parsed = projectSnapshotSchema.safeParse(raw);
   if (!parsed.success) {

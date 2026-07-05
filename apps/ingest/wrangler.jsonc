@@ -9,7 +9,7 @@
   "kv_namespaces": [
     {
       "binding": "CONFIG_KV",
-      "id": "REPLACE_ME"
+      "id": "1ddc8e69bb1b491e85da5fa9b9fcc7bc"
     }
   ],
   "queues": {
@@ -30,7 +30,7 @@
     ]
   },
   "vars": {
-    "SUPABASE_URL": "https://REPLACE_ME.supabase.co"
+    "SUPABASE_URL": "https://tnlbktwyrctrxmpoafwb.supabase.co"
   }
   // Secrets (set via `wrangler secret put <NAME>`):
   //   SUPABASE_SERVICE_ROLE_KEY

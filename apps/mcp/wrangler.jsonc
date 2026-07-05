@@ -27,12 +27,11 @@
     }
   ],
 
-  "routes": [
-    {
-      "pattern": "mcp.shipos.app",
-      "custom_domain": true
-    }
-  ],
+  // Production custom domain — enable once the shipos.app zone is on this
+  // account. For the test deploy the worker is reachable at its workers.dev URL.
+  // "routes": [
+  //   { "pattern": "mcp.shipos.app", "custom_domain": true }
+  // ],
 
   "observability": {
     "enabled": true

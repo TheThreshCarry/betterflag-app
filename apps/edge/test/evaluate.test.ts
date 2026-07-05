@@ -52,7 +52,7 @@ describe("POST /v1/evaluate — auth", () => {
       `cfg:${PROJECT_ID}:${ENV_SLUG}`,
     ]);
     expect(kv.reads[0]!.options).toEqual({ type: "json", cacheTtl: 60 });
-    expect(kv.reads[1]!.options).toEqual({ type: "json", cacheTtl: 15 });
+    expect(kv.reads[1]!.options).toEqual({ type: "json", cacheTtl: 60 });
   });
 
   it("rejects a key whose prefix matches but whose hash does not", async () => {
