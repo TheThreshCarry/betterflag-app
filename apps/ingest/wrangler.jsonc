@@ -38,9 +38,4 @@
   "vars": {
     "SUPABASE_URL": "https://tnlbktwyrctrxmpoafwb.supabase.co"
   }
-  // Secrets (set via `wrangler secret put <NAME>`):
-  //   SUPABASE_SERVICE_ROLE_KEY
-  //   CLICKHOUSE_URL
-  //   CLICKHOUSE_USER
-  //   CLICKHOUSE_PASSWORD
 }

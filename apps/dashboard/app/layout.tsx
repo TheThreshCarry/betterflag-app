@@ -1,19 +1,19 @@
 import type { Metadata } from "next";
-import { Geist_Mono, Plus_Jakarta_Sans } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 import "./globals.css";
 
-const jakarta = Plus_Jakarta_Sans({
+const geistSans = Geist({
   subsets: ["latin"],
-  variable: "--font-jakarta",
+  variable: "--font-sans",
   display: "swap",
 });
 
 const geistMono = Geist_Mono({
   subsets: ["latin"],
-  variable: "--font-geist-mono",
+  variable: "--font-mono",
   display: "swap",
 });
 
@@ -25,8 +25,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${jakarta.variable} ${geistMono.variable}`}>
-      <body className="min-h-screen bg-canvas text-ink antialiased">
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
+      <body className="min-h-screen bg-canvas font-sans text-ink antialiased">
         <TooltipProvider>{children}</TooltipProvider>
       </body>
     </html>
