@@ -28,8 +28,9 @@ test-results/
 **/supabase/.branches/
 /supabase/
 
-# this repo uses pnpm, not bun
-bun.lock
+# this repo uses bun — bun.lock is committed (CI runs `bun install --frozen-lockfile`).
+# Don't commit a stray pnpm lockfile.
+pnpm-lock.yaml
 
 # misc
 .DS_Store
