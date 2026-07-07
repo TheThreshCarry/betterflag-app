@@ -1,0 +1,82 @@
+name: Deploy Workers
+
+# Deploys the Cloudflare Workers (edge, ingest, mcp) with Wrangler.
+# The Next.js dashboard is deployed separately and is intentionally excluded.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/edge/**"
+      - "apps/ingest/**"
+      - "apps/mcp/**"
+      - "packages/core/**"
+      - "packages/db/**"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+    inputs:
+      worker:
+        description: "Which worker to deploy"
+        type: choice
+        default: all
+        options: [all, edge, ingest, mcp]
+
+# Never run two deploys of the same ref at once; let an in-flight deploy finish.
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # Gate deploys on a clean typecheck + test run so we never ship broken code.
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+
+  deploy:
+    needs: verify
+    runs-on: ubuntu-latest
+    environment: production
+    strategy:
+      # Deploy each worker independently; one failure shouldn't block the others.
+      fail-fast: false
+      matrix:
+        worker: [edge, ingest, mcp]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # Skip workers not selected in a manual (workflow_dispatch) run.
+      - name: Should this worker deploy?
+        id: gate
+        run: |
+          want='${{ github.event.inputs.worker }}'
+          if [ -z "$want" ] || [ "$want" = "all" ] || [ "$want" = "${{ matrix.worker }}" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping ${{ matrix.worker }} (dispatch selected: $want)"
+          fi
+
+      # `pnpm run deploy` (not `pnpm deploy`, which is a pnpm builtin) runs each
+      # worker's "deploy": "wrangler deploy" script. Wrangler reads the two env
+      # vars below automatically.
+      - name: Deploy ${{ matrix.worker }}
+        if: steps.gate.outputs.run == 'true'
+        run: pnpm --filter @shipos/${{ matrix.worker }} run deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
