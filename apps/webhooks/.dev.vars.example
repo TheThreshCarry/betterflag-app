@@ -1,0 +1,8 @@
+# Copy to `.dev.vars` for local `wrangler dev`; `wrangler secret put` in prod.
+SHIPOS_ENV="development"
+# Polar webhook endpoint signing secret (Polar dashboard → Settings → Webhooks).
+POLAR_WEBHOOK_SECRET=""
+# Supabase service role key (control-plane writes).
+SUPABASE_SERVICE_ROLE_KEY=""
+# Optional: Better Stack "shipos-webhooks" source token for logs/traces.
+BETTER_STACK_SOURCE_TOKEN=""

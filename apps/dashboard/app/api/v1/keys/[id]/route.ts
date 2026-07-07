@@ -4,6 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { toApiApiKey } from "@/lib/api-types";
 import { auditActor, resolveActor } from "@/lib/auth";
+import { assertOrgWritable } from "@/lib/billing-guard";
 import { kvPutSdkKey } from "@/lib/cloudflare";
 import { recordAudit } from "@/lib/db";
 import { HttpError, unwrap, withErrors } from "@/lib/errors";
@@ -15,6 +16,7 @@ export const DELETE = withErrors<{ id: string }>(async (request: NextRequest, { 
   const { id } = await params;
   const actor = await resolveActor(request);
   const service = createServiceClient();
+  await assertOrgWritable(service, actor.orgId);
 
   const { data, error } = await service
     .from("api_keys")

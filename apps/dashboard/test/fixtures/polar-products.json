@@ -1,0 +1,74 @@
+[
+  {
+    "id": "602720ae-384a-4ffb-95b8-d4039e6f7c54",
+    "name": "Scale",
+    "description": "For growing teams.",
+    "is_archived": false,
+    "is_recurring": true,
+    "metadata": {
+      "cta": "Start 14-day trial",
+      "sort": 3,
+      "popular": false,
+      "tagline": "For growing teams.",
+      "features": "[\"100M evaluations / mo\",\"Unlimited projects & agent keys\",\"Approval guardrails for agents\",\"Audit log, RBAC & SSO — no enterprise gate\",\"Priority support\"]",
+      "plan_key": "scale",
+      "projects": -1,
+      "agent_keys": -1,
+      "overage_note": "$3 per additional 1M evaluations.",
+      "included_evaluations": 100000000,
+      "overage_per_million_cents": 300
+    },
+    "prices": [
+      { "id": "ba96f2e7", "amount_type": "fixed", "price_currency": "usd", "price_amount": 9999 },
+      { "id": "cf786907", "amount_type": "metered_unit", "price_currency": "usd", "unit_amount": "0.000300000000", "meter_id": "601686ee-9e66-425f-9adc-aedbe4fa5ac3" }
+    ]
+  },
+  {
+    "id": "319f7438-b0a3-43c5-903c-a74f37a9c02e",
+    "name": "Launch",
+    "description": "For shipping founders.",
+    "is_archived": false,
+    "is_recurring": true,
+    "metadata": {
+      "cta": "Start 14-day trial",
+      "sort": 2,
+      "popular": true,
+      "tagline": "For shipping founders.",
+      "features": "[\"10M evaluations / mo\",\"Unlimited flags, seats & environments\",\"3 projects\",\"5 agent keys (MCP + API)\",\"Scheduled rollouts + webhooks\"]",
+      "plan_key": "launch",
+      "projects": 3,
+      "agent_keys": 5,
+      "overage_note": "$5 per additional 1M evaluations.",
+      "included_evaluations": 10000000,
+      "overage_per_million_cents": 500
+    },
+    "prices": [
+      { "id": "485d4192", "amount_type": "fixed", "price_currency": "usd", "price_amount": 2499 },
+      { "id": "489ef297", "amount_type": "metered_unit", "price_currency": "usd", "unit_amount": "0.000500000000", "meter_id": "601686ee-9e66-425f-9adc-aedbe4fa5ac3" }
+    ]
+  },
+  {
+    "id": "b27cea13-00e7-4cd3-be57-049ca78811b1",
+    "name": "Starter",
+    "description": "For side projects.",
+    "is_archived": false,
+    "is_recurring": true,
+    "metadata": {
+      "cta": "Start 14-day trial",
+      "sort": 1,
+      "popular": false,
+      "tagline": "For side projects.",
+      "features": "[\"2M evaluations / mo\",\"Unlimited flags, seats & environments\",\"1 project\",\"1 agent key (MCP + API)\",\"Community support\"]",
+      "plan_key": "starter",
+      "projects": 1,
+      "agent_keys": 1,
+      "overage_note": "$5 per additional 1M evaluations.",
+      "included_evaluations": 2000000,
+      "overage_per_million_cents": 500
+    },
+    "prices": [
+      { "id": "8c114549", "amount_type": "fixed", "price_currency": "usd", "price_amount": 999 },
+      { "id": "cfae1b24", "amount_type": "metered_unit", "price_currency": "usd", "unit_amount": "0.000500000000", "meter_id": "601686ee-9e66-425f-9adc-aedbe4fa5ac3" }
+    ]
+  }
+]

@@ -7,6 +7,7 @@ import { Card, Chip, ErrorNote, inputClass, type ChipColor } from "@/components/
 import { SettingsSkeleton } from "@/components/skeletons";
 import type { ApiOrg } from "@/lib/api-types";
 import { api } from "@/lib/client-api";
+import { tierForPlan, usePricingTiers } from "@/lib/use-pricing";
 
 const ROLE_COLORS: Record<string, ChipColor> = {
   owner: "orange",
@@ -35,6 +36,18 @@ export function SettingsView() {
         <p className="mt-0.5 text-[14px] text-ink-muted">Organization, plan and members.</p>
       </div>
 
+      {org?.restricted ? (
+        <div
+          className="mb-6 rounded-2xl border px-5 py-4"
+          style={{ borderColor: "#FF5A1A", backgroundColor: "rgba(255,90,26,0.06)" }}
+        >
+          <p className="text-[14px] font-semibold text-ink">Account is read-only</p>
+          <p className="mt-0.5 text-[13px] text-ink-muted">
+            {org.billingMessage} Your flags keep serving — update payment to make changes again.
+          </p>
+        </div>
+      ) : null}
+
       {!org ? (
         <SettingsSkeleton />
       ) : (
@@ -45,7 +58,17 @@ export function SettingsView() {
 }
 
 function SettingsContent({ org }: { org: ApiOrg }) {
-  const limits = PLAN_LIMITS[org.plan];
+  // Plan limits + price come from Polar (the single source of truth) via
+  // /api/pricing; fall back to the PLAN_LIMITS enforcement mirror while loading.
+  const tiers = usePricingTiers();
+  const tier = tierForPlan(tiers, org.plan);
+  const limits = tier
+    ? {
+        projects: tier.projects,
+        agentKeys: tier.agentKeys,
+        includedEvalsPerMonth: tier.includedEvaluations,
+      }
+    : PLAN_LIMITS[org.plan];
 
   return (
     <div className="space-y-6">
@@ -62,7 +85,15 @@ function SettingsContent({ org }: { org: ApiOrg }) {
 
       <Card className="p-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-[16px] font-semibold">Plan</h2>
+          <div className="flex items-baseline gap-2">
+            <h2 className="text-[16px] font-semibold">Plan</h2>
+            {tier ? (
+              <span className="text-[13px] text-ink-muted">
+                {tier.name} · {tier.price}
+                {tier.period}
+              </span>
+            ) : null}
+          </div>
           <Chip color={org.plan === "trial" ? "orange" : "green"}>{org.plan}</Chip>
         </div>
         <div className="mt-4 grid gap-4 sm:grid-cols-3">

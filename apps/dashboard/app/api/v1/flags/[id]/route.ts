@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { toApiEnvironment, toApiFlag, toApiFlagConfig } from "@/lib/api-types";
 import { assertKeyScope, auditActor, resolveActor } from "@/lib/auth";
+import { assertOrgWritable } from "@/lib/billing-guard";
 import { enqueueConfigSync } from "@/lib/cloudflare";
 import { getFlagInOrg, listEnvironments, listFlagConfigs, recordAudit } from "@/lib/db";
 import { parseJson, unwrap, withErrors } from "@/lib/errors";
@@ -52,6 +53,7 @@ export const PATCH = withErrors<{ id: string }>(async (request: NextRequest, { p
   const actor = await resolveActor(request);
   const body = await parseJson(request, patchFlagSchema);
   const service = createServiceClient();
+  await assertOrgWritable(service, actor.orgId);
 
   const { flag, project } = await getFlagInOrg(service, id, actor.orgId);
   assertKeyScope(actor, project.id);
@@ -84,6 +86,7 @@ export const DELETE = withErrors<{ id: string }>(async (request: NextRequest, { 
 
   const { flag, project } = await getFlagInOrg(service, id, actor.orgId);
   assertKeyScope(actor, project.id);
+  await assertOrgWritable(service, actor.orgId);
 
   if (flag.archived_at !== null) {
     return NextResponse.json({ flag: toApiFlag(flag) });

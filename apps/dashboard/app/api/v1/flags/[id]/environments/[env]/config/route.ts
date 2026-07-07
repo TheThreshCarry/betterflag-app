@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { toApiFlagConfig } from "@/lib/api-types";
 import { assertKeyScope, auditActor, resolveActor } from "@/lib/auth";
+import { assertOrgWritable } from "@/lib/billing-guard";
 import { enqueueConfigSync } from "@/lib/cloudflare";
 import { getEnvironmentBySlug, getFlagInOrg } from "@/lib/db";
 import { parseJson, unwrap, withErrors } from "@/lib/errors";
@@ -33,6 +34,7 @@ export const PUT = withErrors<{ id: string; env: string }>(
 
     const { flag, project } = await getFlagInOrg(service, id, actor.orgId);
     assertKeyScope(actor, project.id);
+    await assertOrgWritable(service, actor.orgId);
     const environment = await getEnvironmentBySlug(service, project.id, envSlug);
 
     const audit = auditActor(actor);

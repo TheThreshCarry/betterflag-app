@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { toApiFlagConfig } from "@/lib/api-types";
 import { assertKeyScope, auditActor, resolveActor } from "@/lib/auth";
+import { assertOrgWritable } from "@/lib/billing-guard";
 import { enqueueConfigSync } from "@/lib/cloudflare";
 import { getEnvironmentBySlug, getFlagConfig, getFlagInOrg } from "@/lib/db";
 import { HttpError, parseJson, unwrap, withErrors } from "@/lib/errors";
@@ -25,6 +26,7 @@ export const POST = withErrors<{ id: string; env: string }>(
 
     const { flag, project } = await getFlagInOrg(service, id, actor.orgId);
     assertKeyScope(actor, project.id);
+    await assertOrgWritable(service, actor.orgId);
 
     if (body.fromEnv === envSlug) {
       throw new HttpError(400, "invalid_promote", "Source and target environments are the same");

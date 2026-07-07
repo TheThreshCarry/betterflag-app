@@ -20,6 +20,15 @@ export interface OrgRow {
   trial_ends_at: string;
   usage_cache: JsonValue;
   created_at: string;
+  // Billing state synced from Polar webhooks (migration 20260707140000).
+  polar_customer_id: string | null;
+  polar_subscription_id: string | null;
+  /** Raw Polar subscription status (e.g. active, past_due, canceled). */
+  subscription_status: string | null;
+  /** When the subscription first went past_due; drives the grace window. */
+  past_due_since: string | null;
+  /** Timestamp of the last Polar event applied (out-of-order guard). */
+  billing_synced_at: string | null;
 }
 
 export interface OrgMemberRow {

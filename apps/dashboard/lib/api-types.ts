@@ -5,6 +5,8 @@
  */
 
 import type { JsonValue } from "@shipos/core";
+
+import { billingDecisionForOrg } from "@/lib/billing-status";
 import type {
   ApiKeyRow,
   AuditLogRow,
@@ -110,6 +112,10 @@ export interface ApiOrg {
   createdAt: string;
   role: OrgRole;
   members?: ApiOrgMember[];
+  /** True when billing has flipped the account read-only (flags still serve). */
+  restricted: boolean;
+  /** Human-readable billing status line for banners. */
+  billingMessage: string;
 }
 
 export interface UsagePoint {
@@ -224,6 +230,7 @@ export function toApiAuditEntry(row: AuditLogRow): ApiAuditEntry {
 }
 
 export function toApiOrg(row: OrgRow, role: OrgRole, members?: ApiOrgMember[]): ApiOrg {
+  const decision = billingDecisionForOrg(row);
   const org: ApiOrg = {
     id: row.id,
     name: row.name,
@@ -231,6 +238,8 @@ export function toApiOrg(row: OrgRow, role: OrgRole, members?: ApiOrgMember[]): 
     trialEndsAt: row.trial_ends_at,
     createdAt: row.created_at,
     role,
+    restricted: !decision.access.dashboardWrites,
+    billingMessage: decision.message,
   };
   if (members) org.members = members;
   return org;

@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { toApiFlag, toApiFlagConfig } from "@/lib/api-types";
 import { assertKeyScope, auditActor, resolveActor } from "@/lib/auth";
+import { assertOrgWritable } from "@/lib/billing-guard";
 import { enqueueConfigSync } from "@/lib/cloudflare";
 import { getProjectInOrg, listEnvironments } from "@/lib/db";
 import { parseJson, unwrap, withErrors } from "@/lib/errors";
@@ -65,6 +66,7 @@ export const POST = withErrors<{ id: string }>(async (request: NextRequest, { pa
   const actor = await resolveActor(request);
   const body = await parseJson(request, createFlagSchema);
   const service = createServiceClient();
+  await assertOrgWritable(service, actor.orgId);
 
   const project = await getProjectInOrg(service, id, actor.orgId);
   assertKeyScope(actor, project.id);

@@ -1,4 +1,3 @@
-import { PLAN_LIMITS } from "@shipos/db";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
@@ -7,6 +6,7 @@ import { resolveActor } from "@/lib/auth";
 import { usageByDay } from "@/lib/clickhouse";
 import { getOrg } from "@/lib/db";
 import { parseQuery, withErrors } from "@/lib/errors";
+import { limitsForPlan } from "@/lib/pricing";
 import { createServiceClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -23,13 +23,16 @@ export const GET = withErrors(async (request: NextRequest) => {
   const service = createServiceClient();
 
   const org = await getOrg(service, actor.orgId);
-  const series = await usageByDay(actor.orgId, days);
+  const [series, limits] = await Promise.all([
+    usageByDay(actor.orgId, days),
+    limitsForPlan(org.plan),
+  ]);
   const used = series.reduce((total, point) => total + point.evaluations, 0);
 
   const usage: ApiUsage = {
     plan: org.plan,
     trialEndsAt: org.trial_ends_at,
-    includedEvalsPerMonth: PLAN_LIMITS[org.plan].includedEvalsPerMonth,
+    includedEvalsPerMonth: limits.includedEvalsPerMonth,
     used,
     series,
   };

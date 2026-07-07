@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { toApiProject } from "@/lib/api-types";
 import { auditActor, resolveActor } from "@/lib/auth";
+import { assertOrgWritable } from "@/lib/billing-guard";
 import { enqueueConfigSync } from "@/lib/cloudflare";
 import { getOrg, listEnvironments } from "@/lib/db";
 import { HttpError, parseJson, unwrap, withErrors } from "@/lib/errors";
@@ -45,6 +46,7 @@ export const POST = withErrors(async (request: NextRequest) => {
   const actor = await resolveActor(request);
   const body = await parseJson(request, createProjectSchema);
   const service = createServiceClient();
+  await assertOrgWritable(service, actor.orgId);
 
   const org = await getOrg(service, actor.orgId);
   const limit = PLAN_LIMITS[org.plan].projects;

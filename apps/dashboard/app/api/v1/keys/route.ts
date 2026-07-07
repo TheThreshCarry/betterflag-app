@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { toApiApiKey } from "@/lib/api-types";
 import { auditActor, resolveActor } from "@/lib/auth";
+import { assertOrgWritable } from "@/lib/billing-guard";
 import { kvPutSdkKey } from "@/lib/cloudflare";
 import { getEnvironmentInProject, getOrg, getProjectInOrg, recordAudit } from "@/lib/db";
 import { HttpError, parseJson, unwrap, withErrors } from "@/lib/errors";
@@ -64,6 +65,7 @@ export const POST = withErrors(async (request: NextRequest) => {
   const actor = await resolveActor(request);
   const body = await parseJson(request, createKeySchema);
   const service = createServiceClient();
+  await assertOrgWritable(service, actor.orgId);
 
   let envSlug: string | null = null;
   if (body.projectId) {
