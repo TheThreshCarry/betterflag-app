@@ -317,33 +317,41 @@ export function AppShell({
 
         {/* Main */}
         <div className="ml-60 flex-1">
-          <header className="sticky top-0 z-10 flex h-14 items-center border-b border-line bg-canvas/90 px-8 backdrop-blur">
-            <div className="flex items-center gap-2 text-[13px] text-ink-muted">
-              {activeProject ? (
-                <>
-                  <span className="font-medium text-ink">{activeProject.name}</span>
-                  <span className="font-mono text-[12px]">{activeProject.slug}</span>
-                </>
-              ) : (
-                <span>No project selected</span>
-              )}
-            </div>
-          </header>
-          {activeEnv && activeEnv.slug !== "prod" ? (
-            <div className="flex items-center gap-2 border-b border-line bg-surface px-8 py-2.5 text-[13px]">
-              <span
-                aria-hidden
-                className={`inline-block h-2 w-2 rounded-full ${
-                  activeEnv.slug === "staging" ? "bg-chip-blue" : "bg-chip-gray"
+          <div className="sticky top-0 z-10">
+            {activeEnv && activeEnv.slug !== "prod" ? (
+              <div
+                className={`flex items-center gap-2 border-b px-8 py-2.5 text-[13px] font-medium ${
+                  activeEnv.slug === "staging"
+                    ? "border-chip-orange/40 bg-chip-orange/20 text-chip-orange"
+                    : "border-amber-400 bg-amber-100 text-amber-950"
                 }`}
-              />
-              <span className="text-ink-muted">
-                You&rsquo;re in the{" "}
-                <span className="font-medium text-ink">{activeEnv.name}</span> environment — changes
-                here don&rsquo;t affect <span className="font-medium text-ink">production</span>.
-              </span>
-            </div>
-          ) : null}
+              >
+                <span
+                  aria-hidden
+                  className={`inline-block h-2 w-2 shrink-0 rounded-full ${
+                    activeEnv.slug === "staging" ? "bg-chip-orange" : "bg-amber-500"
+                  }`}
+                />
+                <span>
+                  You&rsquo;re in the{" "}
+                  <span className="font-semibold">{activeEnv.name}</span> environment — changes here
+                  don&rsquo;t affect <span className="font-semibold">production</span>.
+                </span>
+              </div>
+            ) : null}
+            <header className="flex h-14 items-center border-b border-line bg-canvas/90 px-8 backdrop-blur">
+              <div className="flex items-center gap-2 text-[13px] text-ink-muted">
+                {activeProject ? (
+                  <>
+                    <span className="font-medium text-ink">{activeProject.name}</span>
+                    <span className="font-mono text-[12px]">{activeProject.slug}</span>
+                  </>
+                ) : (
+                  <span>No project selected</span>
+                )}
+              </div>
+            </header>
+          </div>
           <main className="mx-auto max-w-5xl px-8 py-8">{children ?? <PageLoading />}</main>
         </div>
       </div>
