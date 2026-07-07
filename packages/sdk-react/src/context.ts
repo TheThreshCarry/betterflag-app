@@ -1,5 +1,5 @@
 import { createContext } from "react";
-import type { EvaluationContext, JsonValue, ShipOSClient } from "@shipos/sdk";
+import type { EvaluationContext, JsonValue, ShipOSClient } from "@shiposapp/sdk";
 
 export interface ShipOSContextValue {
   client: ShipOSClient;

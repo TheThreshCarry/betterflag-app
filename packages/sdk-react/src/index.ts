@@ -23,4 +23,4 @@ export {
   type EvaluationContext,
   type EvaluationReason,
   type EvaluationResult,
-} from "@shipos/sdk";
+} from "@shiposapp/sdk";

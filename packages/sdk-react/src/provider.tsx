@@ -3,7 +3,7 @@ import {
   type EvaluationContext,
   type JsonValue,
   type ShipOSClient,
-} from "@shipos/sdk";
+} from "@shiposapp/sdk";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ShipOSContext, type ShipOSContextValue } from "./context";
 
@@ -13,7 +13,7 @@ interface ShipOSProviderBaseProps {
   /**
    * Initial values by flag key, rendered on the server AND on the first
    * client render (hydration-safe). Typically produced in an RSC via
-   * `client.allFlags()` from `@shipos/sdk`.
+   * `client.allFlags()` from `@shiposapp/sdk`.
    */
   bootstrap?: Record<string, JsonValue>;
   children?: ReactNode;

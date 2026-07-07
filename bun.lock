@@ -11,7 +11,7 @@
     },
     "apps/dashboard": {
       "name": "@shipos/dashboard",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@base-ui/react": "^1.6.0",
         "@polar-sh/sdk": "^0.48.1",
@@ -43,7 +43,7 @@
     },
     "apps/edge": {
       "name": "@shipos/edge",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@shipos/core": "workspace:*",
         "@shipos/observability": "workspace:*",
@@ -58,7 +58,7 @@
     },
     "apps/ingest": {
       "name": "@shipos/ingest",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@shipos/core": "workspace:*",
         "@shipos/db": "workspace:*",
@@ -75,7 +75,7 @@
     },
     "apps/mcp": {
       "name": "@shipos/mcp",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@cloudflare/workers-oauth-provider": "^0.8.1",
         "@modelcontextprotocol/sdk": "^1.29.0",
@@ -92,7 +92,7 @@
     },
     "apps/webhooks": {
       "name": "@shipos/webhooks",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@shipos/db": "workspace:*",
         "@shipos/observability": "workspace:*",
@@ -136,7 +136,7 @@
       },
     },
     "packages/sdk-js": {
-      "name": "@shipos/sdk",
+      "name": "@shiposapp/sdk",
       "version": "0.1.0",
       "devDependencies": {
         "tsup": "^8.5.1",
@@ -145,10 +145,10 @@
       },
     },
     "packages/sdk-react": {
-      "name": "@shipos/react",
+      "name": "@shiposapp/react",
       "version": "0.1.0",
       "dependencies": {
-        "@shipos/sdk": "workspace:*",
+        "@shiposapp/sdk": "workspace:*",
       },
       "devDependencies": {
         "@types/react": "^19.2.0",
@@ -527,11 +527,11 @@
 
     "@shipos/observability": ["@shipos/observability@workspace:packages/observability"],
 
-    "@shipos/react": ["@shipos/react@workspace:packages/sdk-react"],
-
-    "@shipos/sdk": ["@shipos/sdk@workspace:packages/sdk-js"],
-
     "@shipos/webhooks": ["@shipos/webhooks@workspace:apps/webhooks"],
+
+    "@shiposapp/react": ["@shiposapp/react@workspace:packages/sdk-react"],
+
+    "@shiposapp/sdk": ["@shiposapp/sdk@workspace:packages/sdk-js"],
 
     "@sindresorhus/is": ["@sindresorhus/is@7.2.0", "", {}, "sha512-P1Cz1dWaFfR4IR+U13mqqiGsLFf1KbayybWwdd2vfctdV6hDpUkgCY0nKOLLTMSoRd/jJNjtbqzf13K8DCCXQw=="],
 
@@ -1403,11 +1403,11 @@
 
     "@shipos/observability/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
-    "@shipos/react/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
-
-    "@shipos/sdk/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
-
     "@shipos/webhooks/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
+
+    "@shiposapp/react/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
+
+    "@shiposapp/sdk/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "@tailwindcss/oxide-wasm32-wasi/@emnapi/core": ["@emnapi/core@1.11.2", "", { "dependencies": { "@emnapi/wasi-threads": "1.2.2", "tslib": "^2.4.0" }, "bundled": true }, "sha512-TC8MkTuZUtcTSiFeuC0ksCh9QIJ5+F21MvZ4Wn4ORfYaFJ/0dsiudv5tVkejgwZlwQ39jL9WWDe2lz8x0WglOA=="],
 
