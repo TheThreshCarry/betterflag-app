@@ -13,11 +13,11 @@
     "@shipos/core": "workspace:*",
     "@shipos/observability": "workspace:*",
     "agents": "^0.17.3",
-    "zod": "^3.25.76"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260704.1",
-    "typescript": "^5.9.2",
+    "typescript": "^7.0.1-rc",
     "wrangler": "^4.107.0"
   }
 }
