@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   createContext,
@@ -12,7 +11,9 @@ import {
   type ReactNode,
 } from "react";
 
-import { Chip, PageLoading, Spinner } from "@/components/ui";
+import { AppSidebar } from "@/components/app-sidebar";
+import { PageLoading, Spinner } from "@/components/ui";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import type { ApiOrg, ApiProject } from "@/lib/api-types";
 import { api, ApiClientError } from "@/lib/client-api";
 import { createBrowserSupabase } from "@/lib/supabase/client";
@@ -42,15 +43,6 @@ export function useApp(): AppContextValue {
 const ACTIVE_PROJECT_KEY = "shipos.activeProjectId";
 const ACTIVE_ENV_KEY = "shipos.activeEnvSlug";
 const DEFAULT_ENV_SLUG = "dev";
-
-const NAV_ITEMS = [
-  { href: "/flags", label: "Flags" },
-  { href: "/keys", label: "Keys" },
-  { href: "/audit", label: "Audit" },
-  { href: "/approvals", label: "Approvals" },
-  { href: "/usage", label: "Usage" },
-  { href: "/settings", label: "Settings" },
-] as const;
 
 const ENV_ORDER = ["dev", "staging", "prod"] as const;
 
@@ -225,98 +217,15 @@ export function AppShell({
 
   return (
     <AppContext.Provider value={contextValue}>
-      <div className="flex min-h-screen">
-        {/* Sidebar */}
-        <aside className="fixed inset-y-0 left-0 flex w-60 flex-col border-r border-line bg-surface">
-          <div className="px-5 pb-2 pt-6">
-            <Link href="/flags" className="text-[18px] font-semibold tracking-[-0.01em]">
-              ShipOS
-            </Link>
-          </div>
-
-          <div className="px-4 py-3">
-            <label className="mb-1 block px-1 text-[11px] font-medium text-ink-muted">
-              Project
-            </label>
-            {projects.length > 0 ? (
-              <select
-                value={activeProject?.id ?? ""}
-                onChange={(event) => setActiveProjectId(event.target.value)}
-                className="h-9 w-full rounded-xl border border-line bg-white px-2.5 text-[13px] font-medium outline-none focus:border-line-strong"
-              >
-                {projects.map((project) => (
-                  <option key={project.id} value={project.id}>
-                    {project.name}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <Link
-                href="/flags"
-                className="block rounded-xl border border-dashed border-line-strong px-3 py-2 text-[13px] text-ink-muted"
-              >
-                No projects yet
-              </Link>
-            )}
-          </div>
-
-          {environments.length > 0 ? (
-            <div className="px-4 pb-2">
-              <label className="mb-1 block px-1 text-[11px] font-medium text-ink-muted">
-                Environment
-              </label>
-              <select
-                value={activeEnv?.slug ?? ""}
-                onChange={(event) => setActiveEnvSlug(event.target.value)}
-                className="h-9 w-full rounded-xl border border-line bg-white px-2.5 text-[13px] font-medium outline-none focus:border-line-strong"
-              >
-                {environments.map((env) => (
-                  <option key={env.id} value={env.slug}>
-                    {env.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ) : null}
-
-          <nav className="flex-1 space-y-0.5 px-3 py-2">
-            {NAV_ITEMS.map((item) => {
-              const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center justify-between rounded-xl px-3 py-2 text-[14px] font-medium transition-colors ${
-                    active ? "bg-white text-ink shadow-[0_1px_2px_rgba(0,0,0,0.03)]" : "text-ink-muted hover:bg-white/60 hover:text-ink"
-                  }`}
-                >
-                  {item.label}
-                  {item.href === "/approvals" && pendingApprovals > 0 ? (
-                    <Chip color="green" className="!px-2 !py-0 text-[11px]">
-                      {pendingApprovals}
-                    </Chip>
-                  ) : null}
-                </Link>
-              );
-            })}
-          </nav>
-
-          <div className="border-t border-line px-5 py-4">
-            <p className="truncate text-[13px] font-medium">{userEmail ?? "Signed in"}</p>
-            <p className="mt-0.5 truncate text-[12px] text-ink-muted">{contextValue.org.name}</p>
-            <button
-              type="button"
-              onClick={() => void signOut()}
-              disabled={signingOut}
-              className="mt-2 text-[12px] font-medium text-ink-muted underline underline-offset-2 hover:text-ink"
-            >
-              {signingOut ? "Signing out…" : "Sign out"}
-            </button>
-          </div>
-        </aside>
-
-        {/* Main */}
-        <div className="ml-60 flex-1">
+      <SidebarProvider>
+        <AppSidebar
+          userEmail={userEmail}
+          orgName={contextValue.org.name}
+          pendingApprovals={pendingApprovals}
+          signingOut={signingOut}
+          onSignOut={() => void signOut()}
+        />
+        <SidebarInset>
           <div className="sticky top-0 z-10">
             {activeEnv && activeEnv.slug !== "prod" ? (
               <div
@@ -352,9 +261,9 @@ export function AppShell({
               </div>
             </header>
           </div>
-          <main className="mx-auto max-w-5xl px-8 py-8">{children ?? <PageLoading />}</main>
-        </div>
-      </div>
+          <main className="mx-auto max-w-5xl flex-1 px-8 py-8">{children ?? <PageLoading />}</main>
+        </SidebarInset>
+      </SidebarProvider>
     </AppContext.Provider>
   );
 }
