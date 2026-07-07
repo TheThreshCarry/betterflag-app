@@ -23,6 +23,7 @@
  */
 import type { AuthRequest, OAuthHelpers } from "@cloudflare/workers-oauth-provider";
 import { API_KEY_RE, timingSafeEqualHex } from "@shipos/core";
+import { ICON_PNG, ICON_SVG } from "./icon";
 import type { Env } from "./types";
 
 export const CONSENT_PATH = "/mcp/consent";
@@ -228,6 +229,18 @@ export const oauthDefaultHandler = {
         transport: { streamableHttp: "/mcp", sse: "/sse" },
         oauth: { authorize: "/authorize", token: "/token", register: "/register" },
         docs: "https://shipos.app/docs/mcp",
+      });
+    }
+
+    // Connector icon: Claude fetches /favicon.ico from the server origin.
+    if (pathname === "/favicon.ico" || pathname === "/favicon.png" || pathname === "/icon.png") {
+      return new Response(ICON_PNG as BodyInit, {
+        headers: { "content-type": "image/png", "cache-control": "public, max-age=86400" },
+      });
+    }
+    if (pathname === "/favicon.svg" || pathname === "/icon.svg" || pathname === "/logo.svg") {
+      return new Response(ICON_SVG, {
+        headers: { "content-type": "image/svg+xml", "cache-control": "public, max-age=86400" },
       });
     }
 

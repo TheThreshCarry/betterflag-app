@@ -16,7 +16,15 @@ const DEFAULT_API_URL = "https://app.shipos.app";
 export class ShipOSMcp extends McpAgent<Env, unknown, SessionProps> {
   server = new McpServer({
     name: "shipos",
+    title: "ShipOS",
     version: VERSION,
+    websiteUrl: "https://shipos.app",
+    // MCP spec icons (2025-11+): clients that support them render these;
+    // others fall back to fetching /favicon.ico from the worker origin.
+    icons: [
+      { src: "https://mcp.shipos.app/icon.png", mimeType: "image/png", sizes: ["256x256"] },
+      { src: "https://mcp.shipos.app/icon.svg", mimeType: "image/svg+xml" },
+    ],
   });
 
   /** Built once per Durable Object (MCP session); reused across tool calls. */
