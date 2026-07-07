@@ -36,15 +36,61 @@ function GoogleIcon() {
   );
 }
 
+type Busy = "password" | "magic" | "github" | "google" | null;
+type Notice = { kind: "magic" | "confirm"; email: string } | null;
+
 export default function LoginPage() {
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
-  const [sent, setSent] = useState(false);
-  const [busy, setBusy] = useState<"email" | "github" | "google" | null>(null);
+  const [password, setPassword] = useState("");
+  const [notice, setNotice] = useState<Notice>(null);
+  const [busy, setBusy] = useState<Busy>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function sendMagicLink(event: FormEvent) {
+  async function submitPassword(event: FormEvent) {
     event.preventDefault();
-    setBusy("email");
+    setBusy("password");
+    setError(null);
+    const supabase = createBrowserSupabase();
+
+    if (mode === "signup") {
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      });
+      setBusy(null);
+      if (signUpError) {
+        setError(signUpError.message);
+        return;
+      }
+      // Email confirmation on: no session until the user confirms.
+      if (!data.session) {
+        setNotice({ kind: "confirm", email });
+        return;
+      }
+      window.location.assign("/");
+      return;
+    }
+
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    setBusy(null);
+    if (signInError) {
+      setError(signInError.message);
+      return;
+    }
+    window.location.assign("/");
+  }
+
+  async function sendMagicLink() {
+    if (!email) {
+      setError("Enter your email first.");
+      return;
+    }
+    setBusy("magic");
     setError(null);
     const supabase = createBrowserSupabase();
     const { error: otpError } = await supabase.auth.signInWithOtp({
@@ -56,7 +102,7 @@ export default function LoginPage() {
       setError(otpError.message);
       return;
     }
-    setSent(true);
+    setNotice({ kind: "magic", email });
   }
 
   async function signInWithProvider(provider: "github" | "google") {
@@ -118,40 +164,106 @@ export default function LoginPage() {
           <div className="mb-8 lg:hidden">
             <span className="text-[20px] font-semibold tracking-[-0.01em]">ShipOS</span>
           </div>
-          <h2 className="text-[28px] font-semibold tracking-[-0.01em]">Sign in</h2>
+          <h2 className="text-[28px] font-semibold tracking-[-0.01em]">
+            {mode === "signup" ? "Create your account" : "Sign in"}
+          </h2>
           <p className="mt-1.5 text-[14px] text-ink-muted">
-            New here? Signing in creates your account.
+            {mode === "signup" ? (
+              <>
+                Already have an account?{" "}
+                <button
+                  type="button"
+                  className="font-medium text-ink underline underline-offset-2"
+                  onClick={() => {
+                    setMode("signin");
+                    setError(null);
+                  }}
+                >
+                  Sign in
+                </button>
+              </>
+            ) : (
+              <>
+                New here?{" "}
+                <button
+                  type="button"
+                  className="font-medium text-ink underline underline-offset-2"
+                  onClick={() => {
+                    setMode("signup");
+                    setError(null);
+                  }}
+                >
+                  Create an account
+                </button>
+              </>
+            )}
           </p>
 
           <div className="mt-8 space-y-4">
-            {sent ? (
+            {notice ? (
               <div className="rounded-2xl border border-line bg-surface p-5 text-[14px]">
                 <p className="font-medium">Check your inbox</p>
                 <p className="mt-1 text-ink-muted">
-                  We sent a magic link to <span className="font-medium text-ink">{email}</span>.
-                  Click it to sign in.
+                  {notice.kind === "magic" ? (
+                    <>
+                      We sent a magic link to{" "}
+                      <span className="font-medium text-ink">{notice.email}</span>. Click it to sign
+                      in.
+                    </>
+                  ) : (
+                    <>
+                      We sent a confirmation link to{" "}
+                      <span className="font-medium text-ink">{notice.email}</span>. Confirm it to
+                      finish creating your account.
+                    </>
+                  )}
                 </p>
                 <button
                   type="button"
                   className="mt-3 text-[13px] font-medium text-ink underline underline-offset-2"
-                  onClick={() => setSent(false)}
+                  onClick={() => setNotice(null)}
                 >
                   Use a different email
                 </button>
               </div>
             ) : (
-              <form onSubmit={(event) => void sendMagicLink(event)} className="space-y-3">
+              <form onSubmit={(event) => void submitPassword(event)} className="space-y-3">
                 <input
                   type="email"
                   required
+                  autoComplete="email"
                   placeholder="you@company.com"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                   className={`${inputClass} h-12`}
                 />
+                <input
+                  type="password"
+                  required
+                  minLength={8}
+                  autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                  placeholder="Password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  className={`${inputClass} h-12`}
+                />
                 <Button type="submit" size="lg" className="w-full" disabled={busy !== null}>
-                  {busy === "email" ? "Sending link…" : "Email me a magic link"}
+                  {busy === "password"
+                    ? mode === "signup"
+                      ? "Creating account…"
+                      : "Signing in…"
+                    : mode === "signup"
+                      ? "Create account"
+                      : "Sign in"}
                 </Button>
+                <button
+                  type="button"
+                  className="w-full text-center text-[13px] font-medium text-ink-muted underline underline-offset-2 hover:text-ink disabled:opacity-50"
+                  disabled={busy !== null}
+                  onClick={() => void sendMagicLink()}
+                >
+                  {busy === "magic" ? "Sending link…" : "Email me a magic link instead"}
+                </button>
               </form>
             )}
 
