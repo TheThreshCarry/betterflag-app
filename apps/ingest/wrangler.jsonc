@@ -35,7 +35,13 @@
       }
     ]
   },
+  // Observability (Better Stack). Logs AND OTLP traces both go to the
+  // "shipos-ingest" source for one-click log↔trace correlation. Endpoint is
+  // non-secret; ingest token is a SECRET (apps/ingest/.dev.vars / secret put):
+  //   echo <shipos-ingest source token> | wrangler secret put BETTER_STACK_SOURCE_TOKEN
   "vars": {
-    "SUPABASE_URL": "https://tnlbktwyrctrxmpoafwb.supabase.co"
+    "SUPABASE_URL": "https://tnlbktwyrctrxmpoafwb.supabase.co",
+    "SHIPOS_ENV": "production",
+    "BETTER_STACK_LOGS_ENDPOINT": "https://s2578180.eu-fsn-3.betterstackdata.com"
   }
 }

@@ -15,7 +15,13 @@ import { createClient } from "@supabase/supabase-js";
 import { buildSnapshot, flagKindSchema, jsonValueSchema, snapshotKvKey } from "@shipos/core";
 import type { EvaluationEvent, FlagConfigRowLike, FlagRowLike } from "@shipos/core";
 import type { FlagConfigRow, FlagRow } from "@shipos/db";
+import { readObservability, type Observability } from "@shipos/observability";
 import { z } from "zod";
+
+/** Human-readable one-liner for an unknown thrown value. */
+function errText(error: unknown): string {
+  return error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+}
 
 // ---------------------------------------------------------------------------
 // Environment (structural types so tests can pass plain fakes — no miniflare)
@@ -36,6 +42,14 @@ export interface IngestEnv {
   CLICKHOUSE_URL: string;
   CLICKHOUSE_USER: string;
   CLICKHOUSE_PASSWORD: string;
+  // Observability — optional so unit tests can pass plain fakes; degrades to
+  // console-only when unset. Tokens via `wrangler secret put`, endpoints via vars.
+  BETTER_STACK_SOURCE_TOKEN?: string;
+  BETTER_STACK_LOGS_ENDPOINT?: string;
+  OTEL_EXPORTER_OTLP_ENDPOINT?: string;
+  OTEL_EXPORTER_OTLP_HEADERS?: string;
+  SHIPOS_ENV?: string;
+  SHIPOS_RELEASE?: string;
 }
 
 /** The slice of a queue Message this worker uses. */
@@ -141,23 +155,54 @@ export async function handleEventsBatch(
   batch: MessageBatchLike,
   env: IngestEnv,
   fetchFn: typeof fetch = fetch,
+  obs?: Observability,
 ): Promise<void> {
+  const log = obs?.logger.child({ queue: batch.queue, batch_size: batch.messages.length });
+  const span = obs?.tracer.startSpan("ingest.events", {
+    kind: "consumer",
+    attributes: { "queue.name": batch.queue, "messaging.batch.message_count": batch.messages.length },
+  });
+
   const rows: ClickHouseEvaluationRow[] = [];
+  let dropped = 0;
   for (const message of batch.messages) {
     const parsed = evaluationEventSchema.safeParse(message.body);
     if (!parsed.success) {
+      dropped += 1;
       console.error(
         `shipos-events: dropping invalid message ${message.id}: ${parsed.error.message}`,
       );
+      log?.warn("dropping invalid evaluation event", {
+        message_id: message.id,
+        detail: parsed.error.message,
+      });
       message.ack();
       continue;
     }
     rows.push(eventToRow(parsed.data));
   }
+  span?.setAttributes({ "events.valid": rows.length, "events.dropped": dropped });
 
-  // Throws on non-2xx → the (unacked) batch is redelivered, then DLQ'd.
-  await insertEvaluations(rows, env, fetchFn);
+  const insertSpan = span?.startChild("clickhouse.insert", {
+    kind: "client",
+    attributes: { "db.system": "clickhouse", "db.rows_affected": rows.length },
+  });
+  try {
+    // Throws on non-2xx → the (unacked) batch is redelivered, then DLQ'd.
+    await insertEvaluations(rows, env, fetchFn);
+  } catch (error) {
+    insertSpan?.recordException(error).end();
+    span?.setStatus("error").end();
+    log?.error("clickhouse insert failed; batch will retry", {
+      error: errText(error),
+      rows: rows.length,
+    });
+    throw error;
+  }
+  insertSpan?.end();
   batch.ackAll();
+  span?.end();
+  log?.info("events batch inserted into ClickHouse", { rows: rows.length, dropped });
 }
 
 // ---------------------------------------------------------------------------
@@ -276,96 +321,149 @@ export function shouldWriteSnapshot(existing: unknown, newVersion: number): bool
 }
 
 /** Rebuild and publish the KV snapshot for one (project, environment). */
-export async function syncEnvironment(target: ConfigSyncMessage, env: IngestEnv): Promise<void> {
-  // Per-invocation client — Workers must not reuse global I/O across events.
-  const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false },
-    global: { fetch: (input, init) => fetch(input, init) },
+export async function syncEnvironment(
+  target: ConfigSyncMessage,
+  env: IngestEnv,
+  obs?: Observability,
+): Promise<void> {
+  const log = obs?.logger.child({
+    project_id: target.projectId,
+    env: target.envSlug,
+    environment_id: target.environmentId,
+  });
+  const span = obs?.tracer.startSpan("ingest.config_sync", {
+    kind: "internal",
+    attributes: { "shipos.project_id": target.projectId, "shipos.env": target.envSlug },
   });
 
-  const flagsResult = await supabase
-    .from("flags")
-    .select("id,key,kind,default_value,archived_at")
-    .eq("project_id", target.projectId)
-    .is("archived_at", null);
-  if (flagsResult.error) {
-    throw new Error(`flags query failed: ${flagsResult.error.message}`);
-  }
-  const flags: FlagDbRow[] = z.array(flagDbRowSchema).parse(flagsResult.data);
+  try {
+    // Per-invocation client — Workers must not reuse global I/O across events.
+    const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+      global: { fetch: (input, init) => fetch(input, init) },
+    });
 
-  let configs: FlagConfigDbRow[] = [];
-  if (flags.length > 0) {
-    const configsResult = await supabase
-      .from("flag_configs")
-      .select("flag_id,enabled,killed,rollout_pct,rules,value_on,value_off,version")
-      .eq("environment_id", target.environmentId)
-      .in(
-        "flag_id",
-        flags.map((flag) => flag.id),
-      );
-    if (configsResult.error) {
-      throw new Error(`flag_configs query failed: ${configsResult.error.message}`);
+    const flagsSpan = span?.startChild("supabase.select_flags", { kind: "client" });
+    const flagsResult = await supabase
+      .from("flags")
+      .select("id,key,kind,default_value,archived_at")
+      .eq("project_id", target.projectId)
+      .is("archived_at", null);
+    if (flagsResult.error) {
+      flagsSpan?.recordException(new Error(flagsResult.error.message)).end();
+      throw new Error(`flags query failed: ${flagsResult.error.message}`);
     }
-    configs = z.array(flagConfigDbRowSchema).parse(configsResult.data);
-  }
+    const flags: FlagDbRow[] = z.array(flagDbRowSchema).parse(flagsResult.data);
+    flagsSpan?.setAttribute("flags.count", flags.length).end();
 
-  const flagRows: FlagRowLike[] = flags.map((flag) => ({
-    key: flag.key,
-    kind: flag.kind,
-    default_value: flag.default_value,
-    archived_at: flag.archived_at,
-  }));
+    let configs: FlagConfigDbRow[] = [];
+    if (flags.length > 0) {
+      const configsSpan = span?.startChild("supabase.select_flag_configs", { kind: "client" });
+      const configsResult = await supabase
+        .from("flag_configs")
+        .select("flag_id,enabled,killed,rollout_pct,rules,value_on,value_off,version")
+        .eq("environment_id", target.environmentId)
+        .in(
+          "flag_id",
+          flags.map((flag) => flag.id),
+        );
+      if (configsResult.error) {
+        configsSpan?.recordException(new Error(configsResult.error.message)).end();
+        throw new Error(`flag_configs query failed: ${configsResult.error.message}`);
+      }
+      configs = z.array(flagConfigDbRowSchema).parse(configsResult.data);
+      configsSpan?.setAttribute("configs.count", configs.length).end();
+    }
 
-  const { snapshot, invalidRules } = buildSnapshot({
-    projectId: target.projectId,
-    environment: target.envSlug,
-    version: Date.now(),
-    generatedAt: new Date().toISOString(),
-    flags: flagRows,
-    configs: joinConfigRows(flags, configs),
-  });
-  for (const invalid of invalidRules) {
-    console.error(
-      `shipos-config-sync: dropped invalid rules for flag "${invalid.flagKey}" ` +
-        `(${target.projectId}/${target.envSlug}): ${invalid.error}`,
-    );
-  }
+    const flagRows: FlagRowLike[] = flags.map((flag) => ({
+      key: flag.key,
+      kind: flag.kind,
+      default_value: flag.default_value,
+      archived_at: flag.archived_at,
+    }));
 
-  const kvKey = snapshotKvKey(target.projectId, target.envSlug);
-  const existing = await env.CONFIG_KV.get(kvKey, { type: "json" });
-  if (!shouldWriteSnapshot(existing, snapshot.version)) {
-    console.log(
-      `shipos-config-sync: skipping stale snapshot v${snapshot.version} for ${kvKey} ` +
-        `(existing is newer)`,
-    );
-    return;
+    const { snapshot, invalidRules } = buildSnapshot({
+      projectId: target.projectId,
+      environment: target.envSlug,
+      version: Date.now(),
+      generatedAt: new Date().toISOString(),
+      flags: flagRows,
+      configs: joinConfigRows(flags, configs),
+    });
+    for (const invalid of invalidRules) {
+      console.error(
+        `shipos-config-sync: dropped invalid rules for flag "${invalid.flagKey}" ` +
+          `(${target.projectId}/${target.envSlug}): ${invalid.error}`,
+      );
+      log?.warn("dropped invalid targeting rules while building snapshot", {
+        flag_key: invalid.flagKey,
+        detail: invalid.error,
+      });
+    }
+    span?.setAttributes({
+      "snapshot.version": snapshot.version,
+      "snapshot.flags": Object.keys(snapshot.flags).length,
+      "snapshot.invalid_rules": invalidRules.length,
+    });
+
+    const kvKey = snapshotKvKey(target.projectId, target.envSlug);
+    const existing = await env.CONFIG_KV.get(kvKey, { type: "json" });
+    if (!shouldWriteSnapshot(existing, snapshot.version)) {
+      console.log(
+        `shipos-config-sync: skipping stale snapshot v${snapshot.version} for ${kvKey} ` +
+          `(existing is newer)`,
+      );
+      log?.info("skipped stale snapshot (existing KV entry is newer)", {
+        kv_key: kvKey,
+        version: snapshot.version,
+      });
+      span?.setAttribute("snapshot.skipped_stale", true).end();
+      return;
+    }
+
+    const putSpan = span?.startChild("kv.put_snapshot", { kind: "client" });
+    await env.CONFIG_KV.put(kvKey, JSON.stringify(snapshot));
+    putSpan?.end();
+    span?.end();
+    log?.info("published KV snapshot", { kv_key: kvKey, version: snapshot.version, flags: flagRows.length });
+  } catch (error) {
+    span?.recordException(error).end();
+    throw error;
   }
-  await env.CONFIG_KV.put(kvKey, JSON.stringify(snapshot));
 }
 
 export async function handleConfigSyncBatch(
   batch: MessageBatchLike,
   env: IngestEnv,
-  syncFn: (target: ConfigSyncMessage, env: IngestEnv) => Promise<void> = syncEnvironment,
+  syncFn: (target: ConfigSyncMessage, env: IngestEnv, obs?: Observability) => Promise<void> = syncEnvironment,
+  obs?: Observability,
 ): Promise<void> {
+  const log = obs?.logger.child({ queue: batch.queue, batch_size: batch.messages.length });
   const groups = groupSyncMessages(
     batch.messages,
     (message) => message.body,
     (message, error) => {
       console.error(`shipos-config-sync: dropping invalid message ${message.id}: ${error}`);
+      log?.warn("dropping invalid config-sync message", { message_id: message.id, detail: error });
       message.ack();
     },
   );
 
   for (const group of groups) {
     try {
-      await syncFn(group.target, env);
+      await syncFn(group.target, env, obs);
       for (const message of group.messages) message.ack();
     } catch (error) {
       console.error(
         `shipos-config-sync: sync failed for ${group.target.projectId}/${group.target.envSlug}`,
         error,
       );
+      log?.error("config-sync failed; messages will retry", {
+        project_id: group.target.projectId,
+        env: group.target.envSlug,
+        messages: group.messages.length,
+        error: errText(error),
+      });
       for (const message of group.messages) message.retry();
     }
   }
@@ -381,17 +479,28 @@ const handler = {
     return new Response("ok", { status: 200 });
   },
 
-  async queue(batch, env): Promise<void> {
-    switch (batch.queue) {
-      case "shipos-events":
-        await handleEventsBatch(batch, env);
-        return;
-      case "shipos-config-sync":
-        await handleConfigSyncBatch(batch, env);
-        return;
-      default:
-        console.error(`ingest: message batch from unknown queue "${batch.queue}" — acking`);
-        batch.ackAll();
+  async queue(batch, env, ctx): Promise<void> {
+    const obs = readObservability(env as unknown as Record<string, unknown>, "shipos-ingest", {
+      environment: env.SHIPOS_ENV,
+      release: env.SHIPOS_RELEASE,
+    });
+    try {
+      switch (batch.queue) {
+        case "shipos-events":
+          await handleEventsBatch(batch, env, fetch, obs);
+          return;
+        case "shipos-config-sync":
+          await handleConfigSyncBatch(batch, env, syncEnvironment, obs);
+          return;
+        default:
+          console.error(`ingest: message batch from unknown queue "${batch.queue}" — acking`);
+          obs.logger.warn("message batch from unknown queue — acking", { queue: batch.queue });
+          batch.ackAll();
+      }
+    } finally {
+      // Ship telemetry after the batch settles (also runs on the retry/throw
+      // path so failed batches are still recorded).
+      ctx.waitUntil(obs.flush());
     }
   },
 } satisfies ExportedHandler<IngestEnv>;

@@ -38,6 +38,10 @@ async function run(fn: () => Promise<string>): Promise<CallToolResult> {
   } catch (e) {
     if (e instanceof ApprovalPending) return text(e.render());
     if (e instanceof ToolError) return text(e.message, e.isError);
+    // Genuinely unexpected (a bug, not an API/guardrail outcome). Structured
+    // API-error telemetry is emitted in apiFetch; this console.error is the
+    // floor for everything else (captured in Workers Logs).
+    console.error("[mcp] unexpected tool error", e);
     return text(`Unexpected error: ${e instanceof Error ? e.message : String(e)}`, true);
   }
 }

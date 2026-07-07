@@ -5,6 +5,7 @@
  */
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { McpAgent } from "agents/mcp";
+import { readObservability, type Observability } from "@shipos/observability";
 import { ToolError } from "./errors";
 import { registerTools } from "./tools";
 import type { ApiCtx, Env, SessionProps } from "./types";
@@ -17,7 +18,15 @@ export class ShipOSMcp extends McpAgent<Env, unknown, SessionProps> {
     version: "0.1.0",
   });
 
+  /** Built once per Durable Object (MCP session); reused across tool calls. */
+  private obs: Observability | undefined;
+
   async init(): Promise<void> {
+    this.obs = readObservability(this.env as unknown as Record<string, unknown>, "shipos-mcp", {
+      environment: this.env.SHIPOS_ENV,
+      release: this.env.SHIPOS_RELEASE,
+    });
+
     registerTools(this.server, (): ApiCtx => {
       const apiKey = this.props?.apiKey;
       if (typeof apiKey !== "string" || apiKey.length === 0) {
@@ -27,7 +36,7 @@ export class ShipOSMcp extends McpAgent<Env, unknown, SessionProps> {
         );
       }
       const baseUrl = (this.env.SHIPOS_API_URL || DEFAULT_API_URL).replace(/\/+$/, "");
-      return { baseUrl, apiKey };
+      return { baseUrl, apiKey, obs: this.obs };
     });
   }
 }

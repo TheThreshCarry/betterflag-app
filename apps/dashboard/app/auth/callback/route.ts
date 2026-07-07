@@ -3,6 +3,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { createSessionClient } from "@/lib/supabase/server";
+import { reportServerError } from "@/lib/observability";
 
 export const runtime = "nodejs";
 
@@ -19,6 +20,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${origin}${safeNext}`);
     }
     console.error("[auth] code exchange failed:", error.message);
+    reportServerError("auth code exchange failed", { detail: error.message });
   }
 
   return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`);

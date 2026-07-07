@@ -13,6 +13,7 @@
  *   GET  /  or /health — unauthenticated service info
  */
 import { API_KEY_RE, kindOfKey } from "@shipos/core";
+import { readObservability } from "@shipos/observability";
 import { ShipOSMcp } from "./agent";
 import type { Env, SessionProps } from "./types";
 
@@ -71,14 +72,31 @@ export default {
       });
     }
 
+    const obs = readObservability(env as unknown as Record<string, unknown>, "shipos-mcp", {
+      environment: env.SHIPOS_ENV,
+      release: env.SHIPOS_RELEASE,
+    });
+    const log = obs.logger.child({ path: pathname, method: request.method });
+
     const isMcp = pathname === "/mcp";
     const isSse = pathname === "/sse" || pathname === "/sse/message";
     if (!isMcp && !isSse) {
+      log.warn("mcp: unknown path", { status: 404 });
+      obs.flushTo(ctx.waitUntil.bind(ctx));
       return json(404, { error: { code: "not_found", message: "Unknown path. MCP lives at /mcp (or /sse for legacy clients)." } });
     }
 
     const auth = authenticate(request);
-    if (auth instanceof Response) return auth;
+    if (auth instanceof Response) {
+      // The rejected key itself is never logged — only that auth failed.
+      log.warn("mcp: request rejected at the gate", { status: 401, transport: isSse ? "sse" : "mcp" });
+      obs.flushTo(ctx.waitUntil.bind(ctx));
+      return auth;
+    }
+
+    // key_kind (agent/admin) is safe to log; the key value is not.
+    log.info("mcp: session authorized", { key_kind: kindOfKey(auth.apiKey), transport: isSse ? "sse" : "mcp" });
+    obs.flushTo(ctx.waitUntil.bind(ctx));
 
     // Hand the key to the McpAgent session. ExecutionContext.props is typed
     // readonly in workers-types but is the documented handoff channel for the

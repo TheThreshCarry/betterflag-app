@@ -4,12 +4,20 @@ function TableSkeleton({
   columns,
   rows = 5,
 }: {
-  columns: { label: string; width?: string }[];
+  // `width` sizes the shimmer bar; `colWidth` sizes the (fixed) table column.
+  columns: { label: string; width?: string; colWidth?: string }[];
   rows?: number;
 }) {
   return (
     <div className="overflow-hidden rounded-3xl border border-line">
-      <table className="w-full text-left text-[14px]">
+      {/* table-fixed + explicit column widths so columns don't recompute (and
+          visibly resize) between the skeleton and the loaded data. */}
+      <table className="w-full table-fixed text-left text-[14px]">
+        <colgroup>
+          {columns.map((col) => (
+            <col key={col.label} className={col.colWidth ?? "w-40"} />
+          ))}
+        </colgroup>
         <thead className="bg-surface text-[12px] text-ink-muted">
           <tr>
             {columns.map((col) => (
@@ -39,11 +47,11 @@ export function FlagsTableSkeleton() {
   return (
     <TableSkeleton
       columns={[
-        { label: "Key", width: "w-28" },
-        { label: "Name", width: "w-32" },
-        { label: "Kind", width: "w-16" },
-        { label: "Environments", width: "w-40" },
-        { label: "Updated", width: "w-16" },
+        { label: "Key", width: "w-28", colWidth: "w-[24%]" },
+        { label: "Name", width: "w-32", colWidth: "w-[28%]" },
+        { label: "Kind", width: "w-16", colWidth: "w-[12%]" },
+        { label: "Environments", width: "w-40", colWidth: "w-[24%]" },
+        { label: "Updated", width: "w-16", colWidth: "w-[12%]" },
       ]}
     />
   );
@@ -53,13 +61,13 @@ export function KeysTableSkeleton() {
   return (
     <TableSkeleton
       columns={[
-        { label: "Key", width: "w-20" },
-        { label: "Name", width: "w-28" },
-        { label: "Kind", width: "w-14" },
-        { label: "Scope", width: "w-24" },
-        { label: "Last used", width: "w-16" },
-        { label: "Created", width: "w-16" },
-        { label: "", width: "w-12" },
+        { label: "Key", width: "w-20", colWidth: "w-[18%]" },
+        { label: "Name", width: "w-28", colWidth: "w-[20%]" },
+        { label: "Kind", width: "w-14", colWidth: "w-[12%]" },
+        { label: "Scope", width: "w-24", colWidth: "w-[18%]" },
+        { label: "Last used", width: "w-16", colWidth: "w-[14%]" },
+        { label: "Created", width: "w-16", colWidth: "w-[12%]" },
+        { label: "", width: "w-12", colWidth: "w-[6%]" },
       ]}
     />
   );
@@ -75,7 +83,7 @@ export function AuditListSkeleton({ rows = 8 }: { rows?: number }) {
         >
           <Skeleton className="h-6 w-24 rounded-full" />
           <Skeleton className="h-4 w-36" />
-          <Skeleton className="h-4 flex-1" />
+          <Skeleton className="h-4 w-64" />
           <Skeleton className="h-4 w-14" />
         </div>
       ))}

@@ -7,12 +7,21 @@
  * through the accessor helpers in api.ts.
  */
 import type { JsonValue, TargetingRule } from "@shipos/core";
+import type { Observability } from "@shipos/observability";
 
 /** Worker environment (bindings + vars from wrangler.jsonc). */
 export interface Env {
   /** Control-plane origin, e.g. https://app.shipos.app (no trailing slash). */
   SHIPOS_API_URL: string;
   MCP_OBJECT: DurableObjectNamespace;
+  // Observability — optional; degrades to console-only when unset. Tokens via
+  // `wrangler secret put`, endpoints via wrangler `vars`.
+  BETTER_STACK_SOURCE_TOKEN?: string;
+  BETTER_STACK_LOGS_ENDPOINT?: string;
+  OTEL_EXPORTER_OTLP_ENDPOINT?: string;
+  OTEL_EXPORTER_OTLP_HEADERS?: string;
+  SHIPOS_ENV?: string;
+  SHIPOS_RELEASE?: string;
 }
 
 /**
@@ -25,6 +34,8 @@ export type SessionProps = { apiKey: string };
 export interface ApiCtx {
   baseUrl: string;
   apiKey: string;
+  /** Best-effort telemetry; never carries or logs the bearer key. */
+  obs?: Observability;
 }
 
 // ---------------------------------------------------------------------------

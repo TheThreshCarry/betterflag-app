@@ -7,8 +7,14 @@
 
   // Control-plane origin the tools proxy to. Override for local dev:
   //   wrangler dev --var SHIPOS_API_URL:http://localhost:3000
+  // Observability (Better Stack). Logs AND OTLP traces both go to the
+  // "shipos-mcp" source for one-click log↔trace correlation. Endpoint is
+  // non-secret; ingest token is a SECRET (apps/mcp/.dev.vars / secret put):
+  //   echo <shipos-mcp source token> | wrangler secret put BETTER_STACK_SOURCE_TOKEN
   "vars": {
-    "SHIPOS_API_URL": "https://app.shipos.app"
+    "SHIPOS_API_URL": "https://app.shipos.app",
+    "SHIPOS_ENV": "production",
+    "BETTER_STACK_LOGS_ENDPOINT": "https://s2578182.eu-fsn-3.betterstackdata.com"
   },
 
   // The agents SDK backs each MCP session with a Durable Object.

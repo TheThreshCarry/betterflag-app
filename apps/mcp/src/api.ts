@@ -11,6 +11,11 @@ import type { ApiCtx, Flag, FlagConfig, Project } from "./types";
 
 type Method = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
 
+/** Human-readable one-liner for an unknown thrown value. */
+function errText(error: unknown): string {
+  return error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+}
+
 interface ApiRequest {
   method: Method;
   /** Path under the control-plane origin, starting with /api/v1. */
@@ -46,6 +51,25 @@ export async function apiFetch<T = unknown>(ctx: ApiCtx, req: ApiRequest): Promi
   };
   if (req.body !== undefined) headers["content-type"] = "application/json";
 
+  // The bearer key is NEVER logged — only the method/path and non-sensitive
+  // request context. Telemetry is best-effort and never changes tool behavior.
+  const log = ctx.obs?.logger.child({
+    api_method: req.method,
+    api_path: req.path,
+    ...(req.actionLabel ? { action: req.actionLabel } : {}),
+    ...(req.flagKey ? { flag_key: req.flagKey } : {}),
+    ...(req.projectSlug ? { project_slug: req.projectSlug } : {}),
+  });
+  const span = ctx.obs?.tracer.startSpan(`ShipOS API ${req.method} ${req.path}`, {
+    kind: "client",
+    attributes: {
+      "http.request.method": req.method,
+      "url.path": req.path,
+      ...(req.flagKey ? { "shipos.flag_key": req.flagKey } : {}),
+      ...(req.projectSlug ? { "shipos.project_slug": req.projectSlug } : {}),
+    },
+  });
+
   let res: Response;
   try {
     res = await fetch(`${ctx.baseUrl}${req.path}`, {
@@ -54,20 +78,35 @@ export async function apiFetch<T = unknown>(ctx: ApiCtx, req: ApiRequest): Promi
       body: req.body !== undefined ? JSON.stringify(req.body) : undefined,
     });
   } catch (e) {
+    span?.recordException(e).end();
+    log?.error("ShipOS API request could not connect", { error: errText(e) });
+    void ctx.obs?.flush();
     throw new ToolError(
       `Could not reach the ShipOS API at ${ctx.baseUrl}: ${e instanceof Error ? e.message : String(e)}. Try again in a moment.`,
     );
   }
+  span?.setAttribute("http.response.status_code", res.status);
 
   const payload = await readBody(res);
 
   if (res.status === 202 && isRecord(payload) && payload.approvalRequired === true) {
     const approvalId = typeof payload.approvalId === "string" ? payload.approvalId : "unknown";
     const message = typeof payload.message === "string" ? payload.message : undefined;
+    span?.setAttribute("shipos.approval_required", true).end();
+    log?.info("guardrail: change staged for human approval", { approval_id: approvalId });
+    void ctx.obs?.flush();
     throw new ApprovalPending(approvalId, message, req.actionLabel ?? "this change");
   }
 
-  if (!res.ok) throw mapError(res.status, payload, req);
+  if (!res.ok) {
+    span?.setStatus("error").end();
+    log?.warn("ShipOS API returned an error status", { status: res.status });
+    void ctx.obs?.flush();
+    throw mapError(res.status, payload, req);
+  }
+
+  span?.end();
+  void ctx.obs?.flush();
   return payload as T;
 }
 

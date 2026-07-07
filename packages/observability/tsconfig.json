@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // fetch / crypto / performance come from the runtime (Workers or Node 20).
+    // DOM supplies their types here; consumers bring their own ambient libs.
+    "lib": ["ES2022", "DOM"]
+  },
+  "include": ["src", "test"]
+}

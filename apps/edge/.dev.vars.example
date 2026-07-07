@@ -1,0 +1,8 @@
+# Copy to `.dev.vars` and fill in for local `wrangler dev`. In production this
+# is set with `wrangler secret put`. The logs endpoint lives in wrangler.jsonc
+# `vars`; logs + OTLP traces share this one source token (→ correlation).
+SHIPOS_ENV="development"
+# Better Stack "shipos-edge" source ingest token (used for BOTH logs and traces)
+BETTER_STACK_SOURCE_TOKEN=""
+# Optional: only set OTEL_EXPORTER_OTLP_ENDPOINT + _HEADERS to route traces to a
+# DIFFERENT source (this gives up one-click log↔trace correlation).

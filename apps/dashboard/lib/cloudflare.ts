@@ -11,6 +11,7 @@
 import { sdkKeyKvKey, snapshotKvKey, type SdkKeyKvEntry } from "@shipos/core";
 
 import { optionalEnv } from "./env";
+import { reportServerError } from "./observability";
 
 const CF_API_BASE = "https://api.cloudflare.com/client/v4";
 
@@ -66,13 +67,23 @@ export function enqueueConfigSync(message: Omit<ConfigSyncMessage, "type">): voi
   })
     .then(async (res) => {
       if (!res.ok) {
-        console.error(
-          `[cloudflare] config-sync enqueue failed: ${res.status} ${await res.text()}`,
-        );
+        const detail = await res.text();
+        console.error(`[cloudflare] config-sync enqueue failed: ${res.status} ${detail}`);
+        reportServerError("config-sync enqueue failed", {
+          status: res.status,
+          detail: detail.slice(0, 500),
+          project_id: message.projectId,
+          env: message.envSlug,
+        });
       }
     })
     .catch((err: unknown) => {
       console.error("[cloudflare] config-sync enqueue failed:", err);
+      reportServerError("config-sync enqueue failed", {
+        error: err instanceof Error ? err.message : String(err),
+        project_id: message.projectId,
+        env: message.envSlug,
+      });
     });
 }
 
@@ -97,10 +108,13 @@ async function kvWrite(key: string, body: string | null, context: string): Promi
       ...(body === null ? {} : { body }),
     });
     if (!res.ok) {
-      console.error(`[cloudflare] ${context} failed: ${res.status} ${await res.text()}`);
+      const detail = await res.text();
+      console.error(`[cloudflare] ${context} failed: ${res.status} ${detail}`);
+      reportServerError(`cloudflare ${context} failed`, { status: res.status, detail: detail.slice(0, 500) });
     }
   } catch (err) {
     console.error(`[cloudflare] ${context} failed:`, err);
+    reportServerError(`cloudflare ${context} failed`, { error: err instanceof Error ? err.message : String(err) });
   }
 }
 

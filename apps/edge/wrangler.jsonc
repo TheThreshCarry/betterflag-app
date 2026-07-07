@@ -25,6 +25,15 @@
         "queue": "shipos-events"
       }
     ]
+  },
+  // Observability (Better Stack). Logs AND OTLP traces both go to the
+  // "shipos-edge" source (same endpoint + token) for one-click log↔trace
+  // correlation. The endpoint is non-secret; the ingest token is a SECRET:
+  //   echo <shipos-edge source token> | wrangler secret put BETTER_STACK_SOURCE_TOKEN
+  // For `wrangler dev` the token comes from apps/edge/.dev.vars (gitignored).
+  "vars": {
+    "SHIPOS_ENV": "production",
+    "BETTER_STACK_LOGS_ENDPOINT": "https://s2578178.eu-fsn-3.betterstackdata.com"
   }
   // Production route — enable once DNS for edge.shipos.app is on this zone:
   // "routes": [{ "pattern": "edge.shipos.app", "custom_domain": true }]
