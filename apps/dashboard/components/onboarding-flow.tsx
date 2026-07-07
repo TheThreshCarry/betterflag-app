@@ -16,9 +16,9 @@ import {
   CopyButton,
   ErrorNote,
   Field,
-  Spinner,
   inputClass,
 } from "@/components/ui";
+import { OnboardingResumeSkeleton } from "@/components/skeletons";
 import type { ApiApiKey, ApiFlag, ApiOrg, ApiProject } from "@/lib/api-types";
 import { api } from "@/lib/client-api";
 
@@ -103,9 +103,7 @@ export function OnboardingFlow() {
 
       <main className="mx-auto max-w-2xl px-6 py-12">
         {step === "loading" ? (
-          <div className="flex h-64 items-center justify-center">
-            <Spinner className="h-6 w-6" />
-          </div>
+          <OnboardingResumeSkeleton />
         ) : step === "org" ? (
           <OrgStep
             onCreated={(createdOrg) => {

@@ -18,12 +18,13 @@ import {
   Dialog,
   ErrorNote,
   Field,
-  PageLoading,
   RelativeTime,
   Toggle,
   inputClass,
   textareaClass,
 } from "@/components/ui";
+import { FlagDetailSkeleton } from "@/components/skeletons";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { ApiFlag, ApiFlagConfigWithEnv, StatsPoint } from "@/lib/api-types";
 import { api, ApiClientError } from "@/lib/client-api";
 
@@ -145,7 +146,7 @@ export function FlagDetail({ flagId }: { flagId: string }) {
   }, [load]);
 
   if (error) return <ErrorNote message={error} />;
-  if (!data) return <PageLoading />;
+  if (!data) return <FlagDetailSkeleton />;
 
   const { flag, project } = data;
   const configs = [...data.configs].sort(
@@ -851,7 +852,7 @@ function EnvSparkline({ flagId, envSlug }: { flagId: string; envSlug: string }) 
     return { path: points, total: sum };
   }, [series]);
 
-  if (series === null) return null;
+  if (series === null) return <Skeleton className="h-6 w-28" />;
   if (series.length === 0) {
     return <span className="text-[11px] text-ink-muted/70">no evals · 24h</span>;
   }

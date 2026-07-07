@@ -8,9 +8,9 @@ import {
   EmptyState,
   ErrorNote,
   JsonBlock,
-  PageLoading,
   RelativeTime,
 } from "@/components/ui";
+import { AuditListSkeleton } from "@/components/skeletons";
 import type { ApiAuditEntry } from "@/lib/api-types";
 import { api } from "@/lib/client-api";
 
@@ -107,7 +107,7 @@ export function AuditView() {
       <ErrorNote message={error} />
 
       {!entries ? (
-        <PageLoading />
+        <AuditListSkeleton />
       ) : entries.length === 0 ? (
         <EmptyState
           title="Nothing here yet"
@@ -172,9 +172,10 @@ export function AuditView() {
       )}
 
       {entries && entries.length > 0 && !exhausted ? (
-        <div className="mt-4 flex justify-center">
+        <div className="mt-4 flex flex-col items-center gap-3">
+          {loadingMore ? <AuditListSkeleton rows={3} /> : null}
           <Button variant="secondary" size="sm" disabled={loadingMore} onClick={() => void loadMore()}>
-            {loadingMore ? "Loading…" : "Load more"}
+            Load more
           </Button>
         </div>
       ) : null}

@@ -14,9 +14,9 @@ import {
   EmptyState,
   ErrorNote,
   JsonBlock,
-  PageLoading,
   RelativeTime,
 } from "@/components/ui";
+import { ApprovalsListSkeleton } from "@/components/skeletons";
 import type { ApiApproval } from "@/lib/api-types";
 import { api } from "@/lib/client-api";
 
@@ -111,7 +111,7 @@ export function ApprovalsView() {
     return (
       <div>
         <Header />
-        <PageLoading />
+        <ApprovalsListSkeleton />
       </div>
     );
   }

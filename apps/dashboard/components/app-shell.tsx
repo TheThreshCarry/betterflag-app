@@ -12,7 +12,7 @@ import {
 } from "react";
 
 import { AppSidebar } from "@/components/app-sidebar";
-import { PageLoading, Spinner } from "@/components/ui";
+import { AppShellSkeleton } from "@/components/skeletons";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import type { ApiOrg, ApiProject } from "@/lib/api-types";
 import { api, ApiClientError } from "@/lib/client-api";
@@ -208,11 +208,7 @@ export function AppShell({
   }
 
   if (!contextValue) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Spinner className="h-6 w-6" />
-      </div>
-    );
+    return <AppShellSkeleton />;
   }
 
   return (
@@ -261,7 +257,7 @@ export function AppShell({
               </div>
             </header>
           </div>
-          <main className="mx-auto max-w-5xl flex-1 px-8 py-8">{children ?? <PageLoading />}</main>
+          <main className="mx-auto max-w-5xl flex-1 px-8 py-8">{children}</main>
         </SidebarInset>
       </SidebarProvider>
     </AppContext.Provider>

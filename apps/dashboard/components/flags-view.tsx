@@ -12,12 +12,12 @@ import {
   EmptyState,
   ErrorNote,
   Field,
-  PageLoading,
   RelativeTime,
   inputClass,
   textareaClass,
   type ChipColor,
 } from "@/components/ui";
+import { FlagsTableSkeleton } from "@/components/skeletons";
 import type { ApiFlag, ApiFlagConfig } from "@/lib/api-types";
 import { api } from "@/lib/client-api";
 
@@ -100,7 +100,14 @@ export function FlagsView() {
         <div>
           <h1 className="text-[28px] font-semibold tracking-[-0.01em]">Flags</h1>
           <p className="mt-0.5 text-[14px] text-ink-muted">
-            {activeProject.name} — {flags ? `${flags.length} flag${flags.length === 1 ? "" : "s"}` : "…"}
+            {activeProject.name}
+            {flags ? ` — ${flags.length} flag${flags.length === 1 ? "" : "s"}` : null}
+            {!flags ? (
+              <>
+                {" — "}
+                <span className="inline-block h-3.5 w-12 translate-y-0.5 animate-pulse rounded bg-line align-middle" />
+              </>
+            ) : null}
           </p>
         </div>
         <Button onClick={() => setDialogOpen(true)}>New flag</Button>
@@ -109,7 +116,7 @@ export function FlagsView() {
       <ErrorNote message={error} />
 
       {!flags ? (
-        <PageLoading />
+        <FlagsTableSkeleton />
       ) : flags.length === 0 ? (
         <EmptyState
           title="Ship your first flag"

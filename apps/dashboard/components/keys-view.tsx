@@ -12,11 +12,11 @@ import {
   EmptyState,
   ErrorNote,
   Field,
-  PageLoading,
   RelativeTime,
   inputClass,
   type ChipColor,
 } from "@/components/ui";
+import { KeysTableSkeleton } from "@/components/skeletons";
 import type { ApiApiKey } from "@/lib/api-types";
 import { api } from "@/lib/client-api";
 
@@ -96,7 +96,7 @@ export function KeysView() {
       <ErrorNote message={error} />
 
       {!keys ? (
-        <PageLoading />
+        <KeysTableSkeleton />
       ) : keys.length === 0 ? (
         <EmptyState
           title="No keys yet"

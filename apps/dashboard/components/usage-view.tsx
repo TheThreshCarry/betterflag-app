@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
-import { Button, Card, Chip, ErrorNote, PageLoading } from "@/components/ui";
+import { Button, Card, Chip, ErrorNote } from "@/components/ui";
+import { UsageSkeleton } from "@/components/skeletons";
 import type { ApiUsage } from "@/lib/api-types";
 import { api } from "@/lib/client-api";
 
@@ -40,15 +41,6 @@ export function UsageView() {
   }, [usage]);
 
   if (error) return <ErrorNote message={error} />;
-  if (!usage || !chart) return <PageLoading />;
-
-  const pctUsed = Math.min(100, (usage.used / usage.includedEvalsPerMonth) * 100);
-  const trialDaysLeft = Math.max(
-    0,
-    Math.ceil((new Date(usage.trialEndsAt).getTime() - Date.now()) / 86_400_000),
-  );
-
-  const barWidth = 100 / 30;
 
   return (
     <div>
@@ -59,9 +51,38 @@ export function UsageView() {
             Evaluations are the one meter. Flags, seats and environments are never counted.
           </p>
         </div>
-        <Chip color={usage.plan === "trial" ? "orange" : "green"}>{usage.plan} plan</Chip>
+        {usage ? (
+          <Chip color={usage.plan === "trial" ? "orange" : "green"}>{usage.plan} plan</Chip>
+        ) : (
+          <div className="h-7 w-20 animate-pulse rounded-full bg-line" />
+        )}
       </div>
 
+      {!usage || !chart ? (
+        <UsageSkeleton />
+      ) : (
+        <UsageContent usage={usage} chart={chart} />
+      )}
+    </div>
+  );
+}
+
+function UsageContent({
+  usage,
+  chart,
+}: {
+  usage: ApiUsage;
+  chart: { days: { day: string; evaluations: number }[]; max: number };
+}) {
+  const pctUsed = Math.min(100, (usage.used / usage.includedEvalsPerMonth) * 100);
+  const trialDaysLeft = Math.max(
+    0,
+    Math.ceil((new Date(usage.trialEndsAt).getTime() - Date.now()) / 86_400_000),
+  );
+  const barWidth = 100 / 30;
+
+  return (
+    <>
       {usage.plan === "trial" ? (
         <div className="mb-6 flex items-center justify-between rounded-3xl border border-line bg-surface px-6 py-4">
           <div>
@@ -149,6 +170,6 @@ export function UsageView() {
           </Card>
         </div>
       </div>
-    </div>
+    </>
   );
 }
