@@ -48,7 +48,7 @@ export async function apiFetch<T = unknown>(ctx: ApiCtx, req: ApiRequest): Promi
   };
   if (req.body !== undefined) headers["content-type"] = "application/json";
 
-  // The bearer key is NEVER logged — only the method/path and non-sensitive
+  // The bearer key is NEVER logged, only the method/path and non-sensitive
   // request context. Telemetry is best-effort and never changes tool behavior.
   const log = ctx.obs?.logger.child({
     api_method: req.method,
@@ -105,7 +105,7 @@ function mapError(status: number, payload: unknown, req: ApiRequest): ToolError 
   switch (status) {
     case 401:
       return new ToolError(
-        "ShipOS rejected this agent key — it is invalid or has been revoked. " +
+        "ShipOS rejected this agent key, it is invalid or has been revoked. " +
           "Create a new agent key in the ShipOS dashboard under Keys and reconnect the MCP server with it.",
       );
     case 403:
@@ -209,7 +209,7 @@ export async function listProjects(ctx: ApiCtx): Promise<Project[]> {
   const payload = await apiFetch(ctx, { method: "GET", path: "/api/v1/projects" });
   const projects = pluckArray<Project>(payload, PROJECT_KEYS);
   if (!projects) {
-    throw new ToolError("Unexpected response from GET /api/v1/projects — could not find a project list.");
+    throw new ToolError("Unexpected response from GET /api/v1/projects, could not find a project list.");
   }
   return projects;
 }
@@ -218,7 +218,7 @@ function projectLabel(p: Project): string {
   const envs = (p.environments ?? [])
     .map((e) => e.slug ?? e.name)
     .filter((s): s is string => typeof s === "string");
-  const envNote = envs.length > 0 ? ` — envs: ${envs.join(", ")}` : "";
+  const envNote = envs.length > 0 ? `, envs: ${envs.join(", ")}` : "";
   return `  • ${p.slug ?? p.id}${p.name && p.name !== p.slug ? ` (${p.name})` : ""}${envNote}`;
 }
 
@@ -250,7 +250,7 @@ export async function resolveProject(ctx: ApiCtx, projectSlug: string | undefine
   if (projects.length === 1 && only) return only;
 
   throw new ToolError(
-    `This organization has ${projects.length} projects — pass projectSlug to pick one:\n` +
+    `This organization has ${projects.length} projects, pass projectSlug to pick one:\n` +
       projects.map(projectLabel).join("\n"),
     { isError: false },
   );
@@ -273,7 +273,7 @@ export async function resolveFlag(
   const project = await resolveProject(ctx, projectSlug);
   const slug = project.slug ?? projectSlug;
   if (!slug) {
-    throw new ToolError(`Project ${project.id} has no slug in the API response — cannot use /flags/lookup.`);
+    throw new ToolError(`Project ${project.id} has no slug in the API response, cannot use /flags/lookup.`);
   }
   const payload = await apiFetch(ctx, {
     method: "GET",
@@ -283,7 +283,7 @@ export async function resolveFlag(
   });
   const flag = normalizeFlag(payload);
   if (!flag) {
-    throw new ToolError(`Unexpected response from GET /api/v1/flags/lookup for "${key}" — no flag in payload.`);
+    throw new ToolError(`Unexpected response from GET /api/v1/flags/lookup for "${key}", no flag in payload.`);
   }
   return { project, flag };
 }

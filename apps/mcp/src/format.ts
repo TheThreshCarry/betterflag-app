@@ -1,6 +1,6 @@
 /**
  * Human/agent-readable rendering of control-plane resources.
- * Compact, deterministic text — no markdown tables, no giant JSON dumps.
+ * Compact, deterministic text, no markdown tables, no giant JSON dumps.
  */
 import type { TargetingRule } from "@shipos/core";
 import { configsOf, isKilled, rolloutPctOf } from "./api";
@@ -16,7 +16,7 @@ export function envStateBadge(cfg: FlagConfig): string {
 }
 
 export function flagSummaryLine(flag: Flag): string {
-  const name = flag.name && flag.name !== flag.key ? ` — ${flag.name}` : "";
+  const name = flag.name && flag.name !== flag.key ? `, ${flag.name}` : "";
   const kind = flag.kind ? ` [${flag.kind}]` : "";
   const header = `• ${flag.key}${name}${kind}`;
   const envs = configsOf(flag)
@@ -31,13 +31,13 @@ export function renderRule(rule: TargetingRule, index: number): string {
       ? "matches everyone"
       : rule.conditions.map((c) => `${c.attribute} ${c.op} ${JSON.stringify(c.value)}`).join(" AND ");
   const pct = rule.rolloutPct !== undefined ? ` to ${rule.rolloutPct}% of matches` : "";
-  const desc = rule.description ? ` — ${rule.description}` : "";
+  const desc = rule.description ? `, ${rule.description}` : "";
   return `    ${index + 1}. [${rule.id}] ${conds} → serve ${rule.serve}${pct}${desc}`;
 }
 
 export function flagDetail(flag: Flag, projectSlug: string | undefined): string {
   const lines: string[] = [];
-  const name = flag.name && flag.name !== flag.key ? ` — ${flag.name}` : "";
+  const name = flag.name && flag.name !== flag.key ? `, ${flag.name}` : "";
   lines.push(`🚩 ${flag.key}${name}`);
 
   const meta: string[] = [];

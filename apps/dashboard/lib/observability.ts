@@ -5,7 +5,7 @@
  * API call, spans the request, logs the outcome, and flushes before the
  * response returns. For best-effort structured logs from deeper library code
  * (Cloudflare/ClickHouse helpers) that isn't on the request-object path, use
- * `reportServer*` — it mirrors to console and ships to Better Stack without
+ * `reportServer*`, it mirrors to console and ships to Better Stack without
  * blocking the caller.
  *
  * Env read (see @shipos/observability `readObservability`):
@@ -13,10 +13,12 @@
  *   OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_EXPORTER_OTLP_HEADERS  (traces)
  */
 import {
+  formatRelease,
   readObservability,
   type Fields,
   type Observability,
 } from "@shipos/observability";
+import { VERSION } from "./version.gen";
 
 const SERVICE = "shipos-dashboard";
 
@@ -29,8 +31,15 @@ function environment(): string {
   );
 }
 
-function release(): string | undefined {
-  return process.env.SHIPOS_RELEASE ?? process.env.VERCEL_GIT_COMMIT_SHA;
+function release(): string {
+  // VERSION (this app's committed semver) + the deploy's git commit, so every
+  // log/error/trace traces back to exact code. On Vercel the commit comes from
+  // VERCEL_GIT_COMMIT_SHA; SHIPOS_RELEASE, if set, is used verbatim.
+  return formatRelease({
+    version: VERSION,
+    gitSha: process.env.SHIPOS_GIT_SHA ?? process.env.VERCEL_GIT_COMMIT_SHA,
+    override: process.env.SHIPOS_RELEASE,
+  });
 }
 
 /** A fresh, isolated Observability for a single API request. */

@@ -1,0 +1,58 @@
+name: Version bump
+
+# Auto-bump each changed app's SemVer (https://semver.org) from Conventional
+# Commits, then commit the bump back to main and tag it. Runs after code lands
+# on main; the deploy workflow then ships the freshly-versioned worker.
+#
+# Loop-safe: the bot commits with [skip ci], and pushes made with GITHUB_TOKEN
+# do not re-trigger `on: push` workflows.
+#
+# NOTE: this pushes directly to main. If main is a protected branch, allow
+# github-actions[bot] to bypass the protection, or switch to the PR-branch
+# model described in docs/versioning.md.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: version-bump-main
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') && github.actor != 'github-actions[bot]' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Compute + apply SemVer bumps
+        id: bump
+        env:
+          BASE_SHA: ${{ github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: node scripts/auto-version.mjs
+
+      - name: Commit, tag, and push
+        if: ${{ steps.bump.outputs.bumped != '' && steps.bump.outputs.bumped != 'none' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore(release): bump ${{ steps.bump.outputs.bumped }} (${{ steps.bump.outputs.level }}) [skip ci]"
+          for app in $(echo "${{ steps.bump.outputs.bumped }}" | tr ',' ' '); do
+            dir="apps/$app"
+            v=$(node -e "process.stdout.write(require('./'+process.argv[1]+'/package.json').version)" "$dir")
+            git tag "${app}-v${v}"
+            echo "tagged ${app}-v${v}"
+          done
+          git push --follow-tags origin HEAD:main

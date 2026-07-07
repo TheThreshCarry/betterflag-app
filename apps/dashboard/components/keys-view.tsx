@@ -2,7 +2,7 @@
 
 import { PLAN_LIMITS } from "@shipos/db";
 import { useRouter } from "next/navigation";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useApp } from "@/components/app-shell";
 import {
@@ -40,15 +40,15 @@ const KIND_COLORS: Record<ApiApiKey["kind"], ChipColor> = {
 const KIND_EXPLAINERS: Record<ApiApiKey["kind"], { title: string; body: string }> = {
   sdk: {
     title: "SDK key",
-    body: "Publishable. Evaluates flags at the edge for one project + environment. Safe to ship in clients — it can never change config.",
+    body: "Publishable. Evaluates flags at the edge for one project + environment. Safe to ship in clients, it can never change config.",
   },
   agent: {
     title: "Agent key",
-    body: "For AI agents and automations. Full flag control — create, target, roll out, and kill flags via the MCP server or REST API.",
+    body: "For AI agents and automations. Full flag control, create, target, roll out, and kill flags via the MCP server or REST API.",
   },
   admin: {
     title: "Admin key",
-    body: "Full control plane access for CI and scripts — treat it like a password.",
+    body: "Full control plane access for CI and scripts, treat it like a password.",
   },
 };
 
@@ -67,7 +67,11 @@ export function KeysView({ initialKeys }: { initialKeys: ApiApiKey[] }) {
 
   const agentLimit = PLAN_LIMITS[org.plan].agentKeys;
   const activeAgentKeys = useMemo(
-    () => keys.filter((key) => key.kind === "agent" && key.revokedAt === null).length,
+    // OAuth-connection keys are exempt from the plan agent-key limit.
+    () =>
+      keys.filter(
+        (key) => key.kind === "agent" && key.revokedAt === null && key.source !== "oauth",
+      ).length,
     [keys],
   );
 
@@ -75,7 +79,7 @@ export function KeysView({ initialKeys }: { initialKeys: ApiApiKey[] }) {
     (projectId: string | null, environmentId: string | null) => {
       if (!projectId) return "org-wide";
       const project = projects.find((p) => p.id === projectId);
-      if (!project) return "—";
+      if (!project) return "-";
       const env = environmentId
         ? project.environments.find((e) => e.id === environmentId)
         : null;
@@ -114,9 +118,16 @@ export function KeysView({ initialKeys }: { initialKeys: ApiApiKey[] }) {
                   <td className="px-5 py-3.5 font-mono text-[13px]">{key.prefix}…</td>
                   <td className="px-5 py-3.5">{key.name}</td>
                   <td className="px-5 py-3.5">
-                    <Chip color={KIND_COLORS[key.kind]} className="!px-2.5 !py-0.5 text-[12px]">
-                      {key.kind}
-                    </Chip>
+                    <span className="inline-flex items-center gap-1.5">
+                      <Chip color={KIND_COLORS[key.kind]} className="!px-2.5 !py-0.5 text-[12px]">
+                        {key.kind}
+                      </Chip>
+                      {key.source === "oauth" ? (
+                        <Chip color="gray" className="!px-2.5 !py-0.5 text-[12px]">
+                          oauth
+                        </Chip>
+                      ) : null}
+                    </span>
                   </td>
                   <td className="px-5 py-3.5 font-mono text-[12px] text-ink-muted">
                     {projectName(key.projectId, key.environmentId)}

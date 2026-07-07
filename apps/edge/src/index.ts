@@ -1,11 +1,11 @@
 /**
- * ShipOS edge worker — flag evaluation at the edge (edge.shipos.app).
+ * ShipOS edge worker, flag evaluation at the edge (edge.shipos.app).
  *
  * Hot-path budget (p50 < 10 ms): one KV read for the SDK key, one KV read
  * for the snapshot, nothing else. Evaluation events are fire-and-forget via
  * `ctx.waitUntil` and must never block or fail the response.
  *
- * All evaluation logic lives in `@shipos/core` — this worker only does
+ * All evaluation logic lives in `@shipos/core`, this worker only does
  * routing, auth, and transport. See docs/CONTRACTS.md.
  */
 import {
@@ -29,11 +29,12 @@ import type {
   ProjectSnapshot,
   SdkKeyKvEntry,
 } from "@shipos/core";
-import { readObservability, type Logger, type Observability, type Span } from "@shipos/observability";
+import { formatRelease, readObservability, type Logger, type Observability, type Span } from "@shipos/observability";
+import { VERSION } from "./version.gen";
 import { z } from "zod";
 
 // ---------------------------------------------------------------------------
-// Environment (structural types so tests can pass plain fakes — no miniflare)
+// Environment (structural types so tests can pass plain fakes, no miniflare)
 // ---------------------------------------------------------------------------
 
 /** The slice of a KVNamespace this worker uses. */
@@ -49,7 +50,7 @@ export interface EventsQueueLike {
 export interface EdgeEnv {
   CONFIG_KV: ConfigKvLike;
   EVENTS: EventsQueueLike;
-  // Observability config — all optional so unit tests can pass plain fakes and
+  // Observability config, all optional so unit tests can pass plain fakes and
   // so the worker degrades to console-only logging when unset. Tokens are set
   // via `wrangler secret put`; endpoints via wrangler `vars`.
   BETTER_STACK_SOURCE_TOKEN?: string;
@@ -57,6 +58,9 @@ export interface EdgeEnv {
   OTEL_EXPORTER_OTLP_ENDPOINT?: string;
   OTEL_EXPORTER_OTLP_HEADERS?: string;
   SHIPOS_ENV?: string;
+  /** Deploy-time git commit; appended to VERSION as the release. */
+  SHIPOS_GIT_SHA?: string;
+  /** Fully-formed release override (wins over VERSION + git sha) if set. */
   SHIPOS_RELEASE?: string;
 }
 
@@ -92,7 +96,7 @@ function errText(error: unknown): string {
 // Schemas (zod at every boundary)
 // ---------------------------------------------------------------------------
 
-/** KV value at `key:{prefix}` — see CONTRACTS.md "API keys". */
+/** KV value at `key:{prefix}`, see CONTRACTS.md "API keys". */
 export const sdkKeyKvEntrySchema = z.object({
   orgId: z.string(),
   projectId: z.string(),
@@ -139,7 +143,7 @@ function errorResponse(status: number, code: string, message: string): Response 
 }
 
 // ---------------------------------------------------------------------------
-// Auth — resolve the presented SDK key from KV, verify hash, reject revoked
+// Auth, resolve the presented SDK key from KV, verify hash, reject revoked
 // ---------------------------------------------------------------------------
 
 export type AuthResult =
@@ -188,7 +192,7 @@ export async function loadSnapshot(
   if (raw === null || raw === undefined) return null;
   const parsed = projectSnapshotSchema.safeParse(raw);
   if (!parsed.success) {
-    // Corrupt snapshot fails open to not_found/defaults — never a 500.
+    // Corrupt snapshot fails open to not_found/defaults, never a 500.
     console.error(`invalid snapshot in KV for ${projectId}/${envSlug}: ${parsed.error.message}`);
     return null;
   }
@@ -196,7 +200,7 @@ export async function loadSnapshot(
 }
 
 // ---------------------------------------------------------------------------
-// Events — fire-and-forget, chunked ≤100 per sendBatch
+// Events, fire-and-forget, chunked ≤100 per sendBatch
 // ---------------------------------------------------------------------------
 
 const EVENTS_CHUNK_SIZE = 100;
@@ -295,7 +299,7 @@ export async function handleEvaluate(
   let version: number;
   let results: EvaluationResult[];
   if (snapshot === null) {
-    // Missing snapshot: SDKs fall back to their defaults — never a 500.
+    // Missing snapshot: SDKs fall back to their defaults, never a 500.
     obs?.log.warn("evaluate: snapshot miss, returning SDK defaults", {
       project_id: entry.projectId,
       env: entry.envSlug,
@@ -427,14 +431,14 @@ export async function handleRequest(
 const handler = {
   async fetch(request, env, ctx): Promise<Response> {
     const url = new URL(request.url);
-    // CORS preflight is hot and uninteresting — answer it without telemetry.
+    // CORS preflight is hot and uninteresting, answer it without telemetry.
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: { ...PREFLIGHT_HEADERS } });
     }
 
     const obs = readObservability(env as unknown as Record<string, unknown>, "shipos-edge", {
       environment: env.SHIPOS_ENV,
-      release: env.SHIPOS_RELEASE,
+      release: formatRelease({ version: VERSION, gitSha: env.SHIPOS_GIT_SHA, override: env.SHIPOS_RELEASE }),
     });
     const requestId = request.headers.get("cf-ray") ?? crypto.randomUUID();
     const span = obs.tracer.startSpan(`${request.method} ${url.pathname}`, {
@@ -474,7 +478,7 @@ const handler = {
       else log.info("request", fields);
     }
 
-    // Ship logs + spans after the response is sent — never blocks the hot path.
+    // Ship logs + spans after the response is sent, never blocks the hot path.
     obs.flushTo(ctx.waitUntil.bind(ctx));
     return response;
   },

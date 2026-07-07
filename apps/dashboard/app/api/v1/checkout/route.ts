@@ -13,7 +13,7 @@ const checkoutSchema = z.object({
 
 /**
  * Start a Polar hosted checkout for the caller's org. Intentionally NOT
- * billing-gated — a restricted (past-due) org must be able to pay to recover.
+ * billing-gated, a restricted (past-due) org must be able to pay to recover.
  */
 export const POST = withErrors(async (request: NextRequest) => {
   const actor = await resolveActor(request);

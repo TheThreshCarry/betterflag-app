@@ -40,6 +40,20 @@ function GoogleIcon() {
 type Busy = "password" | "magic" | "github" | "google" | null;
 type Notice = { kind: "magic" | "confirm"; email: string } | null;
 
+/**
+ * Post-login destination (e.g. the MCP OAuth consent screen). Read from
+ * window at call time, no useSearchParams, so no Suspense boundary needed.
+ */
+function nextPath(): string {
+  const next = new URLSearchParams(window.location.search).get("next");
+  return next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
+}
+
+/** /auth/callback URL that lands on nextPath() after the code exchange. */
+function callbackUrl(): string {
+  return `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath())}`;
+}
+
 export default function LoginPage() {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
@@ -58,7 +72,7 @@ export default function LoginPage() {
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+        options: { emailRedirectTo: callbackUrl() },
       });
       setBusy(null);
       if (signUpError) {
@@ -70,7 +84,7 @@ export default function LoginPage() {
         setNotice({ kind: "confirm", email });
         return;
       }
-      window.location.assign("/");
+      window.location.assign(nextPath());
       return;
     }
 
@@ -83,7 +97,7 @@ export default function LoginPage() {
       setError(signInError.message);
       return;
     }
-    window.location.assign("/");
+    window.location.assign(nextPath());
   }
 
   async function sendMagicLink() {
@@ -96,7 +110,7 @@ export default function LoginPage() {
     const supabase = createBrowserSupabase();
     const { error: otpError } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      options: { emailRedirectTo: callbackUrl() },
     });
     setBusy(null);
     if (otpError) {
@@ -112,7 +126,7 @@ export default function LoginPage() {
     const supabase = createBrowserSupabase();
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: callbackUrl() },
     });
     if (oauthError) {
       setBusy(null);

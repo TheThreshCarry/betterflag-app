@@ -19,7 +19,7 @@ import { z } from "zod";
 export { targetingRulesSchema };
 
 // ---------------------------------------------------------------------------
-// Input-only schemas (for MCP tool `inputSchema`) — see file header.
+// Input-only schemas (for MCP tool `inputSchema`), see file header.
 // ---------------------------------------------------------------------------
 
 export const jsonValueInputSchema = z.unknown();

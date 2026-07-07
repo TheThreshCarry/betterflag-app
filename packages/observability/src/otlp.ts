@@ -7,7 +7,7 @@
  * Spec: https://betterstack.com/docs/logs/ingesting-data/http/traces/
  */
 
-/** OTLP `AnyValue` — the subset of scalar types we emit. */
+/** OTLP `AnyValue`, the subset of scalar types we emit. */
 export type OtlpAnyValue =
   | { stringValue: string }
   | { boolValue: boolean }

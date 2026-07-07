@@ -1,6 +1,6 @@
 /**
  * Onboarding-only endpoints, session auth ONLY (no API keys): creating an
- * org is the single mutation that does not go through a Postgres RPC —
+ * org is the single mutation that does not go through a Postgres RPC -
  * org insert + owner membership + audit with the service client.
  */
 

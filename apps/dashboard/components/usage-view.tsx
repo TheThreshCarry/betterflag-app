@@ -87,7 +87,7 @@ function UsageContent({
         <div className="mb-6 flex items-center justify-between rounded-3xl border border-line bg-surface px-6 py-4">
           <div>
             <p className="text-[14px] font-medium">
-              Trial —{" "}
+              Trial -{" "}
               <span className="text-chip-orange">
                 {trialDaysLeft} day{trialDaysLeft === 1 ? "" : "s"} left
               </span>

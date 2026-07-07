@@ -2,7 +2,7 @@
 
 React hooks for [ShipOS](https://shipos.app) feature flags. SSR-safe,
 `useSyncExternalStore`-based, live-updating. Built on
-[`@shipos/sdk`](https://www.npmjs.com/package/@shipos/sdk) — same guarantee:
+[`@shipos/sdk`](https://www.npmjs.com/package/@shipos/sdk), same guarantee:
 hooks never throw on network failure, they fall back to your defaults.
 
 ```bash
@@ -125,7 +125,7 @@ export default async function Page() {
 
 Tip: pass server-evaluated values to the provider's `bootstrap` prop
 (e.g. from `await shipos.allFlags(ctx)`) so the first client render already
-shows real values instead of defaults — still hydration-safe.
+shows real values instead of defaults, still hydration-safe.
 
 ## API
 

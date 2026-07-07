@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
+    "deploy": "wrangler deploy --var SHIPOS_GIT_SHA:$(git rev-parse --short=7 HEAD 2>/dev/null || echo unknown)",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@cloudflare/workers-oauth-provider": "^0.8.1",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@shipos/core": "workspace:*",
     "@shipos/observability": "workspace:*",

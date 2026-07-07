@@ -32,7 +32,7 @@ function cfAuth(context: string): CfAuth | null {
   const accountId = optionalEnv("CF_ACCOUNT_ID");
   const apiToken = optionalEnv("CF_API_TOKEN");
   if (!accountId || !apiToken) {
-    console.warn(`[cloudflare] ${context} skipped — CF_ACCOUNT_ID / CF_API_TOKEN unset`);
+    console.warn(`[cloudflare] ${context} skipped, CF_ACCOUNT_ID / CF_API_TOKEN unset`);
     return null;
   }
   return { accountId, apiToken };
@@ -40,7 +40,7 @@ function cfAuth(context: string): CfAuth | null {
 
 /**
  * Enqueue a config-sync message for the ingest worker. Fire-and-forget:
- * failures are logged, never thrown — the KV fast path and the nightly
+ * failures are logged, never thrown, the KV fast path and the nightly
  * reconciliation cover redelivery.
  */
 export function enqueueConfigSync(message: Omit<ConfigSyncMessage, "type">): void {
@@ -48,7 +48,7 @@ export function enqueueConfigSync(message: Omit<ConfigSyncMessage, "type">): voi
   const queueId = optionalEnv("CF_QUEUE_CONFIG_SYNC_ID");
   if (!auth || !queueId) {
     if (auth && !queueId) {
-      console.warn("[cloudflare] config-sync enqueue skipped — CF_QUEUE_CONFIG_SYNC_ID unset");
+      console.warn("[cloudflare] config-sync enqueue skipped, CF_QUEUE_CONFIG_SYNC_ID unset");
     }
     return;
   }
@@ -92,7 +92,7 @@ async function kvWrite(key: string, body: string | null, context: string): Promi
   const namespaceId = optionalEnv("CF_KV_NAMESPACE_ID");
   if (!auth || !namespaceId) {
     if (auth && !namespaceId) {
-      console.warn(`[cloudflare] ${context} skipped — CF_KV_NAMESPACE_ID unset`);
+      console.warn(`[cloudflare] ${context} skipped, CF_KV_NAMESPACE_ID unset`);
     }
     return;
   }

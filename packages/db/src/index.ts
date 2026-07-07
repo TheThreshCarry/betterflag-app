@@ -1,7 +1,7 @@
 /**
  * Hand-written row types matching supabase/migrations. Replace with
  * generated types (`pnpm gen-types`) once the migration is applied to a
- * linked Supabase project — the shapes must stay identical.
+ * linked Supabase project, the shapes must stay identical.
  */
 
 import type { JsonValue } from "@shipos/core";

@@ -12,6 +12,7 @@ import type {
   AuditLogRow,
   ActorTypeDb,
   ApiKeyKindDb,
+  ApiKeySourceDb,
   EnvironmentRow,
   FlagConfigRow,
   FlagKindDb,
@@ -78,6 +79,7 @@ export interface ApiApiKey {
   name: string;
   prefix: string;
   scopes: string[];
+  source: ApiKeySourceDb;
   lastUsedAt: string | null;
   createdAt: string;
   revokedAt: string | null;
@@ -207,6 +209,7 @@ export function toApiApiKey(row: ApiKeyRow): ApiApiKey {
     name: row.name,
     prefix: row.prefix,
     scopes: row.scopes,
+    source: row.source,
     lastUsedAt: row.last_used_at,
     createdAt: row.created_at,
     revokedAt: row.revoked_at,

@@ -22,7 +22,7 @@ export interface CheckoutRequestInput {
   customerEmail?: string | null;
 }
 
-/** Build the Polar checkout payload (pure — unit tested). */
+/** Build the Polar checkout payload (pure, unit tested). */
 export function buildCheckoutRequest(input: CheckoutRequestInput) {
   return {
     products: [input.productId],

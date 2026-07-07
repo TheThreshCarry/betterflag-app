@@ -1,7 +1,7 @@
 /**
  * Wire types for the ShipOS edge evaluation API (edge.shipos.app).
  *
- * These are intentionally local copies of the shapes in `@shipos/core` —
+ * These are intentionally local copies of the shapes in `@shipos/core` -
  * this package publishes standalone with zero dependencies, so it must not
  * import from workspace-internal packages. If the wire format changes in
  * docs/CONTRACTS.md, update these in the same PR.

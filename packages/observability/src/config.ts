@@ -91,7 +91,7 @@ export function formatRelease(opts: {
 }
 
 /**
- * Parse `OTEL_EXPORTER_OTLP_HEADERS` — a comma-separated list of `key=value`
+ * Parse `OTEL_EXPORTER_OTLP_HEADERS`, a comma-separated list of `key=value`
  * pairs (only the first `=` is a separator, so `Authorization=Bearer x` works).
  */
 export function parseOtlpHeaders(raw: string | undefined): Record<string, string> {
@@ -119,14 +119,14 @@ export interface ReadObservabilityOptions {
 /**
  * Build an Observability from a conventional environment bag. Reads:
  *   BETTER_STACK_SOURCE_TOKEN, BETTER_STACK_LOGS_ENDPOINT   (logs)
- *   OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_EXPORTER_OTLP_HEADERS (traces — optional override)
+ *   OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_EXPORTER_OTLP_HEADERS (traces, optional override)
  *   SHIPOS_ENV / ENVIRONMENT, SHIPOS_RELEASE                (resource attrs)
  * Missing values degrade gracefully to console-only / no-op tracing.
  *
  * By default traces are sent to the SAME source as logs (the per-service
  * BETTER_STACK source), which gives Better Stack one-click log↔trace
  * correlation. Set OTEL_EXPORTER_OTLP_ENDPOINT (+ _HEADERS) only if you want to
- * route traces to a *different* destination — doing so gives up correlation.
+ * route traces to a *different* destination, doing so gives up correlation.
  */
 export function readObservability(
   env: EnvLike,

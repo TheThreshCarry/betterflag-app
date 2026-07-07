@@ -82,7 +82,7 @@ type RouteContext<P> = { params: Promise<P> };
 /**
  * Wrap an API route handler with uniform error mapping AND observability:
  * a per-request server span, structured request logging (method, path, status,
- * duration), and error capture — all shipped to Better Stack before the
+ * duration), and error capture, all shipped to Better Stack before the
  * response returns. Telemetry never changes the handler's response.
  */
 export function withErrors<P = Record<string, never>>(
@@ -121,7 +121,7 @@ export function withErrors<P = Record<string, never>>(
       const response = handleError(err, log);
       span.recordException(err).setAttribute("http.response.status_code", response.status).end();
       if (response.status < 500) {
-        // Expected, mapped errors (validation, conflicts, not-found) — info level.
+        // Expected, mapped errors (validation, conflicts, not-found), info level.
         log.info("request", { status: response.status, duration_ms: round(span.durationMs()) });
       }
       return response;

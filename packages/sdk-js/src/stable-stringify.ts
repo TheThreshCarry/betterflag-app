@@ -3,7 +3,7 @@ import type { JsonValue } from "./types";
 /**
  * Deterministic JSON serialization: object keys are emitted in sorted order
  * at every depth, so two structurally-equal values always produce the same
- * string. Used to build evaluation cache keys — `{a:1,b:2}` and `{b:2,a:1}`
+ * string. Used to build evaluation cache keys, `{a:1,b:2}` and `{b:2,a:1}`
  * must hit the same cache entry.
  *
  * `undefined` (only possible at the top level or as a skipped object

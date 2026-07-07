@@ -13,9 +13,24 @@
   //   echo <shipos-mcp source token> | wrangler secret put BETTER_STACK_SOURCE_TOKEN
   "vars": {
     "SHIPOS_API_URL": "https://app.shipos.app",
+    "SHIPOS_DASHBOARD_URL": "https://app.shipos.app",
     "SHIPOS_ENV": "production",
     "BETTER_STACK_LOGS_ENDPOINT": "https://s2578182.eu-fsn-3.betterstackdata.com"
   },
+
+  // OAuth token/grant/client storage for @cloudflare/workers-oauth-provider
+  // (the binding name OAUTH_KV is required by the library). Create with:
+  //   wrangler kv namespace create OAUTH_KV
+  // then paste the returned id below.
+  // The consent flow also needs a shared secret (same value in the
+  // dashboard's MCP_OAUTH_SHARED_SECRET env):
+  //   openssl rand -hex 32 | wrangler secret put MCP_OAUTH_SHARED_SECRET
+  "kv_namespaces": [
+    {
+      "binding": "OAUTH_KV",
+      "id": "<create with: wrangler kv namespace create OAUTH_KV>"
+    }
+  ],
 
   // The agents SDK backs each MCP session with a Durable Object.
   "durable_objects": {
@@ -33,7 +48,7 @@
     }
   ],
 
-  // Production custom domain — enable once the shipos.app zone is on this
+  // Production custom domain, enable once the shipos.app zone is on this
   // account. For the test deploy the worker is reachable at its workers.dev URL.
   // "routes": [
   //   { "pattern": "mcp.shipos.app", "custom_domain": true }

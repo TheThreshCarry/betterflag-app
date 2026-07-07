@@ -7,7 +7,7 @@
 export function randomHex(byteLength: number): string {
   const bytes = new Uint8Array(byteLength);
   // Unqualified `crypto` is an ambient global in Workers, the DOM lib, and
-  // Node 20 — using `globalThis.crypto` would not typecheck under workers-types.
+  // Node 20, using `globalThis.crypto` would not typecheck under workers-types.
   crypto.getRandomValues(bytes);
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }

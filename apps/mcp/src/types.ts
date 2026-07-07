@@ -6,6 +6,7 @@
  * are deliberately tolerant: optional fields plus snake_case fallbacks, read
  * through the accessor helpers in api.ts.
  */
+import type { OAuthHelpers } from "@cloudflare/workers-oauth-provider";
 import type { JsonValue, TargetingRule } from "@shipos/core";
 import type { Observability } from "@shipos/observability";
 
@@ -13,22 +14,48 @@ import type { Observability } from "@shipos/observability";
 export interface Env {
   /** Control-plane origin, e.g. https://app.shipos.app (no trailing slash). */
   SHIPOS_API_URL: string;
+  /** Dashboard origin hosting the OAuth consent screen (no trailing slash). */
+  SHIPOS_DASHBOARD_URL: string;
   MCP_OBJECT: DurableObjectNamespace;
-  // Observability — optional; degrades to console-only when unset. Tokens via
+  /** Token/grant/client storage for @cloudflare/workers-oauth-provider. */
+  OAUTH_KV: KVNamespace;
+  /**
+   * Injected by OAuthProvider into handlers it wraps; absent on the legacy
+   * direct-bearer path (we never call it there).
+   */
+  OAUTH_PROVIDER?: OAuthHelpers;
+  /**
+   * SECRET, shared with the dashboard; authenticates the server-to-server
+   * consent endpoints (/internal/oauth/*). `wrangler secret put MCP_OAUTH_SHARED_SECRET`.
+   */
+  MCP_OAUTH_SHARED_SECRET?: string;
+  // Observability, optional; degrades to console-only when unset. Tokens via
   // `wrangler secret put`, endpoints via wrangler `vars`.
   BETTER_STACK_SOURCE_TOKEN?: string;
   BETTER_STACK_LOGS_ENDPOINT?: string;
   OTEL_EXPORTER_OTLP_ENDPOINT?: string;
   OTEL_EXPORTER_OTLP_HEADERS?: string;
   SHIPOS_ENV?: string;
+  /** Deploy-time git commit; appended to VERSION as the release. */
+  SHIPOS_GIT_SHA?: string;
+  /** Fully-formed release override (wins over VERSION + git sha) if set. */
   SHIPOS_RELEASE?: string;
 }
 
 /**
- * Per-session props handed from the Worker fetch handler to the McpAgent via
- * `ctx.props`. Holds the caller's bearer key; never logged.
+ * Per-session props handed to the McpAgent via `ctx.props`, set directly by
+ * the Worker fetch handler on the legacy bearer path, or decrypted from the
+ * OAuth grant by workers-oauth-provider. Holds the caller's ShipOS key
+ * (for OAuth grants, the per-connection sos_agt_ key minted at consent);
+ * never logged.
  */
-export type SessionProps = { apiKey: string };
+export type SessionProps = {
+  apiKey: string;
+  /** Present on OAuth-grant sessions only. */
+  orgId?: string;
+  keyPrefix?: string;
+  via?: "bearer" | "oauth";
+};
 
 /** Everything a tool needs to talk to the control plane. */
 export interface ApiCtx {

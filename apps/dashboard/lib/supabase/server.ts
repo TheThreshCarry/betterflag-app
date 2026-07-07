@@ -1,10 +1,10 @@
 /**
  * Server-side Supabase clients.
  *
- * - `createSessionClient` — per-request, cookie-bound client used for
+ * - `createSessionClient`, per-request, cookie-bound client used for
  *   session auth (dashboard users). Safe in server components, route
  *   handlers and server actions.
- * - `createServiceClient` — service-role client for control plane
+ * - `createServiceClient`, service-role client for control plane
  *   mutations (RPCs, key lookups). Server-only: importing this
  *   module from a client component will fail at runtime because
  *   SUPABASE_SERVICE_ROLE_KEY is never exposed to the browser.

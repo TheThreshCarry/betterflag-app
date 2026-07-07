@@ -3,7 +3,7 @@
  *
  * This file is the SEED for Polar: `scripts/polar-setup.ts` reads it to create
  * the evaluations meter, the included-unit (meter-credit) benefits and the
- * three products. At runtime, Polar is the source of truth — `lib/pricing.ts`
+ * three products. At runtime, Polar is the source of truth, `lib/pricing.ts`
  * reads pricing back out of Polar and both the dashboard and the landing page
  * render from it. This spec is also the safe fallback used when Polar can't be
  * reached, so the two stay in lockstep.
@@ -41,7 +41,7 @@ export interface PricingTier {
   cta: string;
   /** Ordering weight (ascending). */
   sort: number;
-  /** Polar product id — present when the tier came from Polar. */
+  /** Polar product id, present when the tier came from Polar. */
   productId?: string;
 }
 
@@ -135,7 +135,7 @@ export const PRICING_SPEC: readonly PricingTier[] = [
       "100M evaluations / mo",
       "Unlimited projects & agent keys",
       "Approval guardrails for agents",
-      "Audit log, RBAC & SSO — no enterprise gate",
+      "Audit log, RBAC & SSO, no enterprise gate",
       "Priority support",
     ],
     cta: "Start 14-day trial",

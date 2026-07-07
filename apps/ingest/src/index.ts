@@ -1,5 +1,5 @@
 /**
- * ShipOS ingest worker — queue consumers for the data plane.
+ * ShipOS ingest worker, queue consumers for the data plane.
  *
  * - `shipos-events`      → batch INSERT into ClickHouse (`evaluations` table,
  *                          JSONEachRow). Non-2xx throws so the batch retries
@@ -15,7 +15,8 @@ import { createClient } from "@supabase/supabase-js";
 import { buildSnapshot, flagKindSchema, jsonValueSchema, snapshotKvKey } from "@shipos/core";
 import type { EvaluationEvent, FlagConfigRowLike, FlagRowLike } from "@shipos/core";
 import type { FlagConfigRow, FlagRow } from "@shipos/db";
-import { readObservability, type Observability } from "@shipos/observability";
+import { formatRelease, readObservability, type Observability } from "@shipos/observability";
+import { VERSION } from "./version.gen";
 import { z } from "zod";
 
 /** Human-readable one-liner for an unknown thrown value. */
@@ -24,7 +25,7 @@ function errText(error: unknown): string {
 }
 
 // ---------------------------------------------------------------------------
-// Environment (structural types so tests can pass plain fakes — no miniflare)
+// Environment (structural types so tests can pass plain fakes, no miniflare)
 // ---------------------------------------------------------------------------
 
 /** The slice of a KVNamespace this worker uses. */
@@ -36,19 +37,22 @@ export interface SnapshotKvLike {
 export interface IngestEnv {
   CONFIG_KV: SnapshotKvLike;
   SUPABASE_URL: string;
-  /** Secret — `wrangler secret put SUPABASE_SERVICE_ROLE_KEY`. */
+  /** Secret, `wrangler secret put SUPABASE_SERVICE_ROLE_KEY`. */
   SUPABASE_SERVICE_ROLE_KEY: string;
-  /** Secret — e.g. https://<id>.clickhouse.cloud:8443 */
+  /** Secret, e.g. https://<id>.clickhouse.cloud:8443 */
   CLICKHOUSE_URL: string;
   CLICKHOUSE_USER: string;
   CLICKHOUSE_PASSWORD: string;
-  // Observability — optional so unit tests can pass plain fakes; degrades to
+  // Observability, optional so unit tests can pass plain fakes; degrades to
   // console-only when unset. Tokens via `wrangler secret put`, endpoints via vars.
   BETTER_STACK_SOURCE_TOKEN?: string;
   BETTER_STACK_LOGS_ENDPOINT?: string;
   OTEL_EXPORTER_OTLP_ENDPOINT?: string;
   OTEL_EXPORTER_OTLP_HEADERS?: string;
   SHIPOS_ENV?: string;
+  /** Deploy-time git commit; appended to VERSION as the release. */
+  SHIPOS_GIT_SHA?: string;
+  /** Fully-formed release override (wins over VERSION + git sha) if set. */
   SHIPOS_RELEASE?: string;
 }
 
@@ -71,7 +75,7 @@ export interface MessageBatchLike {
 // shipos-events → ClickHouse
 // ---------------------------------------------------------------------------
 
-/** Zod mirror of `EvaluationEvent` from @shipos/core — the queue boundary. */
+/** Zod mirror of `EvaluationEvent` from @shipos/core, the queue boundary. */
 export const evaluationEventSchema = z.object({
   ts: z
     .string()
@@ -89,7 +93,7 @@ export const evaluationEventSchema = z.object({
 
 /** One JSONEachRow line for the `evaluations` table (see clickhouse/schema.sql). */
 export interface ClickHouseEvaluationRow {
-  /** DateTime64(3) — "YYYY-MM-DD HH:MM:SS.mmm" (UTC). */
+  /** DateTime64(3), "YYYY-MM-DD HH:MM:SS.mmm" (UTC). */
   ts: string;
   org_id: string;
   project_id: string;
@@ -99,7 +103,7 @@ export interface ClickHouseEvaluationRow {
   reason: string;
   actor_kind: string;
   sdk: string;
-  /** UInt64 — decimal string is accepted by JSONEachRow. */
+  /** UInt64, decimal string is accepted by JSONEachRow. */
   user_hash: string;
 }
 
@@ -209,7 +213,7 @@ export async function handleEventsBatch(
 // shipos-config-sync → KV snapshot rebuild
 // ---------------------------------------------------------------------------
 
-/** Queue message from the control plane — see CONTRACTS.md "Queues". */
+/** Queue message from the control plane, see CONTRACTS.md "Queues". */
 export const configSyncMessageSchema = z.object({
   type: z.literal("sync"),
   projectId: z.uuid(),
@@ -228,7 +232,7 @@ export interface SyncGroup<M> {
 /**
  * Parse + dedupe sync messages by (projectId, envSlug) so one rebuild covers
  * every redelivered/duplicate message in the batch. Invalid messages are
- * reported via `onInvalid` (they can never become valid — ack them).
+ * reported via `onInvalid` (they can never become valid, ack them).
  */
 export function groupSyncMessages<M>(
   messages: readonly M[],
@@ -253,7 +257,7 @@ export function groupSyncMessages<M>(
   return [...groups.values()];
 }
 
-/** Rows as selected from Supabase — validated with zod at the boundary. */
+/** Rows as selected from Supabase, validated with zod at the boundary. */
 export const flagDbRowSchema = z.object({
   id: z.string(),
   key: z.string(),
@@ -337,7 +341,7 @@ export async function syncEnvironment(
   });
 
   try {
-    // Per-invocation client — Workers must not reuse global I/O across events.
+    // Per-invocation client, Workers must not reuse global I/O across events.
     const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
       auth: { persistSession: false, autoRefreshToken: false },
       global: { fetch: (input, init) => fetch(input, init) },
@@ -474,7 +478,7 @@ export async function handleConfigSyncBatch(
 // ---------------------------------------------------------------------------
 
 const handler = {
-  /** Trivial health endpoint — this worker's real interface is the queues. */
+  /** Trivial health endpoint, this worker's real interface is the queues. */
   async fetch(): Promise<Response> {
     return new Response("ok", { status: 200 });
   },
@@ -482,7 +486,7 @@ const handler = {
   async queue(batch, env, ctx): Promise<void> {
     const obs = readObservability(env as unknown as Record<string, unknown>, "shipos-ingest", {
       environment: env.SHIPOS_ENV,
-      release: env.SHIPOS_RELEASE,
+      release: formatRelease({ version: VERSION, gitSha: env.SHIPOS_GIT_SHA, override: env.SHIPOS_RELEASE }),
     });
     try {
       switch (batch.queue) {
@@ -493,8 +497,8 @@ const handler = {
           await handleConfigSyncBatch(batch, env, syncEnvironment, obs);
           return;
         default:
-          console.error(`ingest: message batch from unknown queue "${batch.queue}" — acking`);
-          obs.logger.warn("message batch from unknown queue — acking", { queue: batch.queue });
+          console.error(`ingest: message batch from unknown queue "${batch.queue}", acking`);
+          obs.logger.warn("message batch from unknown queue, acking", { queue: batch.queue });
           batch.ackAll();
       }
     } finally {

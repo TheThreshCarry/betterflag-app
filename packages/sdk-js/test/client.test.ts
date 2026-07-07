@@ -10,7 +10,7 @@ interface FakeResponseInit {
 
 /**
  * A plain-object Response stand-in whose json() settles on the microtask
- * queue — keeps fake-timer tests free of real stream/undici timing.
+ * queue, keeps fake-timer tests free of real stream/undici timing.
  */
 function fakeResponse(body: unknown, init: FakeResponseInit = {}): Response {
   const status = init.status ?? 200;
@@ -392,7 +392,7 @@ describe("signIn / signOut (ambient identity)", () => {
     client.signOut();
     expect(onUpdate).toHaveBeenCalledTimes(2);
 
-    client.signOut(); // no-op when already anonymous — no extra emission
+    client.signOut(); // no-op when already anonymous, no extra emission
     expect(onUpdate).toHaveBeenCalledTimes(2);
     client.close();
   });
@@ -456,7 +456,7 @@ describe("snapshot polling", () => {
     expect(headerOf(snapshotCalls[1], "If-None-Match")).toBe('"v1"');
     expect(onUpdate).toHaveBeenCalledTimes(1);
 
-    // Entry was only 1s old (TTL 30s) — a re-fetch proves the version change
+    // Entry was only 1s old (TTL 30s), a re-fetch proves the version change
     // cleared it, not TTL expiry.
     await client.flag("checkout", { default: false });
     expect(evaluateCount()).toBe(2);

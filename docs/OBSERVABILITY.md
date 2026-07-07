@@ -2,7 +2,7 @@
 
 ShipOS ships **structured logs**, **error capture**, and **OTLP performance
 traces** from every service to [Better Stack](https://betterstack.com). All of
-it goes through one small, dependency-free package — `@shipos/observability` —
+it goes through one small, dependency-free package, `@shipos/observability` -
 that runs unchanged in Cloudflare Workers and in the Node (Next.js) dashboard.
 
 Telemetry is **always best-effort**: every log is also mirrored to `console.*`
@@ -26,7 +26,7 @@ needs for **one-click log↔trace correlation**.
 | Dashboard | `shipos-dashboard` | 2578184 | `s2578184.eu-fsn-3.betterstackdata.com` |
 
 Each source has one ingest token used for **both** logs and traces. Tokens are
-**not** committed — they live in each worker's `.dev.vars` (gitignored) for local
+**not** committed, they live in each worker's `.dev.vars` (gitignored) for local
 dev, in `wrangler secret put` for production, and in `.env` / Vercel env for the
 dashboard.
 
@@ -40,7 +40,7 @@ dashboard.
 > `readObservability` sends traces to the logs source by default. Set
 > `OTEL_EXPORTER_OTLP_ENDPOINT` (+ `OTEL_EXPORTER_OTLP_HEADERS`) **only** if you
 > want to route a service's traces to a *different* destination (e.g. a shared
-> cross-service trace source) — doing so gives up correlation. Because the edge
+> cross-service trace source), doing so gives up correlation. Because the edge
 > and ingest workers communicate asynchronously over queues, there's no
 > cross-service trace context to preserve, so per-service is the right default.
 
@@ -64,33 +64,33 @@ obs.flushTo(ctx.waitUntil.bind(ctx)); // Workers: ship without blocking
 // or:  await obs.flush();            // Node: await before returning
 ```
 
-- **Logger** — leveled (`debug|info|warn|error`), `child(fields)` for context,
+- **Logger**, leveled (`debug|info|warn|error`), `child(fields)` for context,
   serializes `Error`s, buffers records and POSTs them as JSON to the logs source.
-- **Tracer** — builds OTLP/HTTP JSON spans by hand (no heavy OTel SDK), with
+- **Tracer**, builds OTLP/HTTP JSON spans by hand (no heavy OTel SDK), with
   parent/child linkage, attributes, events, `recordException`, and a
   `duration_ms` attribute on every span. `withSpan(name, fn)` wraps a function,
   recording exceptions and re-throwing.
-- **`readObservability(env, service, opts?)`** — wires both from an env bag
+- **`readObservability(env, service, opts?)`**, wires both from an env bag
   (`process.env` or a Worker `env`). Anything unset degrades gracefully.
 
 ## What's instrumented
 
-- **Edge worker** (`apps/edge`) — root server span per request with child spans
+- **Edge worker** (`apps/edge`), root server span per request with child spans
   for `authenticate`, `load_snapshot`, `evaluate`; structured request log with
   status + `duration_ms`; warnings for unauthorized, bad body, and snapshot
   misses; errors for event-publish failures. Logs/spans flush via `waitUntil`.
   Success-log volume is controlled by `EDGE_LOG_SUCCESS_SAMPLE_RATE` in
   `src/index.ts` (currently `1` = every request; lower it to sample). Errors are
   always logged regardless.
-- **Ingest worker** (`apps/ingest`) — `ingest.events` span with a
+- **Ingest worker** (`apps/ingest`), `ingest.events` span with a
   `clickhouse.insert` child (rows/dropped counts, retry on failure);
   `ingest.config_sync` span with `supabase.select_*` and `kv.put_snapshot`
   children; warnings for dropped messages/invalid rules, errors on failed
   inserts/syncs. Flushes in the queue handler `finally`.
-- **MCP worker** (`apps/mcp`) — auth outcomes logged at the gate (**never the
+- **MCP worker** (`apps/mcp`), auth outcomes logged at the gate (**never the
   key**, only `key_kind`); every control-plane call in `apiFetch` is a `client`
   span with timing, plus warn/error logs on API errors.
-- **Dashboard** (`apps/dashboard`) — `withErrors` wraps every `/api/v1` route
+- **Dashboard** (`apps/dashboard`), `withErrors` wraps every `/api/v1` route
   with a server span + request log (status, `duration_ms`) and error capture via
   `handleError`; `reportServerError` covers deeper library failures (Cloudflare
   config-sync enqueue, KV writes, ClickHouse queries, auth code exchange).
@@ -101,11 +101,11 @@ Env keys (see `.env.example` and `apps/*/.dev.vars.example`):
 
 | Key | Where | Secret |
 |---|---|---|
-| `BETTER_STACK_SOURCE_TOKEN` | per service — used for **logs and traces** | **yes** |
+| `BETTER_STACK_SOURCE_TOKEN` | per service, used for **logs and traces** | **yes** |
 | `BETTER_STACK_LOGS_ENDPOINT` | per service (ingest host) | no (host only) |
 | `SHIPOS_ENV` | all (`deployment.environment`) | no |
 | `SHIPOS_RELEASE` | all, optional (`service.version`) | no |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` / `_HEADERS` | optional trace-routing override only | — |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` / `_HEADERS` | optional trace-routing override only |, |
 
 Workers: non-secret endpoints are committed in each `wrangler.jsonc` `vars`.
 Set the one secret per worker in production:

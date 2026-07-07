@@ -3,7 +3,7 @@
  * (SDK key resolution from KV) and the MCP server (agent keys).
  *
  * Full key:   sos_<tag>_<40 lowercase hex>   (48 chars total)
- * Prefix:     first 16 chars, e.g. "sos_agt_ab12cd34" — safe to display,
+ * Prefix:     first 16 chars, e.g. "sos_agt_ab12cd34", safe to display,
  *             stored in api_keys.prefix and used for audit attribution.
  * Storage:    SHA-256 hex of the full key; plaintext shown once at creation.
  */
@@ -16,7 +16,7 @@ const TAG_KIND: Record<string, ApiKeyKind> = { sdk: "sdk", agt: "agent", adm: "a
 export const API_KEY_RE = /^sos_(sdk|agt|adm)_[0-9a-f]{40}$/;
 export const API_KEY_PREFIX_LENGTH = 16;
 
-/** Pure formatter — the caller supplies 40 hex chars of CSPRNG output. */
+/** Pure formatter, the caller supplies 40 hex chars of CSPRNG output. */
 export function formatApiKey(kind: ApiKeyKind, hex40: string): string {
   if (!/^[0-9a-f]{40}$/.test(hex40)) throw new Error("expected 40 lowercase hex chars");
   return `sos_${KIND_TAG[kind]}_${hex40}`;

@@ -30,7 +30,7 @@ interface ErrorResponse {
   error: { code: string; message: string };
 }
 
-describe("POST /v1/evaluate — auth", () => {
+describe("POST /v1/evaluate, auth", () => {
   it("accepts a valid SDK key (hash verified against KV entry)", async () => {
     const kv = await standardKv();
     const queue = fakeQueue();
@@ -46,7 +46,7 @@ describe("POST /v1/evaluate — auth", () => {
     expect(body.results).toEqual([
       { key: "checkout-redesign", value: true, variation: "on", reason: "default" },
     ]);
-    // Single KV read for the key + single for the snapshot — nothing else.
+    // Single KV read for the key + single for the snapshot, nothing else.
     expect(kv.reads.map((r) => r.key)).toEqual([
       `key:${SDK_KEY.slice(0, 16)}`,
       `cfg:${PROJECT_ID}:${ENV_SLUG}`,
@@ -100,7 +100,7 @@ describe("POST /v1/evaluate — auth", () => {
   });
 });
 
-describe("POST /v1/evaluate — key selection", () => {
+describe("POST /v1/evaluate, key selection", () => {
   it("evaluates multiple named keys, including a missing one as not_found", async () => {
     const res = await handleRequest(
       evaluateRequest({
@@ -160,7 +160,7 @@ describe("POST /v1/evaluate — key selection", () => {
   });
 });
 
-describe("POST /v1/evaluate — missing snapshot", () => {
+describe("POST /v1/evaluate, missing snapshot", () => {
   it("returns version 0 and empty results for all-flags", async () => {
     const queue = fakeQueue();
     const ctx = fakeCtx();
@@ -191,7 +191,7 @@ describe("POST /v1/evaluate — missing snapshot", () => {
   });
 });
 
-describe("POST /v1/evaluate — event emission", () => {
+describe("POST /v1/evaluate, event emission", () => {
   it("emits one event per result with org/project/env from the key entry", async () => {
     const queue = fakeQueue();
     const ctx = fakeCtx();

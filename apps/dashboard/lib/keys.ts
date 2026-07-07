@@ -7,9 +7,9 @@ import { HttpError, unwrap } from "@/lib/errors";
 import { createServiceClient } from "@/lib/supabase/server";
 
 export const KEY_COLUMNS =
-  "id, org_id, project_id, environment_id, kind, name, prefix, scopes, last_used_at, created_by, created_at, revoked_at";
+  "id, org_id, project_id, environment_id, kind, name, prefix, scopes, source, last_used_at, created_by, created_at, revoked_at";
 
-/** Keys are dashboard-only — bearer tokens cannot hit key endpoints. */
+/** Keys are dashboard-only, bearer tokens cannot hit key endpoints. */
 export function rejectKeysBearer(request: NextRequest): void {
   const header = request.headers.get("authorization");
   if (header && header.toLowerCase().startsWith("bearer ")) {

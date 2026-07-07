@@ -117,7 +117,7 @@ describe("createFlagStore", () => {
     expect(store.getSnapshot().value).toBe("v2");
     expect(listener).toHaveBeenCalledTimes(2);
 
-    mock.fireUpdate(); // same value again — no notification, same snapshot object
+    mock.fireUpdate(); // same value again, no notification, same snapshot object
     const snapshotBefore = store.getSnapshot();
     await flush();
     expect(listener).toHaveBeenCalledTimes(2);

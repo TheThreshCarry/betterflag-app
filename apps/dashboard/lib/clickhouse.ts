@@ -27,7 +27,7 @@ function clickhouseConfig(): ClickHouseConfig | null {
 async function chQuery<T>(sql: string, params: Record<string, string | number>): Promise<T[]> {
   const config = clickhouseConfig();
   if (!config) {
-    console.warn("[clickhouse] unconfigured — returning empty result");
+    console.warn("[clickhouse] unconfigured, returning empty result");
     return [];
   }
 

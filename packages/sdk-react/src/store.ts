@@ -20,13 +20,13 @@ export interface FlagState<T extends JsonValue> {
 }
 
 /**
- * External store consumed by `useSyncExternalStore`. Pure — no React
- * imports — so the subscription logic is unit-testable on its own.
+ * External store consumed by `useSyncExternalStore`. Pure, no React
+ * imports, so the subscription logic is unit-testable on its own.
  */
 export interface FlagStore<T extends JsonValue> {
   subscribe(listener: () => void): () => void;
   getSnapshot(): FlagState<T>;
-  /** Always the initial (default/bootstrap) state — hydration-safe. */
+  /** Always the initial (default/bootstrap) state, hydration-safe. */
   getServerSnapshot(): FlagState<T>;
 }
 

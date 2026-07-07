@@ -165,7 +165,7 @@ export function createLogger(config: LoggerConfig): Logger {
           body: JSON.stringify(records),
         });
       } catch {
-        // Best-effort — records were already mirrored to console above.
+        // Best-effort, records were already mirrored to console above.
       }
     },
   };

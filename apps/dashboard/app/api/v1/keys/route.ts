@@ -84,6 +84,8 @@ export const POST = withErrors(async (request: NextRequest) => {
         .select("id", { count: "exact", head: true })
         .eq("org_id", orgId)
         .eq("kind", "agent")
+        // OAuth-connection keys are exempt from the plan agent-key limit.
+        .eq("source", "manual")
         .is("revoked_at", null);
       if (error) throw error;
       if ((count ?? 0) >= limit) {
@@ -117,7 +119,7 @@ export const POST = withErrors(async (request: NextRequest) => {
       .single(),
   ) as Omit<ApiKeyRow, "hash">;
 
-  // SDK keys are resolved by the edge from KV — never from Postgres.
+  // SDK keys are resolved by the edge from KV, never from Postgres.
   if (body.kind === "sdk" && body.projectId && envSlug) {
     const entry: SdkKeyKvEntry = {
       orgId,

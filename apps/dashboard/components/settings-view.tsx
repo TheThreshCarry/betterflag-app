@@ -71,7 +71,7 @@ export function SettingsView() {
         >
           <p className="text-[14px] font-semibold text-ink">Account is read-only</p>
           <p className="mt-0.5 text-[13px] text-ink-muted">
-            {org.billingMessage} Your flags keep serving — update payment to make changes again.
+            {org.billingMessage} Your flags keep serving, update payment to make changes again.
           </p>
         </div>
       ) : null}
@@ -177,7 +177,7 @@ function SettingsContent({ org }: { org: ApiOrg }) {
         <Card className="p-6">
           <h2 className="text-[16px] font-semibold">Change plan</h2>
           <p className="mt-1 text-[13px] text-ink-muted">
-            Pick a plan — you&apos;ll be taken to Polar to complete payment. 14-day free
+            Pick a plan, you&apos;ll be taken to Polar to complete payment. 14-day free
             trial, no card up front.
           </p>
           {checkoutError ? (
@@ -259,7 +259,7 @@ function SettingsContent({ org }: { org: ApiOrg }) {
           ) : null}
         </div>
         <p className="mt-3 text-[12px] text-ink-muted">
-          Invites are read-only for now — ask us to add teammates during the alpha.
+          Invites are read-only for now, ask us to add teammates during the alpha.
         </p>
       </Card>
     </div>

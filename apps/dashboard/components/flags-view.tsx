@@ -109,10 +109,10 @@ export function FlagsView() {
           <h1 className="text-[28px] font-semibold tracking-[-0.01em]">Flags</h1>
           <p className="mt-0.5 text-[14px] text-ink-muted">
             {activeProject.name}
-            {flags ? ` — ${flags.length} flag${flags.length === 1 ? "" : "s"}` : null}
+            {flags ? `, ${flags.length} flag${flags.length === 1 ? "" : "s"}` : null}
             {!flags ? (
               <>
-                {" — "}
+                {", "}
                 <span className="inline-block h-3.5 w-12 translate-y-0.5 animate-pulse rounded-md bg-muted align-middle" />
               </>
             ) : null}
@@ -188,7 +188,7 @@ export function FlagsView() {
                       </div>
                     </td>
                     <td className="px-5 py-3.5 text-[13px] text-ink-muted">
-                      {lastUpdated ? <RelativeTime iso={lastUpdated} /> : "—"}
+                      {lastUpdated ? <RelativeTime iso={lastUpdated} /> : "-"}
                     </td>
                   </tr>
                 );
@@ -377,10 +377,10 @@ function NewFlagDialog({
             value={kind}
             onChange={(event) => setKind(event.target.value as ApiFlag["kind"])}
           >
-            <option value="boolean">boolean — on/off</option>
-            <option value="string">string — variant names, copy</option>
-            <option value="number">number — limits, percentages</option>
-            <option value="json">json — structured config</option>
+            <option value="boolean">boolean, on/off</option>
+            <option value="string">string, variant names, copy</option>
+            <option value="number">number, limits, percentages</option>
+            <option value="json">json, structured config</option>
           </select>
         </Field>
         {kind !== "boolean" ? (

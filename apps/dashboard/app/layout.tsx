@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ShipOS — Feature flags for agentic teams",
+  title: "ShipOS: Feature flags for agentic teams",
   description:
     "Feature flags your agents can ship with. Targeting, percentage rollouts, and instant kill switches via MCP and REST.",
   icons: {

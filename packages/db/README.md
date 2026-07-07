@@ -23,7 +23,7 @@ the migration exactly.
 ## Design notes
 
 - **RLS**: org members get read-only SELECT on their org's rows (dashboard
-  client reads). There are deliberately NO insert/update/delete policies —
+  client reads). There are deliberately NO insert/update/delete policies -
   every mutation goes through the control plane API with the service role so
   audit and config sync cannot be bypassed.
 - **Audit**: `record_audit()` is called inside the atomic RPCs
@@ -33,5 +33,5 @@ the migration exactly.
 - **Optimistic concurrency**: `update_flag_config` takes
   `p_expected_version`; on mismatch it raises SQLSTATE `40001`, which the API
   maps to HTTP 409.
-- **Kill switch** is a separate `killed` column, not `enabled = false` — it
+- **Kill switch** is a separate `killed` column, not `enabled = false`, it
   survives config edits and is only cleared explicitly (`p_clear_kill`).

@@ -10,7 +10,11 @@
     "dev": "turbo run dev",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
-    "lint": "turbo run lint"
+    "lint": "turbo run lint",
+    "version:list": "node scripts/version.mjs list",
+    "version:bump": "node scripts/version.mjs bump",
+    "version:sync": "node scripts/version.mjs sync",
+    "version:check": "node scripts/version.mjs check"
   },
   "devDependencies": {
     "turbo": "^2.10.3",

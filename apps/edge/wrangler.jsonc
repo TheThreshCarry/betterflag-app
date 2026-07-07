@@ -35,6 +35,6 @@
     "SHIPOS_ENV": "production",
     "BETTER_STACK_LOGS_ENDPOINT": "https://s2578178.eu-fsn-3.betterstackdata.com"
   }
-  // Production route — enable once DNS for edge.shipos.app is on this zone:
+  // Production route, enable once DNS for edge.shipos.app is on this zone:
   // "routes": [{ "pattern": "edge.shipos.app", "custom_domain": true }]
 }

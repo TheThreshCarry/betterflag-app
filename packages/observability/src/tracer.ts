@@ -1,6 +1,6 @@
 /**
  * A tiny OTLP tracer. Spans are buffered in memory and shipped as one
- * OTLP/HTTP JSON request on `flush()` — call `flush()` inside
+ * OTLP/HTTP JSON request on `flush()`, call `flush()` inside
  * `ctx.waitUntil(...)` in Workers so it never blocks the response.
  */
 import { epochNanos, monotonicMs, msToNanos, newSpanId, newTraceId } from "./ids";

@@ -5,7 +5,7 @@
  * written by the shipos-webhooks worker) into an access decision via the
  * billing-lifecycle policy, and blocks WRITES when the account is restricted.
  *
- * Reads are never gated here, and the edge data plane keeps serving flags — a
+ * Reads are never gated here, and the edge data plane keeps serving flags, a
  * billing lapse makes the dashboard/API read-only, it never breaks production.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";

@@ -3,7 +3,7 @@ import { murmur3_32 } from "../src/murmur3";
 
 /**
  * Canonical MurmurHash3 x86_32 vectors (SMHasher-verified, widely published).
- * If any of these fail, the implementation is wrong — do NOT update the
+ * If any of these fail, the implementation is wrong, do NOT update the
  * expected values.
  */
 const VECTORS: Array<[input: string, seed: number, expected: number]> = [
@@ -20,7 +20,7 @@ const VECTORS: Array<[input: string, seed: number, expected: number]> = [
   ["abc", 0x00000000, 0xb3dd93fa],
   ["abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq", 0x00000000, 0xee925b90],
   ["Hello, world!", 0x9747b28c, 0x24884cba],
-  // 8 UTF-8 two-byte characters — proves we hash UTF-8 bytes, not UTF-16 units.
+  // 8 UTF-8 two-byte characters, proves we hash UTF-8 bytes, not UTF-16 units.
   ["ππππππππ", 0x9747b28c, 0xd58063c1],
 ];
 

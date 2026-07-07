@@ -14,5 +14,7 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
+      # Fail if any app's version.gen.ts drifted from its package.json version.
+      - run: bun run version:check
       - run: bun run typecheck
       - run: bun run test

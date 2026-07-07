@@ -10,7 +10,7 @@
       "sort": 3,
       "popular": false,
       "tagline": "For growing teams.",
-      "features": "[\"100M evaluations / mo\",\"Unlimited projects & agent keys\",\"Approval guardrails for agents\",\"Audit log, RBAC & SSO — no enterprise gate\",\"Priority support\"]",
+      "features": "[\"100M evaluations / mo\",\"Unlimited projects & agent keys\",\"Approval guardrails for agents\",\"Audit log, RBAC & SSO, no enterprise gate\",\"Priority support\"]",
       "plan_key": "scale",
       "projects": -1,
       "agent_keys": -1,

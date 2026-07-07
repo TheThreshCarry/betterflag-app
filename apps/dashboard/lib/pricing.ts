@@ -10,7 +10,7 @@
  * If Polar is unreachable, we fall back to the canonical `PRICING_SPEC` so the
  * marketing page and dashboard never render an empty pricing table.
  *
- * Server-only — do not import from client components.
+ * Server-only, do not import from client components.
  */
 
 import { PLAN_LIMITS, type OrgPlan } from "@shipos/db";

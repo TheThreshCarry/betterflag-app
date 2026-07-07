@@ -187,7 +187,7 @@ function OrgStep({ onCreated }: { onCreated: (org: ApiOrg) => void }) {
     <div className="rounded-[32px] border border-line bg-surface p-10">
       <h1 className="text-[32px] font-semibold tracking-[-0.02em]">Welcome aboard.</h1>
       <p className="mt-2 text-[15px] text-ink-muted">
-        Name your organization — your team, your flags, your audit trail. The clock to your first
+        Name your organization, your team, your flags, your audit trail. The clock to your first
         flag starts now.
       </p>
       <form onSubmit={(event) => void submit(event)} className="mt-8 space-y-4">
@@ -263,7 +263,7 @@ function ProjectStep({
     <div className="rounded-[32px] border border-line bg-surface p-10">
       <h1 className="text-[32px] font-semibold tracking-[-0.02em]">Create your first project.</h1>
       <p className="mt-2 text-[15px] text-ink-muted">
-        A project gets three environments out of the box — dev, staging and prod — and every flag
+        A project gets three environments out of the box, dev, staging and prod, and every flag
         you create exists in all three.
       </p>
       <form onSubmit={(event) => void submit(event)} className="mt-8 space-y-4">
@@ -431,7 +431,7 @@ function Checklist({
               value={flagName}
               autoFocus
               onChange={(event) => setFlagName(event.target.value)}
-              placeholder="Name your first flag — e.g. New checkout flow"
+              placeholder="Name your first flag, e.g. New checkout flow"
             />
             <Button type="submit" size="lg" disabled={busy || flagName.trim().length === 0}>
               {busy ? "Shipping…" : "Ship it"}
@@ -460,7 +460,7 @@ function Checklist({
             {sdkKey}
           </code>
           <p className="mt-2 text-[12px] text-ink-muted">
-            Shown once — it's publishable, but copy it somewhere handy. You can mint more on the
+            Shown once, it's publishable, but copy it somewhere handy. You can mint more on the
             Keys page.
           </p>
         </div>

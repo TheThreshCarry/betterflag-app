@@ -224,7 +224,7 @@ export function AppShell({
                 />
                 <span>
                   You&rsquo;re in the{" "}
-                  <span className="font-semibold">{activeEnv.name}</span> environment — changes here
+                  <span className="font-semibold">{activeEnv.name}</span> environment, changes here
                   don&rsquo;t affect <span className="font-semibold">production</span>.
                 </span>
               </div>

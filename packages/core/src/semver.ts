@@ -1,6 +1,6 @@
 /**
  * Minimal semver comparison for targeting rules (no ranges, no build
- * metadata ordering — spec §10 says build metadata is ignored).
+ * metadata ordering, spec §10 says build metadata is ignored).
  * Returns null for unparseable versions; rule matchers treat null as
  * "condition does not match" rather than throwing.
  */

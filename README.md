@@ -1,6 +1,6 @@
 # ShipOS
 
-Feature flags with **no seat tax and no MAU bill** — unlimited flags, seats
+Feature flags with **no seat tax and no MAU bill**, unlimited flags, seats
 and environments, one meter (flag evaluations), served from Cloudflare's edge
 in <50ms. Agentic-first: the MCP server and REST API are the primary
 interface; the dashboard is the observation layer.
@@ -11,14 +11,14 @@ interface; the dashboard is the observation layer.
 
 | Workspace | What it is |
 |---|---|
-| [apps/dashboard](apps/dashboard) | Next.js control plane — auth, dashboard UI, and the `/api/v1` REST API every surface (UI, MCP, agents) goes through |
-| [apps/edge](apps/edge) | Cloudflare Worker at `edge.shipos.app` — flag evaluation from KV snapshots, no DB on the hot path |
-| [apps/ingest](apps/ingest) | Cloudflare Worker — Queues consumers: evaluation events → ClickHouse, config-sync → KV snapshots |
-| [apps/mcp](apps/mcp) | Cloudflare Worker at `mcp.shipos.app` — MCP server wrapping the REST API with agent-scoped keys |
-| [packages/core](packages/core) | Pure evaluation engine (murmur3 bucketing, targeting rules) shared by edge + SDKs — never forked |
+| [apps/dashboard](apps/dashboard) | Next.js control plane, auth, dashboard UI, and the `/api/v1` REST API every surface (UI, MCP, agents) goes through |
+| [apps/edge](apps/edge) | Cloudflare Worker at `edge.shipos.app`, flag evaluation from KV snapshots, no DB on the hot path |
+| [apps/ingest](apps/ingest) | Cloudflare Worker, Queues consumers: evaluation events → ClickHouse, config-sync → KV snapshots |
+| [apps/mcp](apps/mcp) | Cloudflare Worker at `mcp.shipos.app`, MCP server wrapping the REST API with agent-scoped keys |
+| [packages/core](packages/core) | Pure evaluation engine (murmur3 bucketing, targeting rules) shared by edge + SDKs, never forked |
 | [packages/db](packages/db) | Supabase migrations, RLS, audit function, atomic RPCs, row types |
-| [packages/sdk-js](packages/sdk-js) | `@shipos/sdk` — Node + browser SDK (MIT) |
-| [packages/sdk-react](packages/sdk-react) | `@shipos/react` — provider + `useFlag` (MIT) |
+| [packages/sdk-js](packages/sdk-js) | `@shipos/sdk`, Node + browser SDK (MIT) |
+| [packages/sdk-react](packages/sdk-react) | `@shipos/react`, provider + `useFlag` (MIT) |
 
 ## Architecture
 
@@ -66,7 +66,7 @@ Workers deploy per app with `wrangler deploy` after creating the KV namespace
 - The evaluation engine lives in `@shipos/core` only. Edge and SDKs import
   it; nobody reimplements bucketing. Frozen vectors in
   `packages/core/test/` guard cross-surface parity.
-- Every mutation — dashboard, REST, MCP — lands an `audit_log` row with
+- Every mutation, dashboard, REST, MCP, lands an `audit_log` row with
   `actor_type` distinguishing humans from agents. This is a product feature.
 - No PII in KV or ClickHouse: user IDs are FNV-1a-64 hashed at the edge.
 - Supabase service-role key exists only in the dashboard server env;

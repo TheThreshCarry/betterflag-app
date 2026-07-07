@@ -41,7 +41,7 @@ describe("bucketFor", () => {
 /**
  * FROZEN cross-SDK vectors. Every SDK (JS, and later Python/Go/etc.) must
  * produce these exact buckets, or users will flip variations depending on
- * where the flag is evaluated. Never update these values — fix the code.
+ * where the flag is evaluated. Never update these values, fix the code.
  */
 describe("frozen bucketing vectors", () => {
   const VECTORS: Array<[flagKey: string, userId: string]> = [

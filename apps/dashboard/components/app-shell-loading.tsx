@@ -17,8 +17,8 @@ import {
 
 /**
  * First-load shell. Instead of blanking the whole screen with a global
- * skeleton, we render the *real* sidebar chrome immediately — the logo and the
- * nav links are live and clickable while the workspace loads — and scope the
+ * skeleton, we render the *real* sidebar chrome immediately, the logo and the
+ * nav links are live and clickable while the workspace loads, and scope the
  * shimmer to only the parts that depend on data we don't have yet (the project
  * switcher, environment chips, the signed-in user, and the page body).
  */
@@ -35,7 +35,7 @@ export function AppShellLoading() {
             textClassName="group-data-[collapsible=icon]:hidden"
           />
 
-          {/* Project switcher placeholder — matches the loaded button footprint. */}
+          {/* Project switcher placeholder, matches the loaded button footprint. */}
           <div className="flex items-center gap-2 rounded-md p-2 group-data-[collapsible=icon]:justify-center">
             <Skeleton className="size-8 rounded-lg" />
             <div className="flex-1 space-y-1.5 group-data-[collapsible=icon]:hidden">
@@ -58,7 +58,7 @@ export function AppShellLoading() {
         <SidebarSeparator className="mx-0" />
 
         <SidebarContent>
-          {/* Real, interactive nav — usable before the workspace finishes loading. */}
+          {/* Real, interactive nav, usable before the workspace finishes loading. */}
           <NavMain items={[...NAV_ITEMS]} />
         </SidebarContent>
 

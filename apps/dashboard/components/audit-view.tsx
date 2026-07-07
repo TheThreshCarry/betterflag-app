@@ -152,7 +152,7 @@ export function AuditView() {
                       {entry.before !== null ? (
                         <JsonBlock value={entry.before} />
                       ) : (
-                        <p className="text-[12px] text-ink-muted">—</p>
+                        <p className="text-[12px] text-ink-muted">-</p>
                       )}
                     </div>
                     <div>
@@ -160,7 +160,7 @@ export function AuditView() {
                       {entry.after !== null ? (
                         <JsonBlock value={entry.after} />
                       ) : (
-                        <p className="text-[12px] text-ink-muted">—</p>
+                        <p className="text-[12px] text-ink-muted">-</p>
                       )}
                     </div>
                   </div>

@@ -18,14 +18,14 @@ const enabled = await shipos.flag("new-checkout", { userId: "u_42", default: fal
 if (enabled) renderNewCheckout();
 ```
 
-That's it — no init ceremony, no waiting. Grab an SDK key from your ShipOS
+That's it, no init ceremony, no waiting. Grab an SDK key from your ShipOS
 dashboard (Project → Environment → API keys). SDK keys are publishable:
 they can only evaluate flags, so they're safe to ship to browsers.
 
 ## Offline defaults: `flag()` never throws
 
 Every call takes a `default`. If the network is down, the edge returns an
-error, or the flag doesn't exist, you get your default back — always:
+error, or the flag doesn't exist, you get your default back, always:
 
 ```ts
 // Airplane mode? Edge outage? Typo'd key? You still get `false` here.
@@ -51,7 +51,7 @@ once (PostHog-style) and every subsequent evaluation targets them:
 ```ts
 shipos.signIn("user-123", { plan: "pro", region: "eu" });
 
-// Both evaluated for user-123 with { plan, region } — no need to repeat it.
+// Both evaluated for user-123 with { plan, region }, no need to repeat it.
 const checkout = await shipos.flag("new-checkout", { default: false });
 const all = await shipos.allFlags();
 
@@ -59,8 +59,8 @@ shipos.signOut(); // back to anonymous
 ```
 
 A per-call `userId`/`attributes` still wins over the signed-in identity, and
-per-call attributes are merged over the identity's. `signIn` is purely local —
-ShipOS targets users at evaluation time, so there's no network round-trip —
+per-call attributes are merged over the identity's. `signIn` is purely local -
+ShipOS targets users at evaluation time, so there's no network round-trip -
 and it clears the evaluation cache so flags re-evaluate for the new user.
 
 ## Node example
@@ -83,7 +83,7 @@ export async function handler(req: Request): Promise<Response> {
 }
 ```
 
-The background refresh timer is `unref`'d — the client never holds your
+The background refresh timer is `unref`'d, the client never holds your
 process open. No `close()` needed before exit (it exists if you want it).
 
 ## Browser example
@@ -97,13 +97,13 @@ const shipos = createClient({
 });
 
 shipos.on("update", async () => {
-  // config changed in the dashboard — re-read what you care about
+  // config changed in the dashboard, re-read what you care about
   applyTheme(await shipos.flag("theme", { userId, default: "light" }));
 });
 ```
 
 Building with React? Use [`@shipos/react`](https://www.npmjs.com/package/@shipos/react)
-instead — hooks, SSR safety, and live updates wired up for you.
+instead, hooks, SSR safety, and live updates wired up for you.
 
 ## How it works
 
@@ -114,7 +114,7 @@ instead — hooks, SSR safety, and live updates wired up for you.
   a `304` costs almost nothing. When the config version changes, the cache is
   cleared and `'update'` fires.
 - `await shipos.ready()` if you want to block until the first config fetch
-  settles (it resolves on failure too — never rejects).
+  settles (it resolves on failure too, never rejects).
 
 ## API
 
@@ -134,12 +134,12 @@ instead — hooks, SSR safety, and live updates wired up for you.
 
 | Option | Type | Default | Description |
 | --- | --- | --- | --- |
-| `key` | `string` | — (required) | SDK key (`sos_sdk_...`). Publishable. |
+| `key` | `string` |, (required) | SDK key (`sos_sdk_...`). Publishable. |
 | `baseUrl` | `string` | `https://edge.shipos.app` | Edge API origin. |
 | `refreshInterval` | `number` | `30000` | Snapshot poll cadence and evaluation-cache TTL, in ms (TTL clamped to ≥5000). `0` disables polling. |
 | `defaults` | `Record<string, JsonValue>` | `{}` | Offline fallbacks by flag key: returned by `allFlags()` on failure and used by `flagDetail()` when no per-call default is given. |
 | `fetch` | `typeof fetch` | global `fetch` | Custom fetch (tests, polyfills, proxies). |
-| `onError` | `(err: unknown) => void` | — | Observes every swallowed error. |
+| `onError` | `(err: unknown) => void` |, | Observes every swallowed error. |
 
 ## Docs
 

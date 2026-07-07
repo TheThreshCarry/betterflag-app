@@ -1,21 +1,22 @@
 /**
  * The MCP agent Durable Object. One instance per MCP session; the caller's
  * ShipOS key arrives via props (set on ctx.props by the Worker fetch handler
- * in index.ts) and is read lazily at tool-call time — never logged.
+ * in index.ts) and is read lazily at tool-call time, never logged.
  */
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { McpAgent } from "agents/mcp";
-import { readObservability, type Observability } from "@shipos/observability";
+import { formatRelease, readObservability, type Observability } from "@shipos/observability";
 import { ToolError } from "./errors";
 import { registerTools } from "./tools";
 import type { ApiCtx, Env, SessionProps } from "./types";
+import { VERSION } from "./version.gen";
 
 const DEFAULT_API_URL = "https://app.shipos.app";
 
 export class ShipOSMcp extends McpAgent<Env, unknown, SessionProps> {
   server = new McpServer({
     name: "shipos",
-    version: "0.1.0",
+    version: VERSION,
   });
 
   /** Built once per Durable Object (MCP session); reused across tool calls. */
@@ -24,7 +25,11 @@ export class ShipOSMcp extends McpAgent<Env, unknown, SessionProps> {
   async init(): Promise<void> {
     this.obs = readObservability(this.env as unknown as Record<string, unknown>, "shipos-mcp", {
       environment: this.env.SHIPOS_ENV,
-      release: this.env.SHIPOS_RELEASE,
+      release: formatRelease({
+        version: VERSION,
+        gitSha: this.env.SHIPOS_GIT_SHA,
+        override: this.env.SHIPOS_RELEASE,
+      }),
     });
 
     registerTools(this.server, (): ApiCtx => {

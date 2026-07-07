@@ -1,5 +1,5 @@
 /**
- * The ShipOS MCP tool surface. Tool names are PUBLIC PRODUCT API — do not
+ * The ShipOS MCP tool surface. Tool names are PUBLIC PRODUCT API, do not
  * rename. Every tool is a thin wrapper over the control-plane REST API
  * (docs/CONTRACTS.md); a valid agent/admin key executes mutations directly.
  */
@@ -54,7 +54,7 @@ const projectSlugParam = z
   .string()
   .min(1)
   .optional()
-  .describe("Project slug. Optional — when the org has exactly one project it is used automatically.");
+  .describe("Project slug. Optional, when the org has exactly one project it is used automatically.");
 const keyParam = z.string().min(1).describe('Flag key, e.g. "checkout-v2".');
 const envParam = z.string().min(1).describe("Environment slug (projects start with dev, staging, prod).");
 const flagKeyFormat = z
@@ -89,7 +89,7 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
           path: `/api/v1/projects/${project.id}/flags`,
         });
         const flags = pluckArray<Flag>(payload, FLAG_LIST_KEYS);
-        if (!flags) throw new ToolError("Unexpected response from the flags list endpoint — no flag array found.");
+        if (!flags) throw new ToolError("Unexpected response from the flags list endpoint, no flag array found.");
 
         const active = flags.filter((f) => !(f.archivedAt ?? f.archived_at));
         const archived = flags.length - active.length;
@@ -132,7 +132,7 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
     {
       title: "Create a feature flag",
       description:
-        "Create a new feature flag. Every environment starts OFF at 0% — enable it with " +
+        "Create a new feature flag. Every environment starts OFF at 0%, enable it with " +
         "toggle_flag / set_rollout when the code is deployed behind it.",
       inputSchema: {
         projectSlug: projectSlugParam,
@@ -164,7 +164,7 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
         const slug = project.slug ?? project.id;
         return [
           `✅ Created flag "${created?.key ?? key}" (${kind ?? "boolean"}) in project "${slug}".`,
-          "All environments start OFF — toggle_flag turns it on, set_rollout ramps it gradually.",
+          "All environments start OFF, toggle_flag turns it on, set_rollout ramps it gradually.",
           "",
           "Ready to paste into your code:",
           `  const on = await shipos.flag("${key}", { userId, default: false });`,
@@ -176,7 +176,7 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
     "update_flag",
     {
       title: "Update flag metadata",
-      description: "Rename a flag or update its description (metadata only — does not touch any environment config).",
+      description: "Rename a flag or update its description (metadata only, does not touch any environment config).",
       inputSchema: {
         projectSlug: projectSlugParam,
         key: keyParam,
@@ -187,7 +187,7 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
     async ({ projectSlug, key, name, description }) =>
       run(async () => {
         if (name === undefined && description === undefined) {
-          throw new ToolError("Nothing to update — pass name and/or description.", { isError: false });
+          throw new ToolError("Nothing to update, pass name and/or description.", { isError: false });
         }
         const ctx = getCtx();
         const { flag } = await resolveFlag(ctx, projectSlug, key);
@@ -259,7 +259,7 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
         const pct = current ? rolloutPctOf(current.cfg) : undefined;
         const rolloutNote =
           on && pct !== undefined && pct < 100
-            ? `\nRollout is at ${pct}% — only that share of users gets the ON variation. Use set_rollout to ramp it.`
+            ? `\nRollout is at ${pct}%, only that share of users gets the ON variation. Use set_rollout to ramp it.`
             : "";
         return `${on ? "✅" : "⬜"} "${key}" is now ${on ? "ON" : "OFF"} in ${env}.${rolloutNote}`;
       }),
@@ -271,7 +271,7 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
       title: "Set percentage rollout",
       description:
         "Set the percentage of users that get the ON variation in one environment. " +
-        "Bucketing is stable — raising the percentage only adds users, nobody flips back.",
+        "Bucketing is stable, raising the percentage only adds users, nobody flips back.",
       inputSchema: {
         projectSlug: projectSlugParam,
         key: keyParam,
@@ -294,11 +294,11 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
         const transition = oldPct !== undefined ? `${oldPct}% → ${percent}%` : `now ${percent}%`;
         const offNote =
           current && current.cfg.enabled === false
-            ? `\nNote: "${key}" is currently OFF in ${env} — the rollout takes effect once you toggle_flag it on.`
+            ? `\nNote: "${key}" is currently OFF in ${env}, the rollout takes effect once you toggle_flag it on.`
             : "";
         return [
           `📈 Rollout for "${key}" in ${env}: ${transition}.`,
-          "Bucketing is stable: users hash to fixed buckets, so raising the percentage only adds users — nobody who already has the flag loses it.",
+          "Bucketing is stable: users hash to fixed buckets, so raising the percentage only adds users, nobody who already has the flag loses it.",
         ].join("\n") + offNote;
       }),
   );
@@ -337,8 +337,8 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
         });
         const rendered = parsed.data.map((r, i) => renderRule(r, i)).join("\n");
         return [
-          `🎯 Targeting updated for "${key}" in ${env} — ${parsed.data.length} rule${parsed.data.length === 1 ? "" : "s"} (first match wins):`,
-          rendered.length > 0 ? rendered : "    (no rules — flag falls back to its percentage rollout)",
+          `🎯 Targeting updated for "${key}" in ${env}, ${parsed.data.length} rule${parsed.data.length === 1 ? "" : "s"} (first match wins):`,
+          rendered.length > 0 ? rendered : "    (no rules, flag falls back to its percentage rollout)",
         ].join("\n");
       }),
   );
@@ -375,7 +375,7 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
     {
       title: "Promote config between environments",
       description:
-        "Copy a flag's entire config (enabled state, rollout %, rules, on/off values) from one environment to another — " +
+        "Copy a flag's entire config (enabled state, rollout %, rules, on/off values) from one environment to another, " +
         "e.g. staging → prod after a successful bake.",
       inputSchema: {
         projectSlug: projectSlugParam,
@@ -387,7 +387,7 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
     async ({ projectSlug, key, from_env, to_env }) =>
       run(async () => {
         if (from_env === to_env) {
-          throw new ToolError("from_env and to_env are the same environment — nothing to promote.", { isError: false });
+          throw new ToolError("from_env and to_env are the same environment, nothing to promote.", { isError: false });
         }
         const ctx = getCtx();
         const { flag } = await resolveFlag(ctx, projectSlug, key);
@@ -429,12 +429,12 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
         });
         const rows = pluckArray<StatsRow>(payload, ["points", "rows", "stats", "data", "series", "buckets"]);
         if (!rows) {
-          return `Stats for "${key}" in ${env} (${p}) — raw response:\n${JSON.stringify(payload, null, 2)}`;
+          return `Stats for "${key}" in ${env} (${p}), raw response:\n${JSON.stringify(payload, null, 2)}`;
         }
         if (rows.length === 0) {
           return `No evaluations recorded for "${key}" in ${env} over the last ${p}. Is the SDK deployed and calling shipos.flag("${key}", …)?`;
         }
-        return [`Evaluations for "${key}" in ${env} — last ${p}:`, "", statsTable(rows)].join("\n");
+        return [`Evaluations for "${key}" in ${env}, last ${p}:`, "", statsTable(rows)].join("\n");
       }),
   );
 
@@ -462,7 +462,7 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
         }
         const payload = await apiFetch(ctx, { method: "GET", path: `/api/v1/audit?${params.toString()}` });
         const entries = pluckArray<AuditEntry>(payload, ["entries", "items", "data", "audit"]);
-        if (!entries) throw new ToolError("Unexpected response from the audit endpoint — no entry array found.");
+        if (!entries) throw new ToolError("Unexpected response from the audit endpoint, no entry array found.");
         if (entries.length === 0) return "No audit entries match that filter yet.";
         return [`Audit log (${entries.length} entries, newest first):`, "", ...entries.map(auditLine)].join("\n");
       }),

@@ -1,5 +1,5 @@
 /**
- * @shipos/observability — one small, dependency-free toolkit for structured
+ * @shipos/observability, one small, dependency-free toolkit for structured
  * logging, error capture, and OTLP performance tracing that runs unchanged in
  * Cloudflare Workers and Node. Telemetry is always best-effort: it mirrors to
  * console and never throws into, blocks, or fails the calling code.

@@ -1,7 +1,7 @@
 /**
  * FNV-1a 64-bit over the UTF-8 bytes of the input string.
  *
- * Used to pseudonymize user identifiers before they leave the edge — raw
+ * Used to pseudonymize user identifiers before they leave the edge, raw
  * user IDs never reach ClickHouse (ClickHouse column: UInt64). Returned as a
  * decimal string because JSON cannot carry a 64-bit integer losslessly.
  */

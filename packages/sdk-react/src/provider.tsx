@@ -19,12 +19,12 @@ interface ShipOSProviderBaseProps {
   children?: ReactNode;
 }
 
-/** Bring your own client — the provider will NOT close it on unmount. */
+/** Bring your own client, the provider will NOT close it on unmount. */
 export interface ShipOSProviderClientProps extends ShipOSProviderBaseProps {
   client: ShipOSClient;
 }
 
-/** Let the provider create (and own) the client — closed on unmount. */
+/** Let the provider create (and own) the client, closed on unmount. */
 export interface ShipOSProviderKeyProps extends ShipOSProviderBaseProps {
   clientKey: string;
   baseUrl?: string;

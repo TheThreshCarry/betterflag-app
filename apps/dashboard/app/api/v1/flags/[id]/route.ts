@@ -111,7 +111,7 @@ export const DELETE = withErrors<{ id: string }>(async (request: NextRequest, { 
     after: archived,
   });
 
-  // Archived flags drop out of snapshots — resync every environment.
+  // Archived flags drop out of snapshots, resync every environment.
   const environments = await listEnvironments(service, project.id);
   for (const env of environments) {
     enqueueConfigSync({

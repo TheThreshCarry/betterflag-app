@@ -99,7 +99,7 @@ create table public.api_keys (
   name text not null check (char_length(name) between 1 and 120),
   -- SHA-256 hex of the full key; the plaintext is shown once at creation.
   hash text not null unique,
-  -- e.g. "sos_agt_ab12cd34" — safe to display and to attribute audit rows.
+  -- e.g. "sos_agt_ab12cd34", safe to display and to attribute audit rows.
   prefix text not null unique,
   scopes text[] not null default '{}',
   last_used_at timestamptz,
@@ -417,7 +417,7 @@ $$;
 -- ---------------------------------------------------------------------------
 -- Row Level Security.
 -- Reads: org members can SELECT their org's rows (dashboard client reads).
--- Writes: none for authenticated users — every mutation goes through the
+-- Writes: none for authenticated users, every mutation goes through the
 -- control plane API with the service role so audit + guardrails + config
 -- sync cannot be bypassed.
 -- ---------------------------------------------------------------------------

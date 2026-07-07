@@ -217,7 +217,7 @@ export function FlagDetail({ flagId }: { flagId: string }) {
         <p className="text-[14px] text-ink-muted">
           <span className="font-mono text-[13px] text-ink">{flag.key}</span> will be removed from
           every environment snapshot in <span className="font-medium text-ink">{project.name}</span>.
-          SDKs will fall back to code-level defaults. This is a soft archive — the audit history
+          SDKs will fall back to code-level defaults. This is a soft archive, the audit history
           stays.
         </p>
         <div className="mt-5 flex justify-end gap-2">
@@ -430,7 +430,7 @@ function EnvConfigCard({
       {config.killed ? (
         <div className="mb-4 flex items-center justify-between rounded-2xl bg-chip-pink/10 px-4 py-3">
           <p className="text-[13px] font-medium text-chip-pink">
-            Kill switch active — serving OFF to everyone in {envSlug}, regardless of the config
+            Kill switch active, serving OFF to everyone in {envSlug}, regardless of the config
             below.
           </p>
           <Button variant="secondary" size="sm" disabled={busy} onClick={() => void clearKill()}>
@@ -440,7 +440,7 @@ function EnvConfigCard({
       ) : !config.enabled ? (
         <div className="mb-4 rounded-2xl bg-chip-gray/10 px-4 py-3">
           <p className="text-[13px] font-medium text-ink-muted">
-            Disabled — everyone gets the OFF value in {envSlug}.
+            Disabled, everyone gets the OFF value in {envSlug}.
           </p>
         </div>
       ) : null}
@@ -449,7 +449,7 @@ function EnvConfigCard({
         <div className="mb-4 flex items-center justify-between rounded-2xl bg-chip-orange/10 px-4 py-3">
           <p className="text-[13px] font-medium text-chip-orange">
             This config changed elsewhere while you were editing (version conflict). Reload to get
-            the latest — your unsaved edits here will be discarded.
+            the latest, your unsaved edits here will be discarded.
           </p>
           <Button variant="secondary" size="sm" onClick={() => void onRefresh()}>
             Reload
@@ -658,7 +658,7 @@ function RulesEditor({
 
       {rules.length === 0 ? (
         <p className="rounded-xl bg-surface px-3 py-4 text-center text-[13px] text-ink-muted">
-          No rules — everyone goes through the rollout percentage.
+          No rules, everyone goes through the rollout percentage.
         </p>
       ) : (
         <div className="space-y-3">
@@ -778,7 +778,7 @@ function RulesEditor({
                   Add condition
                 </button>
                 {rule.conditions.length === 0 ? (
-                  <p className="text-[11px] text-ink-muted">No conditions — matches everyone.</p>
+                  <p className="text-[11px] text-ink-muted">No conditions, matches everyone.</p>
                 ) : null}
               </div>
 

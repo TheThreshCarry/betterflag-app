@@ -4,9 +4,9 @@ import type { ConfigKvLike, EventsQueueLike, WaitUntilLike } from "../src/index"
 
 /** A well-formed SDK key: sos_sdk_ + 40 lowercase hex chars. */
 export const SDK_KEY = `sos_sdk_${"a".repeat(40)}`;
-/** Same 16-char prefix as SDK_KEY, different secret — hash must NOT match. */
+/** Same 16-char prefix as SDK_KEY, different secret, hash must NOT match. */
 export const SDK_KEY_SAME_PREFIX = `sos_sdk_${"a".repeat(8)}${"b".repeat(32)}`;
-/** Valid format but agent kind — must be rejected by the edge. */
+/** Valid format but agent kind, must be rejected by the edge. */
 export const AGENT_KEY = `sos_agt_${"c".repeat(40)}`;
 
 export const ORG_ID = "org-11111111";

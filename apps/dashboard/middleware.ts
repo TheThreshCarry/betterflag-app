@@ -43,14 +43,17 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.search = "";
+    // Preserve the destination (e.g. the MCP OAuth consent screen) so the
+    // user lands back after signing in.
+    const dest = pathname + request.nextUrl.search;
+    if (dest !== "/") url.searchParams.set("next", dest);
     return NextResponse.redirect(url);
   }
 
   if (user && isLogin) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/";
-    url.search = "";
-    return NextResponse.redirect(url);
+    const next = request.nextUrl.searchParams.get("next");
+    const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
+    return NextResponse.redirect(new URL(safeNext, request.url));
   }
 
   return response;

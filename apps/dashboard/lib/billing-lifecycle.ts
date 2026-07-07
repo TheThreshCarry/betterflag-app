@@ -32,7 +32,7 @@ const DAY_MS = 86_400_000;
 export type EffectiveState = "trialing" | "active" | "grace" | "restricted" | "expired";
 
 export interface Access {
-  /** Edge continues evaluating flags — customer production is never broken. */
+  /** Edge continues evaluating flags, customer production is never broken. */
   flagsServe: boolean;
   /** Dashboard mutations (create/edit/delete flags, config, keys). */
   dashboardWrites: boolean;
@@ -108,7 +108,7 @@ export function decideBilling(input: BillingInput): BillingDecision {
           access: FULL_ACCESS,
           graceEndsAt,
           daysUntilRestriction,
-          message: `Payment failed — update your card within ${daysUntilRestriction} day${
+          message: `Payment failed, update your card within ${daysUntilRestriction} day${
             daysUntilRestriction === 1 ? "" : "s"
           } to avoid the dashboard going read-only.`,
         };

@@ -1,4 +1,4 @@
-/** Browser Supabase client — used for auth only (sign in/out, OAuth). */
+/** Browser Supabase client, used for auth only (sign in/out, OAuth). */
 
 import { createBrowserClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";

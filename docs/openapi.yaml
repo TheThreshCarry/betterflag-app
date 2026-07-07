@@ -7,10 +7,10 @@ info:
 
     ## Auth
     Two modes:
-    - **Supabase session cookie** — dashboard users. Session users may pass
+    - **Supabase session cookie**, dashboard users. Session users may pass
       `?orgId=<uuid>` on any endpoint to act in another org they are a
       member of (defaults to their first membership).
-    - **`Authorization: Bearer sos_agt_*` or `sos_adm_*`** — machine keys.
+    - **`Authorization: Bearer sos_agt_*` or `sos_adm_*`**, machine keys.
       SDK keys (`sos_sdk_*`) are rejected on the control plane; they only
       evaluate flags at the edge.
 
@@ -76,7 +76,7 @@ paths:
       description: |
         Runs the `create_project_with_envs` RPC (project + three
         environments + audit, atomically). Enforces `PLAN_LIMITS.projects`
-        — exceeding it returns 403 with code `plan_limit`.
+       , exceeding it returns 403 with code `plan_limit`.
       operationId: createProject
       requestBody:
         required: true
@@ -198,7 +198,7 @@ paths:
                     items: { $ref: "#/components/schemas/FlagConfigWithEnvironment" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404":
-          description: Missing project or flag — code `flag_not_found`.
+          description: Missing project or flag, code `flag_not_found`.
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
@@ -264,7 +264,7 @@ paths:
       summary: Archive a flag (soft delete)
       description: |
         Sets `archivedAt`; the flag drops out of every environment snapshot.
-        Idempotent — archiving an archived flag returns it unchanged.
+        Idempotent, archiving an archived flag returns it unchanged.
       operationId: archiveFlag
       responses:
         "200":
@@ -287,7 +287,7 @@ paths:
       tags: [Flag configs]
       summary: Update a flag's config in one environment
       description: |
-        Partial update through the `update_flag_config` RPC — omitted fields
+        Partial update through the `update_flag_config` RPC, omitted fields
         keep their current value. `expectedVersion` enables optimistic
         concurrency (mismatch → 409 `version_conflict`). `clearKill: true`
         lifts an active kill switch.
@@ -335,7 +335,7 @@ paths:
       - $ref: "#/components/parameters/EnvSlug"
     post:
       tags: [Flag configs]
-      summary: Kill switch — serve OFF to everyone in this environment
+      summary: Kill switch, serve OFF to everyone in this environment
       description: |
         Runs the `kill_flag` RPC, then synchronously rebuilds the snapshot
         and writes it straight to edge KV (fast path), then enqueues a
@@ -343,7 +343,7 @@ paths:
         with `clearKill`.
 
         Guardrail (agent keys only): `kill_switch` may stage an approval and
-        return 202 — nothing changes until a human approves.
+        return 202, nothing changes until a human approves.
       operationId: killFlag
       responses:
         "200":
@@ -455,7 +455,7 @@ paths:
           in: query
           required: false
           schema: { type: string, format: date-time }
-          description: Cursor — entries strictly older than this timestamp.
+          description: Cursor, entries strictly older than this timestamp.
         - name: limit
           in: query
           required: false
@@ -529,7 +529,7 @@ paths:
       - $ref: "#/components/parameters/ApprovalId"
     post:
       tags: [Approvals]
-      summary: Approve — replay the staged action
+      summary: Approve, replay the staged action
       description: |
         Session owners/admins only (API keys get 403). Replays the staged
         action through the same RPCs (`kill_flag` / `update_flag_config`);
@@ -561,7 +561,7 @@ paths:
       - $ref: "#/components/parameters/ApprovalId"
     post:
       tags: [Approvals]
-      summary: Reject — discard the staged action
+      summary: Reject, discard the staged action
       description: Session owners/admins only. Nothing is executed.
       operationId: rejectApproval
       responses:
@@ -588,7 +588,7 @@ paths:
       tags: [Orgs]
       summary: List the caller's orgs (session only)
       description: |
-        Onboarding endpoint — session auth only; Bearer keys get 401
+        Onboarding endpoint, session auth only; Bearer keys get 401
         (`session_required`). `?members=1` includes the member list with
         best-effort emails.
       operationId: listOrgs
@@ -694,7 +694,7 @@ components:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
     PlanLimit:
-      description: Plan limit reached — code `plan_limit`.
+      description: Plan limit reached, code `plan_limit`.
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
@@ -704,17 +704,17 @@ components:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
     Conflict:
-      description: Uniqueness conflict — code `conflict` (e.g. duplicate slug/key).
+      description: Uniqueness conflict, code `conflict` (e.g. duplicate slug/key).
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
     VersionConflict:
-      description: Optimistic-concurrency failure — code `version_conflict`.
+      description: Optimistic-concurrency failure, code `version_conflict`.
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
     ValidationError:
-      description: Request body/query failed validation — code `validation_error` (422).
+      description: Request body/query failed validation, code `validation_error` (422).
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
@@ -895,7 +895,7 @@ components:
         name: { type: string }
         prefix:
           type: string
-          description: First 16 chars of the key (e.g. `sos_agt_ab12cd34`) — safe to display.
+          description: First 16 chars of the key (e.g. `sos_agt_ab12cd34`), safe to display.
         scopes:
           type: array
           items: { type: string }
@@ -921,7 +921,7 @@ components:
         envSlug: { type: string }
         fromEnvSlug:
           type: string
-          description: Present on `promote` — the source environment slug.
+          description: Present on `promote`, the source environment slug.
         patch:
           type: object
           description: Config patch replayed via `update_flag_config` on approval.

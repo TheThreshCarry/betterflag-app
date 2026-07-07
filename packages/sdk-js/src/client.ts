@@ -15,7 +15,7 @@ const DEFAULT_REFRESH_INTERVAL_MS = 30_000;
 const MIN_CACHE_TTL_MS = 5_000;
 
 export interface ShipOSClientOptions {
-  /** SDK key (`sos_sdk_...`). Publishable — safe to ship to browsers. */
+  /** SDK key (`sos_sdk_...`). Publishable, safe to ship to browsers. */
   key: string;
   /** Edge API origin. Defaults to `https://edge.shipos.app`. */
   baseUrl?: string;
@@ -63,7 +63,7 @@ interface CacheEntry {
  * ShipOS feature-flags client for Node and the browser.
  *
  * Guarantees:
- * - `flag()` NEVER throws and never rejects — on any failure it resolves
+ * - `flag()` NEVER throws and never rejects, on any failure it resolves
  *   with the caller's default (offline-defaults guarantee).
  * - Zero runtime dependencies; talks plain `fetch`.
  * - The background poll timer is unref'd in Node, so it never holds the
@@ -173,7 +173,7 @@ export class ShipOSClient {
 
   /**
    * Identify the current user (PostHog-style). Sets an ambient evaluation
-   * context — `userId` plus optional `metadata` attributes — that is merged
+   * context, `userId` plus optional `metadata` attributes, that is merged
    * into every subsequent `flag()`, `flagDetail()`, and `allFlags()` call so
    * you don't repeat the user on each check:
    *
@@ -215,7 +215,7 @@ export class ShipOSClient {
   }
 
   /**
-   * The currently identified user, or `null` when anonymous. Returns a copy —
+   * The currently identified user, or `null` when anonymous. Returns a copy -
    * mutating it does not change the client's identity.
    */
   getUser(): { userId: string; attributes?: Record<string, JsonValue> } | null {
@@ -239,7 +239,7 @@ export class ShipOSClient {
   }
 
   /**
-   * Resolves after the first snapshot fetch settles (success OR failure —
+   * Resolves after the first snapshot fetch settles (success OR failure -
    * failures are reported via `onError` first). Resolves immediately when
    * polling is disabled. Never rejects.
    */
@@ -324,7 +324,7 @@ export class ShipOSClient {
       void this.fetchSnapshot();
     }, this.refreshInterval);
     // In Node, don't let the poll timer hold the process open. In browsers
-    // setInterval returns a number with no unref — feature-detect.
+    // setInterval returns a number with no unref, feature-detect.
     const unrefable = timer as unknown as { unref?: () => void };
     if (typeof unrefable.unref === "function") unrefable.unref();
     this.timer = timer;
@@ -343,7 +343,7 @@ export class ShipOSClient {
         headers,
       });
 
-      if (response.status === 304) return; // unchanged — keep the cache warm
+      if (response.status === 304) return; // unchanged, keep the cache warm
       if (!response.ok) {
         throw new Error(`ShipOS: GET /v1/snapshot responded ${response.status}`);
       }
@@ -354,7 +354,7 @@ export class ShipOSClient {
         const body = (await response.json()) as { version?: number };
         if (typeof body.version === "number") version = body.version;
       } catch {
-        // Tolerate empty/malformed bodies — fall back to ETag comparison.
+        // Tolerate empty/malformed bodies, fall back to ETag comparison.
       }
 
       const previousVersion = this.snapshotVersion;
