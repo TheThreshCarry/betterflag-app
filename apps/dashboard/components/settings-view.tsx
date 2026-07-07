@@ -1,9 +1,9 @@
 "use client";
 
 import { PLAN_LIMITS } from "@shipos/db";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
-import { Card, Chip, ErrorNote, inputClass, type ChipColor } from "@/components/ui";
+import { Button, Card, Chip, ErrorNote, inputClass, type ChipColor } from "@/components/ui";
 import { SettingsSkeleton } from "@/components/skeletons";
 import type { ApiOrg } from "@/lib/api-types";
 import { api } from "@/lib/client-api";
@@ -18,14 +18,30 @@ const ROLE_COLORS: Record<string, ChipColor> = {
 export function SettingsView() {
   const [org, setOrg] = useState<ApiOrg | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [checkoutSuccess, setCheckoutSuccess] = useState(false);
 
-  useEffect(() => {
+  const loadOrg = useCallback(() => {
     void api<{ orgs: ApiOrg[] }>("/api/v1/orgs?members=1")
       .then(({ orgs }) => setOrg(orgs[0] ?? null))
       .catch((err: unknown) =>
         setError(err instanceof Error ? err.message : "Failed to load settings"),
       );
   }, []);
+
+  useEffect(() => {
+    loadOrg();
+  }, [loadOrg]);
+
+  // Returning from Polar checkout: the plan updates via webhook (async), so
+  // re-fetch shortly after so this page reflects the new plan.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("checkout") === "success") {
+      setCheckoutSuccess(true);
+      const timer = setTimeout(loadOrg, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [loadOrg]);
 
   if (error) return <ErrorNote message={error} />;
 
@@ -35,6 +51,18 @@ export function SettingsView() {
         <h1 className="text-[28px] font-semibold tracking-[-0.01em]">Settings</h1>
         <p className="mt-0.5 text-[14px] text-ink-muted">Organization, plan and members.</p>
       </div>
+
+      {checkoutSuccess ? (
+        <div
+          className="mb-6 rounded-2xl border px-5 py-4"
+          style={{ borderColor: "#00BC72", backgroundColor: "rgba(0,188,114,0.06)" }}
+        >
+          <p className="text-[14px] font-semibold text-ink">Payment received</p>
+          <p className="mt-0.5 text-[13px] text-ink-muted">
+            Thanks! Your plan will update here in a few seconds.
+          </p>
+        </div>
+      ) : null}
 
       {org?.restricted ? (
         <div
@@ -69,6 +97,24 @@ function SettingsContent({ org }: { org: ApiOrg }) {
         includedEvalsPerMonth: tier.includedEvaluations,
       }
     : PLAN_LIMITS[org.plan];
+
+  const [checkingOut, setCheckingOut] = useState<string | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+
+  async function startCheckout(plan: string) {
+    setCheckoutError(null);
+    setCheckingOut(plan);
+    try {
+      const { url } = await api<{ url: string }>("/api/v1/checkout", {
+        method: "POST",
+        body: JSON.stringify({ plan }),
+      });
+      window.location.href = url;
+    } catch (err) {
+      setCheckoutError(err instanceof Error ? err.message : "Could not start checkout");
+      setCheckingOut(null);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -122,10 +168,68 @@ function SettingsContent({ org }: { org: ApiOrg }) {
             <span className="font-medium text-ink">
               {new Date(org.trialEndsAt).toLocaleDateString()}
             </span>
-            . Billing is coming soon — you will pick a plan here.
+            . Pick a plan below to keep shipping.
           </p>
         ) : null}
       </Card>
+
+      {tiers && tiers.length > 0 ? (
+        <Card className="p-6">
+          <h2 className="text-[16px] font-semibold">Change plan</h2>
+          <p className="mt-1 text-[13px] text-ink-muted">
+            Pick a plan — you&apos;ll be taken to Polar to complete payment. 14-day free
+            trial, no card up front.
+          </p>
+          {checkoutError ? (
+            <p className="mt-3 text-[13px]" style={{ color: "#E5484D" }}>
+              {checkoutError}
+            </p>
+          ) : null}
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            {tiers.map((t) => {
+              const isCurrent = t.key === org.plan;
+              return (
+                <div
+                  key={t.key}
+                  className="flex flex-col rounded-2xl border border-line bg-white p-4"
+                  style={t.popular ? { borderColor: "#FF5A1A" } : undefined}
+                >
+                  <div className="flex items-baseline justify-between">
+                    <p className="text-[15px] font-semibold">{t.name}</p>
+                    {t.popular ? (
+                      <Chip color="orange" className="!px-2 !py-0.5 text-[11px]">
+                        Popular
+                      </Chip>
+                    ) : null}
+                  </div>
+                  <p className="mt-1 font-mono text-[20px] font-semibold">
+                    {t.price}
+                    <span className="text-[12px] font-normal text-ink-muted">{t.period}</span>
+                  </p>
+                  <p className="mt-1 text-[12px] text-ink-muted">
+                    {(t.includedEvaluations / 1_000_000).toLocaleString()}M evaluations / mo
+                  </p>
+                  <Button
+                    variant={isCurrent ? "secondary" : "primary"}
+                    size="sm"
+                    className="mt-4 w-full"
+                    disabled={isCurrent || checkingOut !== null}
+                    onClick={() => startCheckout(t.key)}
+                  >
+                    {isCurrent
+                      ? "Current plan"
+                      : checkingOut === t.key
+                        ? "Starting…"
+                        : org.plan === "trial"
+                          ? `Choose ${t.name}`
+                          : `Switch to ${t.name}`}
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      ) : null}
 
       <Card className="p-6">
         <h2 className="text-[16px] font-semibold">Members</h2>

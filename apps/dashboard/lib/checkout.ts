@@ -1,0 +1,65 @@
+/**
+ * Polar checkout creation.
+ *
+ * Resolves the product for a plan from Polar (the pricing source of truth),
+ * then opens a hosted checkout. The org link is carried two ways so the
+ * shipos-webhooks worker can always resolve the org from the resulting
+ * subscription:
+ *   - `metadata.org_id` (Polar copies checkout metadata onto the subscription)
+ *   - `externalCustomerId = orgId` (sets the Polar customer's external_id)
+ */
+import { HttpError } from "@/lib/errors";
+import { getPolar } from "@/lib/polar";
+import type { PlanKey } from "@/lib/pricing-config";
+import { getPricingTiers } from "@/lib/pricing";
+
+export interface CheckoutRequestInput {
+  orgId: string;
+  productId: string;
+  planKey: PlanKey;
+  /** Dashboard origin, e.g. https://app.shipos.app */
+  origin: string;
+  customerEmail?: string | null;
+}
+
+/** Build the Polar checkout payload (pure — unit tested). */
+export function buildCheckoutRequest(input: CheckoutRequestInput) {
+  return {
+    products: [input.productId],
+    // {CHECKOUT_ID} is substituted by Polar on redirect.
+    successUrl: `${input.origin}/settings?checkout=success&checkout_id={CHECKOUT_ID}`,
+    externalCustomerId: input.orgId,
+    metadata: { org_id: input.orgId, plan: input.planKey },
+    ...(input.customerEmail ? { customerEmail: input.customerEmail } : {}),
+  };
+}
+
+/** Create a hosted checkout for a plan and return its URL. */
+export async function createCheckoutForPlan(input: {
+  orgId: string;
+  planKey: PlanKey;
+  origin: string;
+  customerEmail?: string | null;
+}): Promise<{ url: string }> {
+  const tiers = await getPricingTiers();
+  const tier = tiers.find((t) => t.key === input.planKey);
+  if (!tier?.productId) {
+    throw new HttpError(
+      400,
+      "unknown_plan",
+      `No purchasable Polar product for plan "${input.planKey}"`,
+    );
+  }
+
+  const polar = getPolar();
+  const checkout = await polar.checkouts.create(
+    buildCheckoutRequest({
+      orgId: input.orgId,
+      productId: tier.productId,
+      planKey: input.planKey,
+      origin: input.origin,
+      customerEmail: input.customerEmail,
+    }),
+  );
+  return { url: checkout.url };
+}
