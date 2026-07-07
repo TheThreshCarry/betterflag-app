@@ -166,7 +166,7 @@ export async function loadSnapshot(
 // Events — fire-and-forget, chunked ≤100 per sendBatch
 // ---------------------------------------------------------------------------
 
-export const EVENTS_CHUNK_SIZE = 100;
+const EVENTS_CHUNK_SIZE = 100;
 
 export function chunk<T>(items: readonly T[], size: number): T[][] {
   const chunks: T[][] = [];

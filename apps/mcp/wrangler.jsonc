@@ -35,5 +35,12 @@
 
   "observability": {
     "enabled": true
+  },
+
+  // Distinct dev ports so parallel `wrangler dev` instances don't collide on
+  // the inspector port (9229 is the shared default and does not auto-increment).
+  "dev": {
+    "port": 8789,
+    "inspector_port": 9231
   }
 }
