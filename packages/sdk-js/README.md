@@ -43,6 +43,26 @@ const limit = await shipos.flag("rate-limit", { default: 100 });
 const cfg = await shipos.flag("retry-config", { default: { retries: 3 } });
 ```
 
+## Identify a user once with `signIn`
+
+Instead of passing `userId` and attributes on every call, identify the user
+once (PostHog-style) and every subsequent evaluation targets them:
+
+```ts
+shipos.signIn("user-123", { plan: "pro", region: "eu" });
+
+// Both evaluated for user-123 with { plan, region } — no need to repeat it.
+const checkout = await shipos.flag("new-checkout", { default: false });
+const all = await shipos.allFlags();
+
+shipos.signOut(); // back to anonymous
+```
+
+A per-call `userId`/`attributes` still wins over the signed-in identity, and
+per-call attributes are merged over the identity's. `signIn` is purely local —
+ShipOS targets users at evaluation time, so there's no network round-trip —
+and it clears the evaluation cache so flags re-evaluate for the new user.
+
 ## Node example
 
 ```ts
@@ -103,7 +123,10 @@ instead — hooks, SSR safety, and live updates wired up for you.
 | `flag(key, { userId?, attributes?, default })` | `Promise<T>` | The flag's value, or `default` on any failure. Never throws. |
 | `flagDetail(key, opts?)` | `Promise<EvaluationResult>` | Full result: `value`, `reason`, `variation`, `ruleId?`, `bucket?`. |
 | `allFlags(context?)` | `Promise<Record<string, JsonValue>>` | Every flag in the environment. Client `defaults` (or `{}`) on failure. |
-| `on("update", cb)` | `() => void` | Fires after a config change; returns unsubscribe. |
+| `signIn(userId, metadata?)` | `void` | Set the ambient user merged into every evaluation. Clears the cache and fires `'update'`. |
+| `signOut()` | `void` | Clear the ambient user set by `signIn`. Evaluations are anonymous again. |
+| `getUser()` | `{ userId, attributes? } \| null` | The current identity, or `null` when anonymous. |
+| `on("update", cb)` | `() => void` | Fires after a config change (or `signIn`/`signOut`); returns unsubscribe. |
 | `ready()` | `Promise<void>` | Resolves after the first snapshot fetch settles. Never rejects. |
 | `close()` | `void` | Stops polling, drops listeners. |
 

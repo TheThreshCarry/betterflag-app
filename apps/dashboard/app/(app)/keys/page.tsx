@@ -1,5 +1,7 @@
 import { KeysView } from "@/components/keys-view";
+import { loadOrgKeys } from "@/lib/keys";
 
-export default function KeysPage() {
-  return <KeysView />;
+export default async function KeysPage() {
+  const keys = await loadOrgKeys();
+  return <KeysView initialKeys={keys} />;
 }

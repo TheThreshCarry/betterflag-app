@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
-
 import { NAV_ITEMS } from "@/components/app-sidebar";
+import { Logo } from "@/components/logo";
 import { NavMain } from "@/components/nav-main";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -28,12 +27,13 @@ export function AppShellLoading() {
     <SidebarProvider>
       <Sidebar collapsible="icon">
         <SidebarHeader>
-          <Link
+          <Logo
             href="/flags"
-            className="mb-1 px-2 text-[17px] font-semibold tracking-[-0.01em] group-data-[collapsible=icon]:hidden"
-          >
-            ShipOS
-          </Link>
+            size="sm"
+            showText
+            className="mb-1 px-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+            textClassName="group-data-[collapsible=icon]:hidden"
+          />
 
           {/* Project switcher placeholder — matches the loaded button footprint. */}
           <div className="flex items-center gap-2 rounded-md p-2 group-data-[collapsible=icon]:justify-center">

@@ -13,5 +13,5 @@ export default async function OnboardingPage() {
     redirect("/login");
   }
 
-  return <OnboardingFlow />;
+  return <OnboardingFlow userEmail={user.email ?? null} />;
 }

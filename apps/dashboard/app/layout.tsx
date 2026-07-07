@@ -21,6 +21,11 @@ export const metadata: Metadata = {
   title: "ShipOS — Feature flags for agentic teams",
   description:
     "Feature flags your agents can ship with. Targeting, percentage rollouts, and instant kill switches via MCP and REST.",
+  icons: {
+    icon: "/brand/logo.svg",
+    shortcut: "/brand/logo.svg",
+    apple: "/brand/logo.svg",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -82,6 +82,30 @@ export function PromoBanner() {
 }
 ```
 
+### Identify the user after login
+
+When the user isn't known at provider-mount time (they log in later), call
+`signIn` on the client from `useShipOS()`. Every hook under the provider
+re-evaluates for the new user automatically:
+
+```tsx
+"use client";
+
+import { useEffect } from "react";
+import { useShipOS } from "@shipos/react";
+
+export function useSyncShipOSIdentity(user: { id: string; plan: string } | null) {
+  const shipos = useShipOS();
+  useEffect(() => {
+    if (user) shipos.signIn(user.id, { plan: user.plan });
+    else shipos.signOut();
+  }, [shipos, user]);
+}
+```
+
+Leave the provider's `user` prop unset when you drive identity this way. A
+per-hook `overrides` argument still wins over the signed-in user.
+
 ### Server-side usage (RSC, route handlers, middleware)
 
 Hooks are client-only. In React Server Components, route handlers, and

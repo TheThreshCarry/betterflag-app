@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 
 import { slugifyFlagKey, slugifyProjectSlug } from "@/components/flags-view";
+import { Logo } from "@/components/logo";
 import {
   Button,
   Chip,
@@ -21,6 +22,7 @@ import {
 import { OnboardingResumeSkeleton } from "@/components/skeletons";
 import type { ApiApiKey, ApiFlag, ApiOrg, ApiProject } from "@/lib/api-types";
 import { api } from "@/lib/client-api";
+import { createBrowserSupabase } from "@/lib/supabase/client";
 
 type Step = "loading" | "org" | "project" | "checklist";
 
@@ -31,7 +33,7 @@ function formatElapsed(ms: number): string {
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
-export function OnboardingFlow() {
+export function OnboardingFlow({ userEmail }: { userEmail: string | null }) {
   const router = useRouter();
   const [step, setStep] = useState<Step>("loading");
   const [org, setOrg] = useState<ApiOrg | null>(null);
@@ -39,6 +41,14 @@ export function OnboardingFlow() {
   const [sdkKey, setSdkKey] = useState<string | null>(null);
   const [firstFlag, setFirstFlag] = useState<ApiFlag | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [signingOut, setSigningOut] = useState(false);
+
+  const signOut = useCallback(async () => {
+    setSigningOut(true);
+    const supabase = createBrowserSupabase();
+    await supabase.auth.signOut();
+    router.replace("/login");
+  }, [router]);
 
   // Resume where the user left off.
   useEffect(() => {
@@ -76,28 +86,45 @@ export function OnboardingFlow() {
 
   return (
     <div className="min-h-screen bg-canvas">
-      <header className="flex h-16 items-center justify-between px-8">
-        <span className="text-[18px] font-semibold tracking-[-0.01em]">ShipOS</span>
-        <div className="flex items-center gap-2">
-          {(["Create org", "Create project", "First flag"] as const).map((label, index) => {
-            const stepIndex = step === "org" ? 0 : step === "project" ? 1 : 2;
-            const done = index < stepIndex || (index === 2 && firstFlag !== null);
-            const active = index === stepIndex;
-            return (
-              <span
-                key={label}
-                className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-medium ${
-                  done
-                    ? "bg-chip-green/10 text-chip-green"
-                    : active
-                      ? "bg-ink text-white"
-                      : "bg-surface text-ink-muted"
-                }`}
-              >
-                {done ? "✓" : index + 1} {label}
+      <header className="flex h-16 items-center justify-between gap-4 px-8">
+        <Logo href="/onboarding" size="sm" showText />
+        <div className="flex min-w-0 flex-1 items-center justify-end gap-4">
+          <div className="hidden items-center gap-2 sm:flex">
+            {(["Create org", "Create project", "First flag"] as const).map((label, index) => {
+              const stepIndex = step === "org" ? 0 : step === "project" ? 1 : 2;
+              const done = index < stepIndex || (index === 2 && firstFlag !== null);
+              const active = index === stepIndex;
+              return (
+                <span
+                  key={label}
+                  className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-medium ${
+                    done
+                      ? "bg-chip-green/10 text-chip-green"
+                      : active
+                        ? "bg-ink text-white"
+                        : "bg-surface text-ink-muted"
+                  }`}
+                >
+                  {done ? "✓" : index + 1} {label}
+                </span>
+              );
+            })}
+          </div>
+          {userEmail ? (
+            <div className="flex shrink-0 items-center gap-2 text-[13px]">
+              <span className="max-w-[140px] truncate text-ink-muted sm:max-w-[220px]">
+                {userEmail}
               </span>
-            );
-          })}
+              <button
+                type="button"
+                disabled={signingOut}
+                onClick={() => void signOut()}
+                className="font-medium text-ink underline underline-offset-2 disabled:opacity-50"
+              >
+                {signingOut ? "Logging out…" : "logout"}
+              </button>
+            </div>
+          ) : null}
         </div>
       </header>
 

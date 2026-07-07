@@ -293,6 +293,136 @@ describe("allFlags()", () => {
   });
 });
 
+// ---------------------------------------------------------- signIn / signOut
+
+describe("signIn / signOut (ambient identity)", () => {
+  it("applies the identified user and attributes to flag() without repeating them", async () => {
+    const fetch = mockFetch({
+      evaluate: () => evaluateResponse([result("checkout", true)]),
+    });
+    const client = createClient({ key: "k", fetch, refreshInterval: 0 });
+
+    client.signIn("user-123", { plan: "pro", region: "eu" });
+    await client.flag("checkout", { default: false });
+
+    expect(bodyOf(fetch.mock.calls[0]![1])).toEqual({
+      key: "checkout",
+      context: { userId: "user-123", attributes: { plan: "pro", region: "eu" } },
+    });
+    client.close();
+  });
+
+  it("applies the ambient identity to allFlags()", async () => {
+    const fetch = mockFetch({
+      evaluate: () => evaluateResponse([result("checkout", true)]),
+    });
+    const client = createClient({ key: "k", fetch, refreshInterval: 0 });
+
+    client.signIn("user-123", { plan: "pro" });
+    await client.allFlags();
+
+    expect(bodyOf(fetch.mock.calls[0]![1])).toEqual({
+      context: { userId: "user-123", attributes: { plan: "pro" } },
+    });
+    client.close();
+  });
+
+  it("lets a per-call userId override, and merges per-call attributes over identity", async () => {
+    const fetch = mockFetch({
+      evaluate: () => evaluateResponse([result("checkout", true)]),
+    });
+    const client = createClient({ key: "k", fetch, refreshInterval: 0 });
+
+    client.signIn("user-123", { plan: "pro", region: "eu" });
+    await client.flag("checkout", {
+      userId: "override",
+      attributes: { region: "us" }, // wins over identity's region
+      default: false,
+    });
+
+    expect(bodyOf(fetch.mock.calls[0]![1])).toEqual({
+      key: "checkout",
+      context: { userId: "override", attributes: { plan: "pro", region: "us" } },
+    });
+    client.close();
+  });
+
+  it("signOut() reverts to anonymous evaluation", async () => {
+    const fetch = mockFetch({
+      evaluate: () => evaluateResponse([result("checkout", true)]),
+    });
+    const client = createClient({ key: "k", fetch, refreshInterval: 0 });
+
+    client.signIn("user-123");
+    client.signOut();
+    await client.flag("checkout", { default: false });
+
+    // No userId/attributes → context omitted entirely from the body.
+    expect(bodyOf(fetch.mock.calls[0]![1])).toEqual({ key: "checkout" });
+    client.close();
+  });
+
+  it("signIn() clears the evaluation cache so flags re-evaluate for the new user", async () => {
+    const fetch = mockFetch({
+      evaluate: () => evaluateResponse([result("checkout", true)]),
+    });
+    const client = createClient({ key: "k", fetch, refreshInterval: 0 });
+
+    await client.flag("checkout", { default: false }); // anonymous, cached
+    expect(fetch).toHaveBeenCalledTimes(1);
+
+    client.signIn("user-123"); // clears cache
+    await client.flag("checkout", { default: false });
+    expect(fetch).toHaveBeenCalledTimes(2);
+
+    const secondBody = bodyOf(fetch.mock.calls[1]![1]) as { context?: unknown };
+    expect(secondBody.context).toEqual({ userId: "user-123" });
+    client.close();
+  });
+
+  it("signIn() and signOut() emit 'update' so subscribers re-render", async () => {
+    const fetch = mockFetch({
+      evaluate: () => evaluateResponse([result("checkout", true)]),
+    });
+    const client = createClient({ key: "k", fetch, refreshInterval: 0 });
+    const onUpdate = vi.fn();
+    client.on("update", onUpdate);
+
+    client.signIn("user-123");
+    client.signOut();
+    expect(onUpdate).toHaveBeenCalledTimes(2);
+
+    client.signOut(); // no-op when already anonymous — no extra emission
+    expect(onUpdate).toHaveBeenCalledTimes(2);
+    client.close();
+  });
+
+  it("getUser() reflects the current identity", async () => {
+    const fetch = mockFetch({});
+    const client = createClient({ key: "k", fetch, refreshInterval: 0 });
+
+    expect(client.getUser()).toBeNull();
+
+    client.signIn("user-123", { plan: "pro" });
+    expect(client.getUser()).toEqual({ userId: "user-123", attributes: { plan: "pro" } });
+
+    client.signOut();
+    expect(client.getUser()).toBeNull();
+    client.close();
+  });
+
+  it("rejects an empty userId via onError and stays anonymous", async () => {
+    const onError = vi.fn();
+    const fetch = mockFetch({});
+    const client = createClient({ key: "k", fetch, refreshInterval: 0, onError });
+
+    client.signIn("");
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(client.getUser()).toBeNull();
+    client.close();
+  });
+});
+
 // ---------------------------------------------------------------- polling
 
 describe("snapshot polling", () => {

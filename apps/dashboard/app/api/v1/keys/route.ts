@@ -4,34 +4,15 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
 import { toApiApiKey } from "@/lib/api-types";
-import { auditActor, resolveActor } from "@/lib/auth";
+import { auditActor, resolveSessionUser } from "@/lib/auth";
 import { assertOrgWritable } from "@/lib/billing-guard";
 import { kvPutSdkKey } from "@/lib/cloudflare";
 import { getEnvironmentInProject, getOrg, getProjectInOrg, recordAudit } from "@/lib/db";
 import { HttpError, parseJson, unwrap, withErrors } from "@/lib/errors";
+import { KEY_COLUMNS, rejectKeysBearer } from "@/lib/keys";
 import { createServiceClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
-
-const KEY_COLUMNS =
-  "id, org_id, project_id, environment_id, kind, name, prefix, scopes, last_used_at, created_by, created_at, revoked_at";
-
-export const GET = withErrors(async (request: NextRequest) => {
-  const actor = await resolveActor(request);
-  const service = createServiceClient();
-
-  const rows = unwrap(
-    await service
-      .from("api_keys")
-      .select(KEY_COLUMNS)
-      .eq("org_id", actor.orgId)
-      .order("created_at", { ascending: false }),
-  ) as Omit<ApiKeyRow, "hash">[];
-
-  return NextResponse.json({
-    keys: rows.map((row) => toApiApiKey({ ...row, hash: "" })),
-  });
-});
 
 const createKeySchema = z
   .object({
@@ -61,15 +42,33 @@ function randomHex40(): string {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+async function resolveSessionOrgId(userId: string): Promise<string> {
+  const service = createServiceClient();
+  const { data, error } = await service
+    .from("org_members")
+    .select("org_id, created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: true })
+    .limit(1);
+  if (error) throw error;
+  const orgId = data?.[0]?.org_id;
+  if (!orgId) {
+    throw new HttpError(403, "no_org", "You are not a member of any organization yet");
+  }
+  return orgId;
+}
+
 export const POST = withErrors(async (request: NextRequest) => {
-  const actor = await resolveActor(request);
+  rejectKeysBearer(request);
+  const { userId } = await resolveSessionUser();
+  const orgId = await resolveSessionOrgId(userId);
   const body = await parseJson(request, createKeySchema);
   const service = createServiceClient();
-  await assertOrgWritable(service, actor.orgId);
+  await assertOrgWritable(service, orgId);
 
   let envSlug: string | null = null;
   if (body.projectId) {
-    await getProjectInOrg(service, body.projectId, actor.orgId);
+    await getProjectInOrg(service, body.projectId, orgId);
   }
   if (body.kind === "sdk" && body.projectId && body.environmentId) {
     const environment = await getEnvironmentInProject(service, body.environmentId, body.projectId);
@@ -77,13 +76,13 @@ export const POST = withErrors(async (request: NextRequest) => {
   }
 
   if (body.kind === "agent") {
-    const org = await getOrg(service, actor.orgId);
+    const org = await getOrg(service, orgId);
     const limit = PLAN_LIMITS[org.plan].agentKeys;
     if (limit !== null) {
       const { count, error } = await service
         .from("api_keys")
         .select("id", { count: "exact", head: true })
-        .eq("org_id", actor.orgId)
+        .eq("org_id", orgId)
         .eq("kind", "agent")
         .is("revoked_at", null);
       if (error) throw error;
@@ -105,14 +104,14 @@ export const POST = withErrors(async (request: NextRequest) => {
     await service
       .from("api_keys")
       .insert({
-        org_id: actor.orgId,
+        org_id: orgId,
         project_id: body.projectId ?? null,
         environment_id: body.kind === "sdk" ? (body.environmentId ?? null) : null,
         kind: body.kind,
         name: body.name,
         hash,
         prefix,
-        created_by: actor.type === "user" ? actor.userId : null,
+        created_by: userId,
       })
       .select(KEY_COLUMNS)
       .single(),
@@ -121,7 +120,7 @@ export const POST = withErrors(async (request: NextRequest) => {
   // SDK keys are resolved by the edge from KV — never from Postgres.
   if (body.kind === "sdk" && body.projectId && envSlug) {
     const entry: SdkKeyKvEntry = {
-      orgId: actor.orgId,
+      orgId,
       projectId: body.projectId,
       envSlug,
       hash,
@@ -132,9 +131,9 @@ export const POST = withErrors(async (request: NextRequest) => {
 
   const apiKey = toApiApiKey({ ...inserted, hash: "" });
   await recordAudit(service, {
-    orgId: actor.orgId,
+    orgId,
     projectId: body.projectId ?? null,
-    actor: auditActor(actor),
+    actor: { actorType: "user", actorId: userId, actorKeyPrefix: null },
     action: "key.create",
     subject: `key:${prefix}`,
     after: apiKey,

@@ -32,6 +32,7 @@ export {
 export type { SpanKind, SpanStatus } from "./otlp";
 export {
   createObservability,
+  formatRelease,
   parseOtlpHeaders,
   readObservability,
   withSpanContext,

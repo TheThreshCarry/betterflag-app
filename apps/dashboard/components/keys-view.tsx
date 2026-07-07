@@ -1,7 +1,8 @@
 "use client";
 
 import { PLAN_LIMITS } from "@shipos/db";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useMemo, useState } from "react";
 
 import { useApp } from "@/components/app-shell";
 import {
@@ -16,7 +17,7 @@ import {
   inputClass,
   type ChipColor,
 } from "@/components/ui";
-import { DataTable, DataTableSkeleton, type Column } from "@/components/data-table";
+import { DataTable, type Column } from "@/components/data-table";
 import type { ApiApiKey } from "@/lib/api-types";
 import { api } from "@/lib/client-api";
 
@@ -51,30 +52,22 @@ const KIND_EXPLAINERS: Record<ApiApiKey["kind"], { title: string; body: string }
   },
 };
 
-export function KeysView() {
+export function KeysView({ initialKeys }: { initialKeys: ApiApiKey[] }) {
+  const router = useRouter();
   const { org, projects } = useApp();
-  const [keys, setKeys] = useState<ApiApiKey[] | null>(null);
+  const keys = initialKeys;
   const [error, setError] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [revokeTarget, setRevokeTarget] = useState<ApiApiKey | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const load = useCallback(async () => {
-    try {
-      const { keys: loaded } = await api<{ keys: ApiApiKey[] }>("/api/v1/keys");
-      setKeys(loaded);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load keys");
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const refresh = useCallback(() => {
+    router.refresh();
+  }, [router]);
 
   const agentLimit = PLAN_LIMITS[org.plan].agentKeys;
   const activeAgentKeys = useMemo(
-    () => (keys ?? []).filter((key) => key.kind === "agent" && key.revokedAt === null).length,
+    () => keys.filter((key) => key.kind === "agent" && key.revokedAt === null).length,
     [keys],
   );
 
@@ -105,9 +98,7 @@ export function KeysView() {
 
       <ErrorNote message={error} />
 
-      {!keys ? (
-        <DataTableSkeleton columns={KEY_COLUMNS} />
-      ) : keys.length === 0 ? (
+      {!keys.length ? (
         <EmptyState
           title="No keys yet"
           body="Create an SDK key to evaluate flags, or an agent key to let your agents manage them."
@@ -156,7 +147,7 @@ export function KeysView() {
         agentLimit={agentLimit}
         activeAgentKeys={activeAgentKeys}
         plan={org.plan}
-        onCreated={() => void load()}
+        onCreated={refresh}
       />
 
       <Dialog
@@ -185,7 +176,7 @@ export function KeysView() {
                   void api(`/api/v1/keys/${revokeTarget.id}`, { method: "DELETE" })
                     .then(async () => {
                       setRevokeTarget(null);
-                      await load();
+                      refresh();
                     })
                     .catch((err: unknown) =>
                       setError(err instanceof Error ? err.message : "Failed to revoke"),

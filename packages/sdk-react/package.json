@@ -23,7 +23,8 @@
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --clean --external react",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "@shipos/sdk": "workspace:*"

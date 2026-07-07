@@ -66,6 +66,31 @@ function str(value: unknown): string | undefined {
 }
 
 /**
+ * Compose the `release` string that stamps every log line, error, and trace.
+ *
+ * The result is the source of truth that ties a telemetry record back to the
+ * exact code that produced it:
+ *   - `override` (a fully-formed release string, e.g. from CI) always wins.
+ *   - otherwise `version` (the app's committed semver) plus, when a git commit
+ *     is available, a `+<7-char sha>` suffix → `0.1.2+a1b9f3c`.
+ *   - with no sha, just the bare `version` → `0.1.2`.
+ *
+ * `version` is the per-app value baked in at build time (see each app's
+ * `version.gen.ts`); `gitSha` is injected at deploy (e.g. `SHIPOS_GIT_SHA`).
+ */
+export function formatRelease(opts: {
+  version: string;
+  gitSha?: string;
+  override?: string;
+}): string {
+  const override = opts.override?.trim();
+  if (override) return override;
+  const sha = opts.gitSha?.trim();
+  const short = sha ? sha.slice(0, 7) : "";
+  return short ? `${opts.version}+${short}` : opts.version;
+}
+
+/**
  * Parse `OTEL_EXPORTER_OTLP_HEADERS` — a comma-separated list of `key=value`
  * pairs (only the first `=` is a separator, so `Authorization=Bearer x` works).
  */

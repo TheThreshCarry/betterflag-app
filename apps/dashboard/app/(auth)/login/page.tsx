@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 
+import { Logo } from "@/components/logo";
 import { Button, Chip, ErrorNote, inputClass } from "@/components/ui";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 
@@ -123,7 +124,7 @@ export default function LoginPage() {
     <div className="grid min-h-screen lg:grid-cols-2">
       {/* Brand panel */}
       <div className="hidden flex-col justify-between bg-surface p-12 lg:flex">
-        <div className="text-[20px] font-semibold tracking-[-0.01em]">ShipOS</div>
+        <Logo href="/" size="default" showText className="text-[20px]" />
         <div className="max-w-md">
           <div className="mb-5 flex flex-wrap gap-2">
             <Chip color="orange">Feature flags</Chip>
@@ -162,7 +163,7 @@ export default function LoginPage() {
       <div className="flex items-center justify-center p-8">
         <div className="w-full max-w-sm">
           <div className="mb-8 lg:hidden">
-            <span className="text-[20px] font-semibold tracking-[-0.01em]">ShipOS</span>
+            <Logo href="/" size="default" showText />
           </div>
           <h2 className="text-[28px] font-semibold tracking-[-0.01em]">
             {mode === "signup" ? "Create your account" : "Sign in"}

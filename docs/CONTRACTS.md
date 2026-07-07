@@ -55,16 +55,15 @@ Errors: `{ "error": { "code": string, "message": string } }` with 400/401/403/40
 | POST | /api/v1/flags/:id/environments/:env/kill | `kill_flag` RPC + KV fast path |
 | POST | /api/v1/flags/:id/environments/:env/promote | `{fromEnv}` copies config between envs |
 | GET | /api/v1/flags/:id/environments/:env/stats?period=24h\|7d\|30d | ClickHouse `evals_per_flag_hour` |
-| GET | /api/v1/keys | list (no hashes) |
-| POST | /api/v1/keys | `{kind, name, projectId?, environmentId?}`; sdk requires project+env; enforces `PLAN_LIMITS.agentKeys`; returns plaintext once |
-| DELETE | /api/v1/keys/:id | revoke + KV update for sdk keys |
+| POST | /api/v1/keys | dashboard session only — create key; returns plaintext once; not listable |
+| DELETE | /api/v1/keys/:id | dashboard session only — revoke + KV update for sdk keys |
 | GET | /api/v1/audit?actorType=&projectId=&limit=&before= | audit entries, newest first |
 | GET | /api/v1/usage?days=30 | ClickHouse `evals_per_org_day` + plan + trial state |
 
 Response envelopes (pinned — MCP normalizers and future SDKs rely on these):
 wire format is camelCase; list endpoints wrap in a named key —
 `{projects}`, `{flags}`, `{flag, configs}`, `{project}`, `{config}`,
-`{keys}` / `{apiKey, plaintext}`, `{entries}` (audit),
+`{apiKey, plaintext}` (create only), `{entries}` (audit),
 `{period, series}` (stats), `{usage…}`. API key hashes are never serialized.
 Full schemas: docs/openapi.yaml.
 

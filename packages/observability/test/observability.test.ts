@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createObservability, parseOtlpHeaders, readObservability } from "../src/config";
+import { createObservability, formatRelease, parseOtlpHeaders, readObservability } from "../src/config";
 
 function jsonBodies(fetchMock: ReturnType<typeof vi.fn>): Array<{ url: string; body: unknown }> {
   return fetchMock.mock.calls.map((call) => ({
@@ -18,6 +18,23 @@ describe("parseOtlpHeaders", () => {
 
   it("returns an empty object for undefined", () => {
     expect(parseOtlpHeaders(undefined)).toEqual({});
+  });
+});
+
+describe("formatRelease", () => {
+  it("appends the short git sha to the version", () => {
+    expect(formatRelease({ version: "0.1.2", gitSha: "a1b9f3c9d0e1f2" })).toBe("0.1.2+a1b9f3c");
+  });
+
+  it("returns the bare version when no sha is available", () => {
+    expect(formatRelease({ version: "0.1.2" })).toBe("0.1.2");
+    expect(formatRelease({ version: "0.1.2", gitSha: "" })).toBe("0.1.2");
+  });
+
+  it("lets an explicit override win over version + sha", () => {
+    expect(
+      formatRelease({ version: "0.1.2", gitSha: "a1b9f3c", override: "0.9.0+ci" }),
+    ).toBe("0.9.0+ci");
   });
 });
 

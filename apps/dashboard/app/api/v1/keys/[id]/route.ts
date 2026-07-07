@@ -3,34 +3,52 @@ import type { ApiKeyRow, EnvironmentRow } from "@shipos/db";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { toApiApiKey } from "@/lib/api-types";
-import { auditActor, resolveActor } from "@/lib/auth";
+import { resolveSessionUser } from "@/lib/auth";
 import { assertOrgWritable } from "@/lib/billing-guard";
 import { kvPutSdkKey } from "@/lib/cloudflare";
 import { recordAudit } from "@/lib/db";
 import { HttpError, unwrap, withErrors } from "@/lib/errors";
+import { rejectKeysBearer } from "@/lib/keys";
 import { createServiceClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
-export const DELETE = withErrors<{ id: string }>(async (request: NextRequest, { params }) => {
-  const { id } = await params;
-  const actor = await resolveActor(request);
+async function resolveSessionOrgId(userId: string): Promise<string> {
   const service = createServiceClient();
-  await assertOrgWritable(service, actor.orgId);
+  const { data, error } = await service
+    .from("org_members")
+    .select("org_id, created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: true })
+    .limit(1);
+  if (error) throw error;
+  const orgId = data?.[0]?.org_id;
+  if (!orgId) {
+    throw new HttpError(403, "no_org", "You are not a member of any organization yet");
+  }
+  return orgId;
+}
+
+export const DELETE = withErrors<{ id: string }>(async (request: NextRequest, { params }) => {
+  rejectKeysBearer(request);
+  const { id } = await params;
+  const { userId } = await resolveSessionUser();
+  const orgId = await resolveSessionOrgId(userId);
+  const service = createServiceClient();
+  await assertOrgWritable(service, orgId);
 
   const { data, error } = await service
     .from("api_keys")
     .select("*")
     .eq("id", id)
-    .eq("org_id", actor.orgId)
+    .eq("org_id", orgId)
     .maybeSingle();
   if (error) throw error;
   const key = data as ApiKeyRow | null;
   if (!key) throw new HttpError(404, "key_not_found", "API key not found");
 
   if (key.revoked_at !== null) {
-    // Idempotent: already revoked.
-    return NextResponse.json({ apiKey: toApiApiKey(key) });
+    return NextResponse.json({ ok: true });
   }
 
   const revoked = unwrap(
@@ -64,14 +82,14 @@ export const DELETE = withErrors<{ id: string }>(async (request: NextRequest, { 
   }
 
   await recordAudit(service, {
-    orgId: actor.orgId,
+    orgId,
     projectId: key.project_id,
-    actor: auditActor(actor),
+    actor: { actorType: "user", actorId: userId, actorKeyPrefix: null },
     action: "key.revoke",
     subject: `key:${key.prefix}`,
     before: toApiApiKey(key),
     after: toApiApiKey(revoked),
   });
 
-  return NextResponse.json({ apiKey: toApiApiKey(revoked) });
+  return NextResponse.json({ ok: true });
 });

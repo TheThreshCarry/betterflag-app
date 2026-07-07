@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
-
 import { EnvSwitcher } from "@/components/env-switcher";
+import { Logo } from "@/components/logo";
 import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
 import { ProjectSwitcher } from "@/components/project-switcher";
@@ -45,12 +44,13 @@ export function AppSidebar({
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <Link
+        <Logo
           href="/flags"
-          className="mb-1 px-2 text-[17px] font-semibold tracking-[-0.01em] group-data-[collapsible=icon]:hidden"
-        >
-          ShipOS
-        </Link>
+          size="sm"
+          showText
+          className="mb-1 px-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+          textClassName="group-data-[collapsible=icon]:hidden"
+        />
         <ProjectSwitcher />
         <EnvSwitcher />
       </SidebarHeader>

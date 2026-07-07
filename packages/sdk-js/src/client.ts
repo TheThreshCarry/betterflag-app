@@ -88,6 +88,11 @@ export class ShipOSClient {
   private etag: string | null = null;
   private snapshotVersion: number | null = null;
 
+  // Ambient identity set by signIn(), merged into every evaluation context
+  // until signOut(). Per-call userId/attributes always take precedence.
+  private identityUserId: string | undefined = undefined;
+  private identityAttributes: Record<string, JsonValue> | undefined = undefined;
+
   private readonly readyPromise: Promise<void>;
   private resolveReady: () => void = () => {};
   private readySettled = false;
@@ -152,7 +157,9 @@ export class ShipOSClient {
   async allFlags(context: EvaluationContext = {}): Promise<Record<string, JsonValue>> {
     try {
       this.startPolling();
-      const response = await this.postEvaluate({ context: normalizeContext(context) });
+      const response = await this.postEvaluate({
+        context: normalizeContext(this.mergeIdentity(context)),
+      });
       const flags: Record<string, JsonValue> = {};
       for (const result of response.results) {
         if (result.reason !== "not_found") flags[result.key] = result.value;
@@ -162,6 +169,60 @@ export class ShipOSClient {
       this.reportError(error);
       return { ...this.defaults };
     }
+  }
+
+  /**
+   * Identify the current user (PostHog-style). Sets an ambient evaluation
+   * context — `userId` plus optional `metadata` attributes — that is merged
+   * into every subsequent `flag()`, `flagDetail()`, and `allFlags()` call so
+   * you don't repeat the user on each check:
+   *
+   * ```ts
+   * shipos.signIn("user-123", { plan: "pro", region: "eu" });
+   * await shipos.flag("new-checkout", { default: false }); // evaluated for user-123
+   * ```
+   *
+   * A per-call `userId`/`attributes` always overrides the ambient identity.
+   * Each `signIn` replaces the previous identity (it does not merge with it).
+   * Purely local: ShipOS targets users at evaluation time, so there is no
+   * network round-trip here. The evaluation cache is cleared and an
+   * `'update'` event is emitted so React hooks re-evaluate for the new user.
+   */
+  signIn(userId: string, metadata?: Record<string, JsonValue>): void {
+    if (typeof userId !== "string" || userId === "") {
+      this.reportError(new Error("ShipOS: signIn(userId) requires a non-empty string"));
+      return;
+    }
+    this.identityUserId = userId;
+    this.identityAttributes = metadata;
+    this.cache.clear();
+    this.emitUpdate();
+  }
+
+  /**
+   * Clear the ambient identity set by {@link signIn}. Subsequent evaluations
+   * are anonymous again (unless a per-call `userId` is passed). Clears the
+   * evaluation cache and emits `'update'`. Safe to call when not signed in.
+   */
+  signOut(): void {
+    if (this.identityUserId === undefined && this.identityAttributes === undefined) {
+      return;
+    }
+    this.identityUserId = undefined;
+    this.identityAttributes = undefined;
+    this.cache.clear();
+    this.emitUpdate();
+  }
+
+  /**
+   * The currently identified user, or `null` when anonymous. Returns a copy —
+   * mutating it does not change the client's identity.
+   */
+  getUser(): { userId: string; attributes?: Record<string, JsonValue> } | null {
+    if (this.identityUserId === undefined) return null;
+    return this.identityAttributes === undefined
+      ? { userId: this.identityUserId }
+      : { userId: this.identityUserId, attributes: { ...this.identityAttributes } };
   }
 
   /**
@@ -207,14 +268,15 @@ export class ShipOSClient {
   ): Promise<EvaluationResult | null> {
     try {
       this.startPolling();
-      const cacheKey = `${key}|${context.userId ?? ""}|${stableStringify(context.attributes)}`;
+      const resolved = this.mergeIdentity(context);
+      const cacheKey = `${key}|${resolved.userId ?? ""}|${stableStringify(resolved.attributes)}`;
       const cached = this.cache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < this.cacheTtl) {
         return cached.result;
       }
       const response = await this.postEvaluate({
         key,
-        context: normalizeContext(context),
+        context: normalizeContext(resolved),
       });
       const result =
         response.results.find((entry) => entry.key === key) ??
@@ -328,6 +390,25 @@ export class ShipOSClient {
     if (this.readySettled) return;
     this.readySettled = true;
     this.resolveReady();
+  }
+
+  /**
+   * Merge the ambient identity (from `signIn`) with a per-call context.
+   * The per-call `userId` and per-attribute values win; identity attributes
+   * fill in the rest. Returns `{}` when both are empty.
+   */
+  private mergeIdentity(context: EvaluationContext): EvaluationContext {
+    const userId = context.userId ?? this.identityUserId;
+    const hasAttributes =
+      this.identityAttributes !== undefined || context.attributes !== undefined;
+    const attributes = hasAttributes
+      ? { ...this.identityAttributes, ...context.attributes }
+      : undefined;
+
+    const merged: EvaluationContext = {};
+    if (userId !== undefined) merged.userId = userId;
+    if (attributes !== undefined) merged.attributes = attributes;
+    return merged;
   }
 
   private reportError(error: unknown): void {

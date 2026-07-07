@@ -10,6 +10,8 @@ export type OrgPlan = "trial" | "starter" | "launch" | "scale";
 export type OrgRole = "owner" | "admin" | "member";
 export type FlagKindDb = "boolean" | "string" | "number" | "json";
 export type ApiKeyKindDb = "sdk" | "agent" | "admin";
+/** 'manual' = Keys page; 'oauth' = minted by an approved MCP OAuth connection. */
+export type ApiKeySourceDb = "manual" | "oauth";
 export type ActorTypeDb = "user" | "agent";
 
 export interface OrgRow {
@@ -93,6 +95,7 @@ export interface ApiKeyRow {
   hash: string;
   prefix: string;
   scopes: string[];
+  source: ApiKeySourceDb;
   last_used_at: string | null;
   created_by: string | null;
   created_at: string;
