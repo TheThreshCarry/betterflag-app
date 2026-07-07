@@ -1,65 +1,26 @@
 /**
- * Client-side validation for targeting rules.
+ * Targeting-rule schemas for the MCP tools.
  *
- * Mirrors `targetingRuleSchema` from @shipos/core — but written in zod v3
- * syntax (this app pins zod 3.25 for @modelcontextprotocol/sdk compatibility,
- * while core uses zod v4). Keep in lockstep with packages/core/src/schemas.ts.
+ * The canonical validation schemas live in @shipos/core and are reused here for
+ * runtime `.safeParse` (mcp and core are both on zod 4, so there's nothing to
+ * hand-duplicate anymore).
+ *
+ * The INPUT schemas below are deliberately kept local and shallow: the canonical
+ * `jsonValueSchema` is recursive (z.lazy), and feeding a recursive schema into
+ * the MCP SDK's `registerTool` makes tsc instantiate the JsonValue type across
+ * every tool and blow the Node heap (`tsc` OOMs, exit 137). Advertising a
+ * shallow `value: z.unknown()` keeps the tool's inputSchema structure while tsc
+ * stays cheap; deep validation still runs at runtime via
+ * `targetingRulesSchema.safeParse`.
  */
+import { ruleOperatorSchema, targetingRulesSchema } from "@shipos/core";
 import { z } from "zod";
-import type { JsonValue } from "@shipos/core";
 
-export const jsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
-  z.union([
-    z.string(),
-    z.number(),
-    z.boolean(),
-    z.null(),
-    z.array(jsonValueSchema),
-    z.record(z.string(), jsonValueSchema),
-  ]),
-);
-
-export const ruleOperatorSchema = z.enum([
-  "eq",
-  "neq",
-  "in",
-  "not_in",
-  "contains",
-  "gt",
-  "gte",
-  "lt",
-  "lte",
-  "semver_eq",
-  "semver_gt",
-  "semver_lt",
-]);
-
-export const ruleConditionSchema = z.object({
-  attribute: z.string().min(1).max(128),
-  op: ruleOperatorSchema,
-  value: jsonValueSchema,
-});
-
-export const targetingRuleSchema = z.object({
-  id: z.string().min(1).max(64),
-  description: z.string().max(512).optional(),
-  conditions: z.array(ruleConditionSchema).max(32),
-  serve: z.enum(["on", "off"]),
-  rolloutPct: z.number().int().min(0).max(100).optional(),
-});
-
-export const targetingRulesSchema = z.array(targetingRuleSchema).max(64);
+export { targetingRulesSchema };
 
 // ---------------------------------------------------------------------------
-// Input-only schemas (for MCP tool `inputSchema`)
+// Input-only schemas (for MCP tool `inputSchema`) — see file header.
 // ---------------------------------------------------------------------------
-// `jsonValueSchema` is recursive (z.lazy). When it's fed into a tool's
-// `inputSchema`, the MCP SDK's registerTool generics run `z.infer` over it,
-// forcing tsc to instantiate the recursive JsonValue type — across every tool —
-// which blows the Node heap (`tsc` OOMs, exit 137). These shallow twins have an
-// identical shape but a non-recursive `value: z.unknown()`, so the advertised
-// schema keeps its structure while tsc stays cheap. Deep validation still runs
-// at runtime via `jsonValueSchema` / `targetingRulesSchema.safeParse`.
 
 export const jsonValueInputSchema = z.unknown();
 

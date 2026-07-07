@@ -1,6 +1,6 @@
 name: Deploy Workers
 
-# Deploys the Cloudflare Workers (edge, ingest, mcp) with Wrangler.
+# Deploys the Cloudflare Workers (edge, ingest, mcp, webhooks) with Wrangler.
 # The Next.js dashboard is deployed separately and is intentionally excluded.
 on:
   push:
@@ -9,6 +9,7 @@ on:
       - "apps/edge/**"
       - "apps/ingest/**"
       - "apps/mcp/**"
+      - "apps/webhooks/**"
       - "packages/core/**"
       - "packages/db/**"
       - "bun.lock"
@@ -19,7 +20,7 @@ on:
         description: "Which worker to deploy"
         type: choice
         default: all
-        options: [all, edge, ingest, mcp]
+        options: [all, edge, ingest, mcp, webhooks]
 
 # Never run two deploys of the same ref at once; let an in-flight deploy finish.
 concurrency:

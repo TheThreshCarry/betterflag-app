@@ -3,6 +3,9 @@
   "name": "shipos-webhooks",
   "main": "src/index.ts",
   "compatibility_date": "2026-06-01",
+  // Custom domain — Polar posts webhooks to https://payment.shipos.app.
+  // Wrangler provisions the domain + DNS record on the shipos.app zone.
+  "routes": [{ "pattern": "payment.shipos.app", "custom_domain": true }],
   "observability": {
     "enabled": true
   },
