@@ -1,79 +1,13 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
-function TableSkeleton({
-  columns,
-  rows = 5,
-}: {
-  // `width` sizes the shimmer bar; `colWidth` sizes the (fixed) table column.
-  columns: { label: string; width?: string; colWidth?: string }[];
-  rows?: number;
-}) {
-  return (
-    <div className="overflow-hidden rounded-3xl border border-line">
-      {/* table-fixed + explicit column widths so columns don't recompute (and
-          visibly resize) between the skeleton and the loaded data. */}
-      <table className="w-full table-fixed text-left text-[14px]">
-        <colgroup>
-          {columns.map((col) => (
-            <col key={col.label} className={col.colWidth ?? "w-40"} />
-          ))}
-        </colgroup>
-        <thead className="bg-surface text-[12px] text-ink-muted">
-          <tr>
-            {columns.map((col) => (
-              <th key={col.label} className="px-5 py-3 font-medium">
-                {col.label}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {Array.from({ length: rows }).map((_, row) => (
-            <tr key={row} className="border-t border-line">
-              {columns.map((col) => (
-                <td key={col.label} className="px-5 py-3.5">
-                  <Skeleton className={`h-4 ${col.width ?? "w-24"}`} />
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-export function FlagsTableSkeleton() {
-  return (
-    <TableSkeleton
-      columns={[
-        { label: "Key", width: "w-28", colWidth: "w-[24%]" },
-        { label: "Name", width: "w-32", colWidth: "w-[28%]" },
-        { label: "Kind", width: "w-16", colWidth: "w-[12%]" },
-        { label: "Environments", width: "w-40", colWidth: "w-[24%]" },
-        { label: "Updated", width: "w-16", colWidth: "w-[12%]" },
-      ]}
-    />
-  );
-}
-
-export function KeysTableSkeleton() {
-  return (
-    <TableSkeleton
-      columns={[
-        { label: "Key", width: "w-20", colWidth: "w-[18%]" },
-        { label: "Name", width: "w-28", colWidth: "w-[20%]" },
-        { label: "Kind", width: "w-14", colWidth: "w-[12%]" },
-        { label: "Scope", width: "w-24", colWidth: "w-[18%]" },
-        { label: "Last used", width: "w-16", colWidth: "w-[14%]" },
-        { label: "Created", width: "w-16", colWidth: "w-[12%]" },
-        { label: "", width: "w-12", colWidth: "w-[6%]" },
-      ]}
-    />
-  );
-}
+// Table loading states now live in <DataTableSkeleton> (components/data-table.tsx)
+// so the skeleton and the loaded table share one fixed-width frame and never
+// resize on load.
 
 export function AuditListSkeleton({ rows = 8 }: { rows?: number }) {
+  // Mirrors the loaded audit row exactly: chip · fixed-width action · flexible
+  // subject · right-aligned time. Matching the flex layout (not just widths)
+  // keeps the timestamp from jumping to the right edge when data loads.
   return (
     <div className="overflow-hidden rounded-3xl border border-line">
       {Array.from({ length: rows }).map((_, i) => (
@@ -82,34 +16,11 @@ export function AuditListSkeleton({ rows = 8 }: { rows?: number }) {
           className="flex items-center gap-4 border-b border-line px-5 py-3.5 last:border-b-0"
         >
           <Skeleton className="h-6 w-24 rounded-full" />
-          <Skeleton className="h-4 w-36" />
-          <Skeleton className="h-4 w-64" />
-          <Skeleton className="h-4 w-14" />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-export function ApprovalsListSkeleton() {
-  return (
-    <div className="space-y-4">
-      {Array.from({ length: 2 }).map((_, i) => (
-        <div key={i} className="rounded-3xl border border-line bg-surface p-6">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1 space-y-3">
-              <div className="flex items-center gap-2.5">
-                <Skeleton className="h-6 w-24 rounded-full" />
-                <Skeleton className="h-5 w-64" />
-              </div>
-              <Skeleton className="h-4 w-80" />
-              <Skeleton className="h-4 w-56" />
-            </div>
-            <div className="flex shrink-0 flex-col gap-2">
-              <Skeleton className="h-10 w-36 rounded-2xl" />
-              <Skeleton className="h-10 w-36 rounded-2xl" />
-            </div>
+          <Skeleton className="h-4 w-44 shrink-0" />
+          <div className="flex-1">
+            <Skeleton className="h-4 w-64 max-w-full" />
           </div>
+          <Skeleton className="h-4 w-14 shrink-0" />
         </div>
       ))}
     </div>
@@ -235,37 +146,8 @@ export function FlagDetailSkeleton() {
   );
 }
 
-export function AppShellSkeleton() {
-  return (
-    <div className="flex min-h-screen">
-      <aside className="flex w-60 shrink-0 flex-col border-r border-line bg-surface p-4">
-        <Skeleton className="mb-4 h-6 w-20" />
-        <Skeleton className="mb-2 h-12 w-full rounded-lg" />
-        <div className="mb-4 flex gap-1">
-          <Skeleton className="h-6 w-20 rounded-md" />
-          <Skeleton className="h-6 w-20 rounded-md" />
-          <Skeleton className="h-6 w-20 rounded-md" />
-        </div>
-        <div className="flex-1 space-y-1 py-2">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-8 w-full rounded-md" />
-          ))}
-        </div>
-        <Skeleton className="h-12 w-full rounded-lg" />
-      </aside>
-      <div className="flex-1">
-        <Skeleton className="h-14 w-full border-b border-line" />
-        <div className="mx-auto max-w-5xl space-y-6 px-8 py-8">
-          <div className="space-y-2">
-            <Skeleton className="h-8 w-32" />
-            <Skeleton className="h-4 w-48" />
-          </div>
-          <Skeleton className="h-64 w-full rounded-3xl" />
-        </div>
-      </div>
-    </div>
-  );
-}
+// The first-load shell now lives in <AppShellLoading> (components/app-shell-loading.tsx),
+// which renders the real sidebar chrome instead of a full-page blank skeleton.
 
 export function OnboardingResumeSkeleton() {
   return (

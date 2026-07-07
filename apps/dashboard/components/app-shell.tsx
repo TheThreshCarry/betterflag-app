@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   createContext,
   useCallback,
@@ -12,7 +12,7 @@ import {
 } from "react";
 
 import { AppSidebar } from "@/components/app-sidebar";
-import { AppShellSkeleton } from "@/components/skeletons";
+import { AppShellLoading } from "@/components/app-shell-loading";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import type { ApiOrg, ApiProject } from "@/lib/api-types";
 import { api, ApiClientError } from "@/lib/client-api";
@@ -54,7 +54,6 @@ export function AppShell({
   children: ReactNode;
 }) {
   const router = useRouter();
-  const pathname = usePathname();
 
   const [orgs, setOrgs] = useState<ApiOrg[] | null>(null);
   const [projects, setProjects] = useState<ApiProject[]>([]);
@@ -195,7 +194,7 @@ export function AppShell({
   }
 
   if (!contextValue) {
-    return <AppShellSkeleton />;
+    return <AppShellLoading />;
   }
 
   return (

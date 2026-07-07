@@ -10,7 +10,6 @@ export type OrgPlan = "trial" | "starter" | "launch" | "scale";
 export type OrgRole = "owner" | "admin" | "member";
 export type FlagKindDb = "boolean" | "string" | "number" | "json";
 export type ApiKeyKindDb = "sdk" | "agent" | "admin";
-export type ApprovalStatus = "pending" | "approved" | "rejected";
 export type ActorTypeDb = "user" | "agent";
 
 export interface OrgRow {
@@ -89,26 +88,6 @@ export interface ApiKeyRow {
   created_by: string | null;
   created_at: string;
   revoked_at: string | null;
-}
-
-export interface GuardrailRow {
-  id: string;
-  org_id: string;
-  environment_id: string | null;
-  action: string;
-  requires_approval: boolean;
-  created_at: string;
-}
-
-export interface ApprovalRow {
-  id: string;
-  org_id: string;
-  requested_by_key: string;
-  action: JsonValue;
-  status: ApprovalStatus;
-  resolved_by: string | null;
-  resolved_at: string | null;
-  created_at: string;
 }
 
 export interface AuditLogRow {

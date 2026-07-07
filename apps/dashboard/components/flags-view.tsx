@@ -17,11 +17,19 @@ import {
   textareaClass,
   type ChipColor,
 } from "@/components/ui";
-import { FlagsTableSkeleton } from "@/components/skeletons";
+import { DataTable, DataTableSkeleton, type Column } from "@/components/data-table";
 import type { ApiFlag, ApiFlagConfig } from "@/lib/api-types";
 import { api } from "@/lib/client-api";
 
 type FlagWithConfigs = ApiFlag & { configs: ApiFlagConfig[] };
+
+const FLAG_COLUMNS: readonly Column[] = [
+  { key: "key", label: "Key", colWidth: "w-[18%]", skeletonWidth: "w-24" },
+  { key: "name", label: "Name", colWidth: "w-[26%]", skeletonWidth: "w-32" },
+  { key: "kind", label: "Kind", colWidth: "w-[12%]", skeletonWidth: "w-14" },
+  { key: "environments", label: "Environments", colWidth: "w-[32%]", skeletonWidth: "w-40" },
+  { key: "updated", label: "Updated", colWidth: "w-[12%]", skeletonWidth: "w-16" },
+];
 
 export const KIND_COLORS: Record<ApiFlag["kind"], ChipColor> = {
   boolean: "blue",
@@ -105,7 +113,7 @@ export function FlagsView() {
             {!flags ? (
               <>
                 {" — "}
-                <span className="inline-block h-3.5 w-12 translate-y-0.5 animate-pulse rounded bg-line align-middle" />
+                <span className="inline-block h-3.5 w-12 translate-y-0.5 animate-pulse rounded-md bg-muted align-middle" />
               </>
             ) : null}
           </p>
@@ -116,7 +124,7 @@ export function FlagsView() {
       <ErrorNote message={error} />
 
       {!flags ? (
-        <FlagsTableSkeleton />
+        <DataTableSkeleton columns={FLAG_COLUMNS} />
       ) : flags.length === 0 ? (
         <EmptyState
           title="Ship your first flag"
@@ -124,19 +132,8 @@ export function FlagsView() {
           action={<Button onClick={() => setDialogOpen(true)}>New flag</Button>}
         />
       ) : (
-        <div className="overflow-hidden rounded-3xl border border-line">
-          <table className="w-full text-left text-[14px]">
-            <thead className="bg-surface text-[12px] text-ink-muted">
-              <tr>
-                <th className="px-5 py-3 font-medium">Key</th>
-                <th className="px-5 py-3 font-medium">Name</th>
-                <th className="px-5 py-3 font-medium">Kind</th>
-                <th className="px-5 py-3 font-medium">Environments</th>
-                <th className="px-5 py-3 font-medium">Updated</th>
-              </tr>
-            </thead>
-            <tbody>
-              {flags.map((flag) => {
+        <DataTable columns={FLAG_COLUMNS}>
+          {flags.map((flag) => {
                 const lastUpdated = flag.configs.reduce<string | null>(
                   (latest, config) =>
                     !latest || config.updatedAt > latest ? config.updatedAt : latest,
@@ -196,9 +193,7 @@ export function FlagsView() {
                   </tr>
                 );
               })}
-            </tbody>
-          </table>
-        </div>
+        </DataTable>
       )}
 
       <NewFlagDialog

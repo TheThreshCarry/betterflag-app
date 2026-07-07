@@ -117,23 +117,6 @@ export interface AuditEntry {
   envSlug?: string;
 }
 
-export interface Approval {
-  id: string;
-  status?: string;
-  action?: string;
-  createdAt?: string;
-  created_at?: string;
-  resolvedAt?: string;
-  resolved_at?: string;
-  environment?: string;
-  env?: string;
-  flagKey?: string;
-  flag_key?: string;
-  message?: string;
-  requestedBy?: string;
-  requested_by?: string;
-}
-
 export interface StatsRow {
   hour?: string;
   day?: string;

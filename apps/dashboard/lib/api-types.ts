@@ -7,8 +7,6 @@
 import type { JsonValue } from "@shipos/core";
 import type {
   ApiKeyRow,
-  ApprovalRow,
-  ApprovalStatus,
   AuditLogRow,
   ActorTypeDb,
   ApiKeyKindDb,
@@ -81,17 +79,6 @@ export interface ApiApiKey {
   lastUsedAt: string | null;
   createdAt: string;
   revokedAt: string | null;
-}
-
-export interface ApiApproval {
-  id: string;
-  orgId: string;
-  requestedByKey: string;
-  action: JsonValue;
-  status: ApprovalStatus;
-  resolvedBy: string | null;
-  resolvedAt: string | null;
-  createdAt: string;
 }
 
 export interface ApiAuditEntry {
@@ -217,19 +204,6 @@ export function toApiApiKey(row: ApiKeyRow): ApiApiKey {
     lastUsedAt: row.last_used_at,
     createdAt: row.created_at,
     revokedAt: row.revoked_at,
-  };
-}
-
-export function toApiApproval(row: ApprovalRow): ApiApproval {
-  return {
-    id: row.id,
-    orgId: row.org_id,
-    requestedByKey: row.requested_by_key,
-    action: row.action,
-    status: row.status,
-    resolvedBy: row.resolved_by,
-    resolvedAt: row.resolved_at,
-    createdAt: row.created_at,
   };
 }
 

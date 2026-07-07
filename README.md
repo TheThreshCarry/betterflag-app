@@ -25,9 +25,9 @@ interface; the dashboard is the observation layer.
 Two planes, strictly separated:
 
 - **Control plane** (Supabase Postgres): orgs, projects, environments, flags,
-  targeting rules, keys, guardrails, approvals, audit log. Every mutation goes
+  targeting rules, keys, audit log. Every mutation goes
   through `/api/v1` → an atomic Postgres RPC (mutation + audit in one
-  transaction) → a config-sync enqueue. Nothing bypasses audit or guardrails.
+  transaction) → a config-sync enqueue. Nothing bypasses audit.
 - **Data plane** (Cloudflare): the edge worker evaluates flags from a
   denormalized KV snapshot (`cfg:{projectId}:{env}`) and emits events to
   Queues; the ingest worker lands them in ClickHouse. The hot path never

@@ -25,7 +25,7 @@ the migration exactly.
 - **RLS**: org members get read-only SELECT on their org's rows (dashboard
   client reads). There are deliberately NO insert/update/delete policies —
   every mutation goes through the control plane API with the service role so
-  audit, guardrails and config sync cannot be bypassed.
+  audit and config sync cannot be bypassed.
 - **Audit**: `record_audit()` is called inside the atomic RPCs
   (`create_project_with_envs`, `create_flag_with_configs`,
   `update_flag_config`, `kill_flag`) so the mutation and its audit row commit

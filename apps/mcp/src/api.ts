@@ -1,12 +1,11 @@
 /**
  * Thin client over the ShipOS control-plane REST API (docs/CONTRACTS.md).
  *
- * Every call authenticates with the session's agent/admin key. Guardrailed
- * mutations may come back 202 {approvalRequired, approvalId, message} — that
- * is surfaced as ApprovalPending (NOT an error). HTTP errors are mapped to
- * agent-actionable ToolError messages.
+ * Every call authenticates with the session's agent/admin key. A valid key
+ * executes mutations directly. HTTP errors are mapped to agent-actionable
+ * ToolError messages.
  */
-import { ApprovalPending, ToolError } from "./errors";
+import { ToolError } from "./errors";
 import type { ApiCtx, Flag, FlagConfig, Project } from "./types";
 
 type Method = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
@@ -21,8 +20,6 @@ interface ApiRequest {
   /** Path under the control-plane origin, starting with /api/v1. */
   path: string;
   body?: unknown;
-  /** Human phrasing for the guardrail message if this call returns 202. */
-  actionLabel?: string;
   /** Extra context to sharpen error messages. */
   flagKey?: string;
   projectSlug?: string;
@@ -56,7 +53,6 @@ export async function apiFetch<T = unknown>(ctx: ApiCtx, req: ApiRequest): Promi
   const log = ctx.obs?.logger.child({
     api_method: req.method,
     api_path: req.path,
-    ...(req.actionLabel ? { action: req.actionLabel } : {}),
     ...(req.flagKey ? { flag_key: req.flagKey } : {}),
     ...(req.projectSlug ? { project_slug: req.projectSlug } : {}),
   });
@@ -88,15 +84,6 @@ export async function apiFetch<T = unknown>(ctx: ApiCtx, req: ApiRequest): Promi
   span?.setAttribute("http.response.status_code", res.status);
 
   const payload = await readBody(res);
-
-  if (res.status === 202 && isRecord(payload) && payload.approvalRequired === true) {
-    const approvalId = typeof payload.approvalId === "string" ? payload.approvalId : "unknown";
-    const message = typeof payload.message === "string" ? payload.message : undefined;
-    span?.setAttribute("shipos.approval_required", true).end();
-    log?.info("guardrail: change staged for human approval", { approval_id: approvalId });
-    void ctx.obs?.flush();
-    throw new ApprovalPending(approvalId, message, req.actionLabel ?? "this change");
-  }
 
   if (!res.ok) {
     span?.setStatus("error").end();

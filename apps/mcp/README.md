@@ -7,11 +7,9 @@ targeting rules, pull kill switches, read evaluation stats and the audit
 log — all as first-class MCP tools wrapping the control-plane REST API
 (`docs/CONTRACTS.md`).
 
-Dangerous actions (production kill-switch, 100% rollout, promote-to-prod)
-can be guardrailed per org: instead of executing, the API stages the change
-and the tool reports a pending **approval** a human confirms in the
-dashboard. The agent never gets a scary error — it gets a status it can poll
-with `request_approval_status`.
+A valid agent key executes directly — no human-approval step. Every action is
+audited (agents by their key prefix) and every flag has an instant kill switch,
+so risky changes stay reversible and traceable.
 
 ## Connect from Claude Code
 
@@ -59,7 +57,6 @@ those are for the edge evaluation API.
 | `promote_config` | Copy a full env config, e.g. staging → prod |
 | `get_evaluation_stats` | on/off/total evaluation counts over 24h / 7d / 30d |
 | `get_audit_log` | Who did what, when — humans by email, agents by key prefix |
-| `request_approval_status` | Poll a guardrail approval: pending / approved / rejected |
 
 `projectSlug` is optional everywhere: with a single project it's inferred;
 with several, the tool answers with the list so the agent can pick.
@@ -94,16 +91,13 @@ with several, the tool answers with the list so the agent can pick.
 > ✅ "checkout-v2" is now ON in prod.
 > ```
 >
-> Later, an incident — but prod kills are guardrailed:
+> Later, an incident — pull the kill switch:
 >
 > **Claude** → `kill_flag { key: "checkout-v2", env: "prod" }`
 >
 > ```
-> 🛡️ Guardrail: the prod kill-switch for "checkout-v2" requires human approval.
-> Nothing has been changed yet. Approval request 8f3a… is now pending in the
-> ShipOS dashboard (→ /approvals).
-> Check status with request_approval_status(approvalId="8f3a…").
-> Once a teammate approves, the change executes immediately.
+> 🔴 Kill switch pulled: "checkout-v2" now serves OFF to 100% of traffic in prod.
+> The change takes the KV fast path and reaches the edge within seconds.
 > ```
 
 ## Architecture
@@ -114,10 +108,10 @@ with several, the tool answers with the list so the agent can pick.
   The control plane does the real verification on every call.
 - `src/agent.ts` — `ShipOSMcp`, a Durable-Object-backed `McpAgent`
   (Cloudflare agents SDK) serving streamable HTTP at `/mcp` and SSE at `/sse`.
-- `src/tools.ts` — the 13 tools; every one a thin fetch to
+- `src/tools.ts` — the 12 tools; every one a thin fetch to
   `${SHIPOS_API_URL}/api/v1/...` with the caller's key.
-- `src/api.ts` — REST client: 202 → approval flow, error → agent-actionable
-  message (revoked key, plan limit, flag not found, version conflict).
+- `src/api.ts` — REST client: maps HTTP errors to agent-actionable
+  messages (revoked key, plan limit, flag not found, version conflict).
 - `src/rules.ts` — zod v3 mirror of `@shipos/core`'s `targetingRuleSchema`
   for instant client-side rule validation.
 

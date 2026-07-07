@@ -89,8 +89,7 @@ obs.flushTo(ctx.waitUntil.bind(ctx)); // Workers: ship without blocking
   inserts/syncs. Flushes in the queue handler `finally`.
 - **MCP worker** (`apps/mcp`) — auth outcomes logged at the gate (**never the
   key**, only `key_kind`); every control-plane call in `apiFetch` is a `client`
-  span with timing, plus warn/error logs on API errors and a friendly log on the
-  guardrail-approval path.
+  span with timing, plus warn/error logs on API errors.
 - **Dashboard** (`apps/dashboard`) — `withErrors` wraps every `/api/v1` route
   with a server span + request log (status, `duration_ms`) and error capture via
   `handleError`; `reportServerError` covers deeper library failures (Cloudflare

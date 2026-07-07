@@ -1,8 +1,7 @@
 /**
  * The ShipOS MCP tool surface. Tool names are PUBLIC PRODUCT API — do not
  * rename. Every tool is a thin wrapper over the control-plane REST API
- * (docs/CONTRACTS.md); guardrailed mutations surface the 202 approval flow
- * as a friendly, non-error result.
+ * (docs/CONTRACTS.md); a valid agent/admin key executes mutations directly.
  */
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
@@ -16,10 +15,10 @@ import {
   resolveProject,
   rolloutPctOf,
 } from "./api";
-import { ApprovalPending, ToolError } from "./errors";
+import { ToolError } from "./errors";
 import { auditLine, flagDetail, flagSummaryLine, renderRule, statsTable } from "./format";
 import { describeRuleIssues, jsonValueSchema, targetingRulesSchema } from "./rules";
-import type { ApiCtx, Approval, AuditEntry, Flag, StatsRow } from "./types";
+import type { ApiCtx, AuditEntry, Flag, StatsRow } from "./types";
 
 // ---------------------------------------------------------------------------
 // Plumbing
@@ -31,14 +30,13 @@ function text(t: string, isError = false): CallToolResult {
     : { content: [{ type: "text", text: t }] };
 }
 
-/** Uniform exception → tool-result mapping. Approvals are NOT errors. */
+/** Uniform exception → tool-result mapping. */
 async function run(fn: () => Promise<string>): Promise<CallToolResult> {
   try {
     return text(await fn());
   } catch (e) {
-    if (e instanceof ApprovalPending) return text(e.render());
     if (e instanceof ToolError) return text(e.message, e.isError);
-    // Genuinely unexpected (a bug, not an API/guardrail outcome). Structured
+    // Genuinely unexpected (a bug, not a mapped API error). Structured
     // API-error telemetry is emitted in apiFetch; this console.error is the
     // floor for everything else (captured in Workers Logs).
     console.error("[mcp] unexpected tool error", e);
@@ -154,7 +152,6 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
           method: "POST",
           path: `/api/v1/projects/${project.id}/flags`,
           body,
-          actionLabel: `creating flag "${key}"`,
         });
         const created = normalizeFlag(payload);
         const slug = project.slug ?? project.id;
@@ -194,7 +191,6 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
           method: "PATCH",
           path: `/api/v1/flags/${flag.id}`,
           body,
-          actionLabel: `updating flag "${key}"`,
           flagKey: key,
         });
         const changed = [name !== undefined ? `name → "${name}"` : null, description !== undefined ? "description" : null]
@@ -220,7 +216,6 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
         await apiFetch(ctx, {
           method: "DELETE",
           path: `/api/v1/flags/${flag.id}`,
-          actionLabel: `archiving flag "${key}"`,
           flagKey: key,
         });
         return `🗄️ Archived flag "${key}". SDKs now receive its default value; the flag and its audit history remain visible in the dashboard.`;
@@ -251,7 +246,6 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
           method: "PUT",
           path: `/api/v1/flags/${flag.id}/environments/${encodeURIComponent(env)}/config`,
           body: { enabled: on },
-          actionLabel: `${on ? "enabling" : "disabling"} "${key}" in ${env}`,
           flagKey: key,
         });
         const current = configsOf(flag).find((c) => c.env === env);
@@ -288,10 +282,6 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
           method: "PUT",
           path: `/api/v1/flags/${flag.id}/environments/${encodeURIComponent(env)}/config`,
           body: { rolloutPct: percent },
-          actionLabel:
-            percent === 100
-              ? `setting "${key}" to 100% rollout in ${env}`
-              : `rolling "${key}" out to ${percent}% in ${env}`,
           flagKey: key,
         });
         const transition = oldPct !== undefined ? `${oldPct}% → ${percent}%` : `now ${percent}%`;
@@ -336,7 +326,6 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
           method: "PUT",
           path: `/api/v1/flags/${flag.id}/environments/${encodeURIComponent(env)}/config`,
           body: { rules: parsed.data },
-          actionLabel: `updating targeting rules for "${key}" in ${env}`,
           flagKey: key,
         });
         const rendered = parsed.data.map((r, i) => renderRule(r, i)).join("\n");
@@ -353,7 +342,7 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
       title: "Kill switch",
       description:
         "Emergency kill: force the OFF value for 100% of traffic in one environment, bypassing rollout and rules. " +
-        "Propagates to the edge in seconds. In guarded environments this stages an approval instead of executing.",
+        "Propagates to the edge in seconds.",
       inputSchema: { projectSlug: projectSlugParam, key: keyParam, env: envParam },
     },
     async ({ projectSlug, key, env }) =>
@@ -364,7 +353,6 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
           method: "POST",
           path: `/api/v1/flags/${flag.id}/environments/${encodeURIComponent(env)}/kill`,
           body: {},
-          actionLabel: `the ${env} kill-switch for "${key}"`,
           flagKey: key,
         });
         return [
@@ -400,7 +388,6 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
           method: "POST",
           path: `/api/v1/flags/${flag.id}/environments/${encodeURIComponent(to_env)}/promote`,
           body: { fromEnv: from_env },
-          actionLabel: `promoting "${key}" config from ${from_env} to ${to_env}`,
           flagKey: key,
         });
         return `🚀 Promoted "${key}": ${to_env} now mirrors ${from_env} (enabled state, rollout %, targeting rules and served values copied).`;
@@ -474,59 +461,4 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
       }),
   );
 
-  server.registerTool(
-    "request_approval_status",
-    {
-      title: "Check approval status",
-      description:
-        "Check whether a guardrail approval request (returned by a 🛡️-gated mutation) is still pending, approved or rejected.",
-      inputSchema: {
-        approvalId: z.string().min(1).describe("The approval id from the guardrail message."),
-      },
-    },
-    async ({ approvalId }) =>
-      run(async () => {
-        const ctx = getCtx();
-        const APPROVAL_KEYS = ["approvals", "items", "data"] as const;
-
-        const pendingPayload = await apiFetch(ctx, { method: "GET", path: "/api/v1/approvals?status=pending" });
-        const pending = pluckArray<Approval>(pendingPayload, APPROVAL_KEYS) ?? [];
-        const stillPending = pending.find((a) => a.id === approvalId);
-        if (stillPending) {
-          const what = stillPending.action ? ` (${stillPending.action}${stillPending.flagKey ?? stillPending.flag_key ? ` on ${stillPending.flagKey ?? stillPending.flag_key}` : ""})` : "";
-          return [
-            `⏳ Approval ${approvalId} is still pending${what}.`,
-            "Nothing has executed yet. A teammate can approve or reject it in the ShipOS dashboard → /approvals.",
-          ].join("\n");
-        }
-
-        // Not pending — look it up among resolved approvals.
-        let resolved: Approval | undefined;
-        try {
-          const allPayload = await apiFetch(ctx, { method: "GET", path: "/api/v1/approvals" });
-          resolved = (pluckArray<Approval>(allPayload, APPROVAL_KEYS) ?? []).find((a) => a.id === approvalId);
-        } catch {
-          return [
-            `Approval ${approvalId} is no longer pending, but its final state could not be fetched.`,
-            "Check the ShipOS dashboard → /approvals: if it was approved the change has already executed.",
-          ].join("\n");
-        }
-
-        if (!resolved) {
-          throw new ToolError(
-            `No approval with id ${approvalId} was found. Double-check the id from the guardrail message, or look at the dashboard → /approvals.`,
-          );
-        }
-        const status = (resolved.status ?? "").toLowerCase();
-        const when = resolved.resolvedAt ?? resolved.resolved_at;
-        const at = when ? ` at ${when}` : "";
-        if (status === "approved") {
-          return `✅ Approval ${approvalId} was approved${at} — the staged change has been executed.`;
-        }
-        if (status === "rejected") {
-          return `❌ Approval ${approvalId} was rejected${at} — nothing was changed.`;
-        }
-        return `Approval ${approvalId} is in state "${resolved.status ?? "unknown"}".`;
-      }),
-  );
 }

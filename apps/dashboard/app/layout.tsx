@@ -20,7 +20,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "ShipOS — Feature flags for agentic teams",
   description:
-    "Feature flags your agents can ship with. Kill switches, guardrails, and human approvals built in.",
+    "Feature flags your agents can ship with. Targeting, percentage rollouts, and instant kill switches via MCP and REST.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

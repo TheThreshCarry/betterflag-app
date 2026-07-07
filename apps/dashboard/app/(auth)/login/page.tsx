@@ -135,12 +135,12 @@ export default function LoginPage() {
             Feature flags your agents can ship with.
           </h1>
           <p className="mt-4 text-[16px] leading-relaxed text-ink-muted">
-            Agents stage the change, humans confirm the risky ones. Every flip is audited, every
+            Agents ship flags through the MCP server and REST API. Every flip is audited, every
             flag has a kill switch.
           </p>
           <ul className="mt-6 space-y-2.5 text-[14px]">
             {[
-              "Guardrails: agents propose, owners approve",
+              "Agent-native: create, target, and roll out via MCP",
               "Kill switches that land at the edge in seconds",
               "One audit trail for humans and machines",
             ].map((item) => (

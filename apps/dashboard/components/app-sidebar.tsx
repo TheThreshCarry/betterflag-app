@@ -22,7 +22,7 @@ import {
   SettingsIcon,
 } from "lucide-react";
 
-const NAV_ITEMS = [
+export const NAV_ITEMS = [
   { title: "Flags", url: "/flags", icon: FlagIcon },
   { title: "Keys", url: "/keys", icon: KeyIcon },
   { title: "Audit", url: "/audit", icon: ScrollTextIcon },

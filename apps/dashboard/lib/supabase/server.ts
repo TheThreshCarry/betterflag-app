@@ -5,7 +5,7 @@
  *   session auth (dashboard users). Safe in server components, route
  *   handlers and server actions.
  * - `createServiceClient` — service-role client for control plane
- *   mutations (RPCs, guardrails, key lookups). Server-only: importing this
+ *   mutations (RPCs, key lookups). Server-only: importing this
  *   module from a client component will fail at runtime because
  *   SUPABASE_SERVICE_ROLE_KEY is never exposed to the browser.
  */

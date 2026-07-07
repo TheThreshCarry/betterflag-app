@@ -10,7 +10,7 @@
  *
  * Audit attribution: session users audit as actor_type 'user'; agent AND
  * admin keys are machine keys and audit as actor_type 'agent' with their
- * key prefix. Guardrails apply ONLY to actor.type === 'agent'.
+ * key prefix.
  */
 
 import { API_KEY_RE, keyPrefixOf, sha256Hex, timingSafeEqualHex } from "@shipos/core";
@@ -141,16 +141,6 @@ export async function resolveActor(request: Request): Promise<Actor> {
   }
 
   return { type: "user", userId, orgId: membership.org_id, role: membership.role };
-}
-
-/** Approvals can only be resolved by a signed-in owner or admin. */
-export function requireOwnerOrAdmin(actor: Actor): asserts actor is Extract<Actor, { type: "user" }> {
-  if (actor.type !== "user") {
-    throw new HttpError(403, "forbidden", "Approvals must be resolved by a signed-in human, not an API key");
-  }
-  if (actor.role !== "owner" && actor.role !== "admin") {
-    throw new HttpError(403, "forbidden", "Only org owners and admins can resolve approvals");
-  }
 }
 
 /** Project-scoped agent/admin keys may only touch their own project. */

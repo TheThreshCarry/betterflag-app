@@ -1,6 +1,6 @@
 /**
  * Snapshot rebuild + push. Used by the kill-switch fast path (synchronous
- * KV write so the flag dies in seconds) and by approval replays. Normal
+ * KV write so the flag dies in seconds). Normal
  * config edits only enqueue a config-sync message; the ingest worker does
  * the same rebuild via buildSnapshot, so the two can never drift.
  */

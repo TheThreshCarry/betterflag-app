@@ -16,9 +16,19 @@ import {
   inputClass,
   type ChipColor,
 } from "@/components/ui";
-import { KeysTableSkeleton } from "@/components/skeletons";
+import { DataTable, DataTableSkeleton, type Column } from "@/components/data-table";
 import type { ApiApiKey } from "@/lib/api-types";
 import { api } from "@/lib/client-api";
+
+const KEY_COLUMNS: readonly Column[] = [
+  { key: "key", label: "Key", colWidth: "w-[16%]", skeletonWidth: "w-20" },
+  { key: "name", label: "Name", colWidth: "w-[20%]", skeletonWidth: "w-28" },
+  { key: "kind", label: "Kind", colWidth: "w-[10%]", skeletonWidth: "w-14" },
+  { key: "scope", label: "Scope", colWidth: "w-[22%]", skeletonWidth: "w-24" },
+  { key: "lastUsed", label: "Last used", colWidth: "w-[14%]", skeletonWidth: "w-16" },
+  { key: "created", label: "Created", colWidth: "w-[12%]", skeletonWidth: "w-16" },
+  { key: "actions", label: "", colWidth: "w-[6%]", skeletonWidth: "w-12", align: "right" },
+];
 
 const KIND_COLORS: Record<ApiApiKey["kind"], ChipColor> = {
   sdk: "blue",
@@ -33,11 +43,11 @@ const KIND_EXPLAINERS: Record<ApiApiKey["kind"], { title: string; body: string }
   },
   agent: {
     title: "Agent key",
-    body: "For AI agents and automations. Full flag control, but guardrails apply: risky actions can be forced through human approval.",
+    body: "For AI agents and automations. Full flag control — create, target, roll out, and kill flags via the MCP server or REST API.",
   },
   admin: {
     title: "Admin key",
-    body: "Full control plane access for CI and scripts. Bypasses guardrails — treat it like a password.",
+    body: "Full control plane access for CI and scripts — treat it like a password.",
   },
 };
 
@@ -96,7 +106,7 @@ export function KeysView() {
       <ErrorNote message={error} />
 
       {!keys ? (
-        <KeysTableSkeleton />
+        <DataTableSkeleton columns={KEY_COLUMNS} />
       ) : keys.length === 0 ? (
         <EmptyState
           title="No keys yet"
@@ -104,21 +114,8 @@ export function KeysView() {
           action={<Button onClick={() => setCreateOpen(true)}>New key</Button>}
         />
       ) : (
-        <div className="overflow-hidden rounded-3xl border border-line">
-          <table className="w-full text-left text-[14px]">
-            <thead className="bg-surface text-[12px] text-ink-muted">
-              <tr>
-                <th className="px-5 py-3 font-medium">Key</th>
-                <th className="px-5 py-3 font-medium">Name</th>
-                <th className="px-5 py-3 font-medium">Kind</th>
-                <th className="px-5 py-3 font-medium">Scope</th>
-                <th className="px-5 py-3 font-medium">Last used</th>
-                <th className="px-5 py-3 font-medium">Created</th>
-                <th className="px-5 py-3" />
-              </tr>
-            </thead>
-            <tbody>
-              {keys.map((key) => (
+        <DataTable columns={KEY_COLUMNS}>
+          {keys.map((key) => (
                 <tr
                   key={key.id}
                   className={`border-t border-line ${key.revokedAt ? "opacity-45" : ""}`}
@@ -150,9 +147,7 @@ export function KeysView() {
                   </td>
                 </tr>
               ))}
-            </tbody>
-          </table>
-        </div>
+        </DataTable>
       )}
 
       <CreateKeyDialog

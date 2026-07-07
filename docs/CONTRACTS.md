@@ -38,7 +38,7 @@ in the same PR.
 ## Control plane REST API (`/api/v1` on app.shipos.app)
 
 Auth: Supabase session cookie (dashboard) OR `Authorization: Bearer sos_adm_*|sos_agt_*`.
-Agent keys are guardrail-checked; session users and admin keys are not.
+A valid key executes mutations directly.
 Errors: `{ "error": { "code": string, "message": string } }` with 400/401/403/404/409/422.
 
 | Method | Path | Notes |
@@ -51,32 +51,24 @@ Errors: `{ "error": { "code": string, "message": string } }` with 400/401/403/40
 | GET | /api/v1/flags/:id | flag + configs |
 | PATCH | /api/v1/flags/:id | `{name?, description?}` |
 | DELETE | /api/v1/flags/:id | soft archive (`archived_at`) |
-| PUT | /api/v1/flags/:id/environments/:env/config | `{enabled?, rolloutPct?, rules?, valueOn?, valueOff?, clearKill?, expectedVersion?}` via `update_flag_config` RPC; 409 on version conflict; guardrail action `rollout_100` when rolloutPct=100 |
-| POST | /api/v1/flags/:id/environments/:env/kill | guardrail action `kill_switch`; on execute: `kill_flag` RPC + KV fast path |
-| POST | /api/v1/flags/:id/environments/:env/promote | `{fromEnv}` copies config between envs; guardrail `promote_prod` when target is prod |
+| PUT | /api/v1/flags/:id/environments/:env/config | `{enabled?, rolloutPct?, rules?, valueOn?, valueOff?, clearKill?, expectedVersion?}` via `update_flag_config` RPC; 409 on version conflict |
+| POST | /api/v1/flags/:id/environments/:env/kill | `kill_flag` RPC + KV fast path |
+| POST | /api/v1/flags/:id/environments/:env/promote | `{fromEnv}` copies config between envs |
 | GET | /api/v1/flags/:id/environments/:env/stats?period=24h\|7d\|30d | ClickHouse `evals_per_flag_hour` |
 | GET | /api/v1/keys | list (no hashes) |
 | POST | /api/v1/keys | `{kind, name, projectId?, environmentId?}`; sdk requires project+env; enforces `PLAN_LIMITS.agentKeys`; returns plaintext once |
 | DELETE | /api/v1/keys/:id | revoke + KV update for sdk keys |
 | GET | /api/v1/audit?actorType=&projectId=&limit=&before= | audit entries, newest first |
 | GET | /api/v1/usage?days=30 | ClickHouse `evals_per_org_day` + plan + trial state |
-| GET | /api/v1/approvals?status=pending | list approvals |
-| POST | /api/v1/approvals/:id/approve | session owner/admin only; replays staged action, marks approved |
-| POST | /api/v1/approvals/:id/reject | session owner/admin only |
 
 Response envelopes (pinned — MCP normalizers and future SDKs rely on these):
 wire format is camelCase; list endpoints wrap in a named key —
 `{projects}`, `{flags}`, `{flag, configs}`, `{project}`, `{config}`,
-`{keys}` / `{apiKey, plaintext}`, `{entries}` (audit), `{approvals}` /
-`{approval}`, `{period, series}` (stats), `{usage…}`. `GET /approvals`
-without `?status=` returns ALL statuses (request_approval_status depends on
-this). API key hashes are never serialized. Full schemas: docs/openapi.yaml.
+`{keys}` / `{apiKey, plaintext}`, `{entries}` (audit),
+`{period, series}` (stats), `{usage…}`. API key hashes are never serialized.
+Full schemas: docs/openapi.yaml.
 
-Guardrail flow (agent keys only): if `guardrails` has a row matching
-(org, environment-or-null, action) with `requires_approval`, DO NOT execute.
-Insert an `approvals` row with the staged action payload and reply **202**:
-`{ "approvalRequired": true, "approvalId": uuid, "message": "…" }`.
-Every mutation that executes: RPC (mutation+audit atomically) → enqueue
+Every mutation: RPC (mutation+audit atomically) → enqueue
 config-sync for the affected (project, env).
 
 ## Edge evaluation API (edge.shipos.app)
