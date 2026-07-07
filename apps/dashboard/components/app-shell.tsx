@@ -60,7 +60,6 @@ export function AppShell({
   const [projects, setProjects] = useState<ApiProject[]>([]);
   const [activeProjectId, setActiveProjectIdState] = useState<string | null>(null);
   const [activeEnvSlug, setActiveEnvSlugState] = useState<string>(DEFAULT_ENV_SLUG);
-  const [pendingApprovals, setPendingApprovals] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
 
@@ -111,18 +110,6 @@ export function AppShell({
       cancelled = true;
     };
   }, [router]);
-
-  useEffect(() => {
-    let cancelled = false;
-    void api<{ approvals: unknown[] }>("/api/v1/approvals?status=pending")
-      .then(({ approvals }) => {
-        if (!cancelled) setPendingApprovals(approvals.length);
-      })
-      .catch(() => undefined);
-    return () => {
-      cancelled = true;
-    };
-  }, [pathname]);
 
   useEffect(() => {
     const stored =
@@ -217,7 +204,6 @@ export function AppShell({
         <AppSidebar
           userEmail={userEmail}
           orgName={contextValue.org.name}
-          pendingApprovals={pendingApprovals}
           signingOut={signingOut}
           onSignOut={() => void signOut()}
         />

@@ -16,7 +16,6 @@ import {
 } from "@/components/ui/sidebar";
 import {
   BarChart3Icon,
-  CheckCircle2Icon,
   FlagIcon,
   KeyIcon,
   ScrollTextIcon,
@@ -27,7 +26,6 @@ const NAV_ITEMS = [
   { title: "Flags", url: "/flags", icon: FlagIcon },
   { title: "Keys", url: "/keys", icon: KeyIcon },
   { title: "Audit", url: "/audit", icon: ScrollTextIcon },
-  { title: "Approvals", url: "/approvals", icon: CheckCircle2Icon },
   { title: "Usage", url: "/usage", icon: BarChart3Icon },
   { title: "Settings", url: "/settings", icon: SettingsIcon },
 ] as const;
@@ -35,14 +33,12 @@ const NAV_ITEMS = [
 export function AppSidebar({
   userEmail,
   orgName,
-  pendingApprovals,
   signingOut,
   onSignOut,
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
   userEmail: string | null;
   orgName: string;
-  pendingApprovals: number;
   signingOut: boolean;
   onSignOut: () => void;
 }) {
@@ -60,7 +56,7 @@ export function AppSidebar({
       </SidebarHeader>
       <SidebarSeparator className="mx-0" />
       <SidebarContent>
-        <NavMain items={[...NAV_ITEMS]} pendingApprovals={pendingApprovals} />
+        <NavMain items={[...NAV_ITEMS]} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser

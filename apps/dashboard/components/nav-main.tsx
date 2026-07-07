@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
 
-import { Chip } from "@/components/ui";
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -15,14 +14,12 @@ import {
 
 export function NavMain({
   items,
-  pendingApprovals = 0,
 }: {
   items: {
     title: string;
     url: string;
     icon: LucideIcon;
   }[];
-  pendingApprovals?: number;
 }) {
   const pathname = usePathname();
 
@@ -43,11 +40,6 @@ export function NavMain({
                 >
                   <Icon />
                   <span>{item.title}</span>
-                  {item.url === "/approvals" && pendingApprovals > 0 ? (
-                    <Chip color="green" className="ml-auto !px-2 !py-0 text-[11px]">
-                      {pendingApprovals}
-                    </Chip>
-                  ) : null}
                 </SidebarMenuButton>
               </SidebarMenuItem>
             );
