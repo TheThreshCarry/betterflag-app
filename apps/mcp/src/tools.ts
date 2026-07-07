@@ -17,7 +17,12 @@ import {
 } from "./api";
 import { ToolError } from "./errors";
 import { auditLine, flagDetail, flagSummaryLine, renderRule, statsTable } from "./format";
-import { describeRuleIssues, jsonValueSchema, targetingRulesSchema } from "./rules";
+import {
+  describeRuleIssues,
+  jsonValueInputSchema,
+  targetingRulesInputSchema,
+  targetingRulesSchema,
+} from "./rules";
 import type { ApiCtx, AuditEntry, Flag, StatsRow } from "./types";
 
 // ---------------------------------------------------------------------------
@@ -138,7 +143,9 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
           .enum(["boolean", "string", "number", "json"])
           .optional()
           .describe("Flag kind; defaults to boolean."),
-        defaultValue: jsonValueSchema.optional().describe("Value served when the flag is missing or archived."),
+        defaultValue: jsonValueInputSchema
+          .optional()
+          .describe("Value served when the flag is missing or archived (any JSON value)."),
       },
     },
     async ({ projectSlug, key, name, description, kind, defaultValue }) =>
@@ -307,7 +314,7 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
         projectSlug: projectSlugParam,
         key: keyParam,
         env: envParam,
-        rules: targetingRulesSchema.describe(
+        rules: targetingRulesInputSchema.describe(
           "Full replacement rule list (max 64). Each rule: { id, description?, conditions: [{ attribute, op, value }], serve: 'on'|'off', rolloutPct? }.",
         ),
       },

@@ -50,6 +50,35 @@ export const targetingRuleSchema = z.object({
 
 export const targetingRulesSchema = z.array(targetingRuleSchema).max(64);
 
+// ---------------------------------------------------------------------------
+// Input-only schemas (for MCP tool `inputSchema`)
+// ---------------------------------------------------------------------------
+// `jsonValueSchema` is recursive (z.lazy). When it's fed into a tool's
+// `inputSchema`, the MCP SDK's registerTool generics run `z.infer` over it,
+// forcing tsc to instantiate the recursive JsonValue type — across every tool —
+// which blows the Node heap (`tsc` OOMs, exit 137). These shallow twins have an
+// identical shape but a non-recursive `value: z.unknown()`, so the advertised
+// schema keeps its structure while tsc stays cheap. Deep validation still runs
+// at runtime via `jsonValueSchema` / `targetingRulesSchema.safeParse`.
+
+export const jsonValueInputSchema = z.unknown();
+
+export const ruleConditionInputSchema = z.object({
+  attribute: z.string().min(1).max(128),
+  op: ruleOperatorSchema,
+  value: jsonValueInputSchema,
+});
+
+export const targetingRuleInputSchema = z.object({
+  id: z.string().min(1).max(64),
+  description: z.string().max(512).optional(),
+  conditions: z.array(ruleConditionInputSchema).max(32),
+  serve: z.enum(["on", "off"]),
+  rolloutPct: z.number().int().min(0).max(100).optional(),
+});
+
+export const targetingRulesInputSchema = z.array(targetingRuleInputSchema).max(64);
+
 /** Flatten zod issues into agent-actionable one-per-line feedback. */
 export function describeRuleIssues(error: z.ZodError): string {
   return error.issues
