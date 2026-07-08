@@ -107,4 +107,9 @@ export interface EvaluationEvent {
   sdk: string;
   /** FNV-1a 64-bit of the userId, decimal string ("0" when anonymous). */
   user_hash: string;
+  /**
+   * ISO 3166-1 alpha-2 of the calling client, from Cloudflare's `request.cf`
+   * at the edge ("unknown" when unavailable). Country only, never finer.
+   */
+  country: string;
 }

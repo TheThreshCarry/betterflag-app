@@ -18,6 +18,18 @@
       "id": "1ddc8e69bb1b491e85da5fa9b9fcc7bc"
     }
   ],
+  // Cold storage for raw analytics: `wrangler r2 bucket create shipos-analytics-cold`.
+  "r2_buckets": [
+    {
+      "binding": "ANALYTICS_R2",
+      "bucket_name": "shipos-analytics-cold"
+    }
+  ],
+  // Daily analytics tiering at 03:10 UTC (hot ClickHouse day → R2, retention
+  // sweep). See src/coldStorage.ts.
+  "triggers": {
+    "crons": ["10 3 * * *"]
+  },
   "queues": {
     "consumers": [
       {

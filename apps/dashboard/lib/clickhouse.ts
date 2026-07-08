@@ -88,10 +88,20 @@ export interface FlagStatRow {
   evaluations: number;
 }
 
-const PERIOD_HOURS: Record<"24h" | "7d" | "30d", number> = {
+export type AnalyticsPeriod = "24h" | "7d" | "30d" | "90d";
+
+export const PERIOD_HOURS: Record<AnalyticsPeriod, number> = {
   "24h": 24,
   "7d": 24 * 7,
   "30d": 24 * 30,
+  "90d": 24 * 90,
+};
+
+export const PERIOD_DAYS: Record<AnalyticsPeriod, number> = {
+  "24h": 1,
+  "7d": 7,
+  "30d": 30,
+  "90d": 90,
 };
 
 /** Hourly per-variation evaluation counts for one flag in one environment. */
@@ -100,7 +110,7 @@ export async function flagStats(
   projectId: string,
   envSlug: string,
   flagKey: string,
-  period: "24h" | "7d" | "30d",
+  period: AnalyticsPeriod,
 ): Promise<FlagStatRow[]> {
   const rows = await chQuery<{ hour: string; variation: string; evaluations: string | number }>(
     `SELECT hour, variation, sum(evaluations) AS evaluations
@@ -119,4 +129,135 @@ export async function flagStats(
     variation: row.variation,
     evaluations: Number(row.evaluations),
   }));
+}
+
+// ── Analytics (evals_per_flag_country_hour) ─────────────────────────────────
+//
+// Everything below reads the per-flag/per-country hourly MV; org-wide numbers
+// are sums over its dimensions, so all breakdowns agree with each other.
+
+export interface AnalyticsFilter {
+  orgId: string;
+  projectId?: string;
+  envSlug?: string;
+  /** Set to scope everything to one flag (flag detail page). */
+  flagKey?: string;
+}
+
+interface FilterSql {
+  where: string;
+  params: Record<string, string | number>;
+}
+
+function analyticsFilterSql(filter: AnalyticsFilter, hours: number): FilterSql {
+  const clauses = ["org_id = {orgId:String}", "hour >= now() - INTERVAL {hours:UInt32} HOUR"];
+  const params: Record<string, string | number> = { orgId: filter.orgId, hours };
+  if (filter.projectId !== undefined) {
+    clauses.push("project_id = {projectId:String}");
+    params.projectId = filter.projectId;
+  }
+  if (filter.envSlug !== undefined) {
+    clauses.push("env = {env:String}");
+    params.env = filter.envSlug;
+  }
+  if (filter.flagKey !== undefined) {
+    clauses.push("flag_key = {flagKey:String}");
+    params.flagKey = filter.flagKey;
+  }
+  return { where: clauses.join(" AND "), params };
+}
+
+export interface AnalyticsSeriesRow {
+  /** Hour start for 24h, day for longer periods (UTC). */
+  bucket: string;
+  evaluations: number;
+}
+
+/** Evaluation counts over time: hourly buckets for 24h, daily otherwise. */
+export async function analyticsSeries(
+  filter: AnalyticsFilter,
+  period: AnalyticsPeriod,
+): Promise<AnalyticsSeriesRow[]> {
+  const bucketExpr = period === "24h" ? "toString(hour)" : "toString(toDate(hour))";
+  const { where, params } = analyticsFilterSql(filter, PERIOD_HOURS[period]);
+  const rows = await chQuery<{ bucket: string; evaluations: string | number }>(
+    `SELECT ${bucketExpr} AS bucket, sum(evaluations) AS evaluations
+     FROM evals_per_flag_country_hour
+     WHERE ${where}
+     GROUP BY bucket
+     ORDER BY bucket ASC`,
+    params,
+  );
+  return rows.map((row) => ({ bucket: row.bucket, evaluations: Number(row.evaluations) }));
+}
+
+export interface AnalyticsCountryRow {
+  /** ISO 3166-1 alpha-2, or "unknown". */
+  country: string;
+  evaluations: number;
+}
+
+/** Evaluations by client country, largest first. */
+export async function analyticsByCountry(
+  filter: AnalyticsFilter,
+  period: AnalyticsPeriod,
+  limit = 50,
+): Promise<AnalyticsCountryRow[]> {
+  const { where, params } = analyticsFilterSql(filter, PERIOD_HOURS[period]);
+  const rows = await chQuery<{ country: string; evaluations: string | number }>(
+    `SELECT country, sum(evaluations) AS evaluations
+     FROM evals_per_flag_country_hour
+     WHERE ${where}
+     GROUP BY country
+     ORDER BY evaluations DESC
+     LIMIT {limit:UInt32}`,
+    { ...params, limit },
+  );
+  return rows.map((row) => ({ country: row.country, evaluations: Number(row.evaluations) }));
+}
+
+export interface AnalyticsFlagRow {
+  flagKey: string;
+  evaluations: number;
+}
+
+/** Evaluations by flag, largest first. */
+export async function analyticsByFlag(
+  filter: AnalyticsFilter,
+  period: AnalyticsPeriod,
+  limit = 20,
+): Promise<AnalyticsFlagRow[]> {
+  const { where, params } = analyticsFilterSql(filter, PERIOD_HOURS[period]);
+  const rows = await chQuery<{ flag_key: string; evaluations: string | number }>(
+    `SELECT flag_key, sum(evaluations) AS evaluations
+     FROM evals_per_flag_country_hour
+     WHERE ${where}
+     GROUP BY flag_key
+     ORDER BY evaluations DESC
+     LIMIT {limit:UInt32}`,
+    { ...params, limit },
+  );
+  return rows.map((row) => ({ flagKey: row.flag_key, evaluations: Number(row.evaluations) }));
+}
+
+export interface AnalyticsEnvRow {
+  env: string;
+  evaluations: number;
+}
+
+/** Evaluations by environment, largest first. */
+export async function analyticsByEnv(
+  filter: AnalyticsFilter,
+  period: AnalyticsPeriod,
+): Promise<AnalyticsEnvRow[]> {
+  const { where, params } = analyticsFilterSql(filter, PERIOD_HOURS[period]);
+  const rows = await chQuery<{ env: string; evaluations: string | number }>(
+    `SELECT env, sum(evaluations) AS evaluations
+     FROM evals_per_flag_country_hour
+     WHERE ${where}
+     GROUP BY env
+     ORDER BY evaluations DESC`,
+    params,
+  );
+  return rows.map((row) => ({ env: row.env, evaluations: Number(row.evaluations) }));
 }

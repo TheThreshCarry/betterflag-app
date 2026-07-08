@@ -8,14 +8,19 @@
  *                          Supabase via `buildSnapshot()` from @shipos/core.
  *                          Per-message ack/retry; version read-then-skip
  *                          protects against queue redelivery.
+ * - daily cron           → analytics storage tiering: export the day aging
+ *                          out of ClickHouse's 7-day hot TTL to R2, delete
+ *                          cold objects past the org's plan retention. See
+ *                          src/coldStorage.ts.
  *
- * See docs/CONTRACTS.md for message formats and KV keys.
+ * See docs/CONTRACTS.md for message formats, KV keys and R2 objects.
  */
 import { createClient } from "@supabase/supabase-js";
 import { buildSnapshot, flagKindSchema, jsonValueSchema, snapshotKvKey } from "@shipos/core";
 import type { EvaluationEvent, FlagConfigRowLike, FlagRowLike } from "@shipos/core";
 import type { FlagConfigRow, FlagRow } from "@shipos/db";
 import { formatRelease, readObservability, type Observability } from "@shipos/observability";
+import { runColdStorageJob, type AnalyticsR2Like } from "./coldStorage";
 import { VERSION } from "./version.gen";
 import { z } from "zod";
 
@@ -36,6 +41,8 @@ export interface SnapshotKvLike {
 
 export interface IngestEnv {
   CONFIG_KV: SnapshotKvLike;
+  /** Cold storage for raw analytics (bucket `shipos-analytics-cold`). */
+  ANALYTICS_R2: AnalyticsR2Like;
   SUPABASE_URL: string;
   /** Secret, `wrangler secret put SUPABASE_SERVICE_ROLE_KEY`. */
   SUPABASE_SERVICE_ROLE_KEY: string;
@@ -89,6 +96,8 @@ export const evaluationEventSchema = z.object({
   actor_kind: z.enum(["sdk", "agent", "api"]),
   sdk: z.string(),
   user_hash: z.string().regex(/^\d+$/, "user_hash must be a decimal string"),
+  // `.catch` keeps in-flight messages from pre-country edge deploys valid.
+  country: z.string().min(1).catch("unknown"),
 }) satisfies z.ZodType<EvaluationEvent>;
 
 /** One JSONEachRow line for the `evaluations` table (see clickhouse/schema.sql). */
@@ -105,6 +114,8 @@ export interface ClickHouseEvaluationRow {
   sdk: string;
   /** UInt64, decimal string is accepted by JSONEachRow. */
   user_hash: string;
+  /** ISO 3166-1 alpha-2 or "unknown". */
+  country: string;
 }
 
 /** ISO 8601 → ClickHouse DateTime64(3) string, always UTC. */
@@ -127,6 +138,7 @@ export function eventToRow(event: EvaluationEvent): ClickHouseEvaluationRow {
     actor_kind: event.actor_kind,
     sdk: event.sdk,
     user_hash: event.user_hash,
+    country: event.country,
   };
 }
 
@@ -504,6 +516,41 @@ const handler = {
     } finally {
       // Ship telemetry after the batch settles (also runs on the retry/throw
       // path so failed batches are still recorded).
+      ctx.waitUntil(obs.flush());
+    }
+  },
+
+  /** Daily analytics tiering: hot (ClickHouse, 7d) → cold (R2) → deletion. */
+  async scheduled(controller, env, ctx): Promise<void> {
+    const obs = readObservability(env as unknown as Record<string, unknown>, "shipos-ingest", {
+      environment: env.SHIPOS_ENV,
+      release: formatRelease({ version: VERSION, gitSha: env.SHIPOS_GIT_SHA, override: env.SHIPOS_RELEASE }),
+    });
+    const log = obs.logger.child({ cron: controller.cron });
+    const span = obs.tracer.startSpan("ingest.cold_storage", { kind: "internal" });
+    try {
+      const report = await runColdStorageJob(env, new Date(controller.scheduledTime));
+      span.setAttributes({
+        "cold_storage.day": report.day,
+        "cold_storage.exported": report.exported,
+        "cold_storage.skipped": report.skipped,
+        "cold_storage.deleted": report.deleted,
+        "cold_storage.errors": report.errors.length,
+      });
+      const fields = { ...report, errors: report.errors.slice(0, 10) };
+      if (report.errors.length > 0) {
+        span.setStatus("error");
+        log.error("cold storage job finished with errors", fields);
+        console.error("cold storage job errors:", report.errors);
+      } else {
+        log.info("cold storage job finished", fields);
+      }
+    } catch (error) {
+      span.recordException(error).setStatus("error");
+      log.error("cold storage job crashed", { error: errText(error) });
+      throw error;
+    } finally {
+      span.end();
       ctx.waitUntil(obs.flush());
     }
   },

@@ -409,12 +409,13 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
     "get_evaluation_stats",
     {
       title: "Evaluation stats",
-      description: "Evaluation counts (on/off/total) for a flag in one environment over 24h, 7d or 30d.",
+      description:
+        "Evaluation counts (on/off/total) plus a client-country breakdown for a flag in one environment over 24h, 7d, 30d or 90d (longer periods require the plan's analytics retention).",
       inputSchema: {
         projectSlug: projectSlugParam,
         key: keyParam,
         env: envParam,
-        period: z.enum(["24h", "7d", "30d"]).optional().describe("Defaults to 24h."),
+        period: z.enum(["24h", "7d", "30d", "90d"]).optional().describe("Defaults to 24h."),
       },
     },
     async ({ projectSlug, key, env, period }) =>
@@ -434,7 +435,20 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
         if (rows.length === 0) {
           return `No evaluations recorded for "${key}" in ${env} over the last ${p}. Is the SDK deployed and calling shipos.flag("${key}", …)?`;
         }
-        return [`Evaluations for "${key}" in ${env}, last ${p}:`, "", statsTable(rows)].join("\n");
+        const lines = [`Evaluations for "${key}" in ${env}, last ${p}:`, "", statsTable(rows)];
+        const countries = pluckArray<{ country?: string; evaluations?: number }>(payload, [
+          "countries",
+        ]);
+        if (countries && countries.length > 0) {
+          lines.push("", "By country:");
+          for (const row of countries.slice(0, 10)) {
+            lines.push(
+              `  ${row.country ?? "?"}  ${row.evaluations?.toLocaleString("en-US") ?? "-"}`,
+            );
+          }
+          if (countries.length > 10) lines.push(`  … ${countries.length - 10} more`);
+        }
+        return lines.join("\n");
       }),
   );
 

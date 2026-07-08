@@ -25,7 +25,14 @@ import {
 } from "@/components/ui";
 import { FlagDetailSkeleton } from "@/components/skeletons";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { ApiFlag, ApiFlagConfigWithEnv, StatsPoint } from "@/lib/api-types";
+import { CountryTable } from "@/components/analytics-view";
+import type {
+  AnalyticsPeriod,
+  ApiFlag,
+  ApiFlagConfigWithEnv,
+  ApiStats,
+  StatsPoint,
+} from "@/lib/api-types";
 import { api, ApiClientError } from "@/lib/client-api";
 
 interface FlagDetailResponse {
@@ -202,6 +209,10 @@ export function FlagDetail({ flagId }: { flagId: string }) {
           <EnvConfigCard key={config.id} flag={flag} config={config} onRefresh={load} />
         ))}
       </div>
+
+      {shownConfigs[0]?.environment ? (
+        <FlagAnalytics flagId={flag.id} envSlug={shownConfigs[0].environment.slug} />
+      ) : null}
 
       <EditFlagDialog
         open={editOpen}
@@ -864,5 +875,168 @@ function EnvSparkline({ flagId, envSlug }: { flagId: string; envSlug: string }) 
       </svg>
       <span className="font-mono text-[11px]">{total.toLocaleString()}</span>
     </span>
+  );
+}
+
+// ── Per-flag analytics (series per variation + country breakdown) ───────────
+
+const VARIATION_COLORS: Record<string, string> = {
+  on: "#0067F4",
+  off: "#B7B2AA",
+  default: "#FF5A1A",
+};
+
+const FLAG_PERIODS: { value: AnalyticsPeriod; label: string; days: number }[] = [
+  { value: "24h", label: "24h", days: 1 },
+  { value: "7d", label: "7d", days: 7 },
+  { value: "30d", label: "30d", days: 30 },
+  { value: "90d", label: "90d", days: 90 },
+];
+
+function FlagAnalytics({ flagId, envSlug }: { flagId: string; envSlug: string }) {
+  const [period, setPeriod] = useState<AnalyticsPeriod>("7d");
+  const [stats, setStats] = useState<ApiStats | null>(null);
+  const [statsError, setStatsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setStats(null);
+    setStatsError(null);
+    void api<ApiStats>(`/api/v1/flags/${flagId}/environments/${envSlug}/stats?period=${period}`)
+      .then((result) => {
+        if (!cancelled) setStats(result);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setStatsError(err instanceof Error ? err.message : "Failed to load analytics");
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [flagId, envSlug, period]);
+
+  const chart = useMemo(() => {
+    if (!stats) return null;
+    const variations = [...new Set(stats.series.map((point) => point.variation))].sort();
+    const byHour = new Map<string, Map<string, number>>();
+    for (const point of stats.series) {
+      const hour = byHour.get(point.hour) ?? new Map<string, number>();
+      hour.set(point.variation, (hour.get(point.variation) ?? 0) + point.evaluations);
+      byHour.set(point.hour, hour);
+    }
+    const hours = [...byHour.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+    const max = Math.max(...hours.map(([, counts]) => [...counts.values()].reduce((a, b) => a + b, 0)), 1);
+    const total = stats.series.reduce((sum, point) => sum + point.evaluations, 0);
+    return { variations, hours, max, total };
+  }, [stats]);
+
+  const retentionDays = stats?.retentionDays ?? 365;
+
+  return (
+    <div className="mt-8 rounded-3xl border border-line bg-surface p-6">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-baseline gap-2">
+          <h2 className="text-[16px] font-semibold">Analytics</h2>
+          <span className="font-mono text-[12px] text-ink-muted">{envSlug}</span>
+          {chart ? (
+            <span className="text-[12px] text-ink-muted">
+              {chart.total.toLocaleString()} evaluations
+            </span>
+          ) : null}
+        </div>
+        <div className="flex items-center gap-1.5" role="group" aria-label="Timeframe">
+          {FLAG_PERIODS.map(({ value, label, days }) => {
+            const beyondRetention = days > retentionDays;
+            return (
+              <button
+                key={value}
+                type="button"
+                disabled={beyondRetention}
+                title={
+                  beyondRetention
+                    ? `Beyond your plan's ${retentionDays}-day analytics retention`
+                    : undefined
+                }
+                onClick={() => setPeriod(value)}
+                className={`h-7 rounded-lg border px-2.5 text-[12px] font-medium transition-colors ${
+                  period === value
+                    ? "border-ink bg-ink text-white"
+                    : beyondRetention
+                      ? "cursor-not-allowed border-line text-ink-muted/50"
+                      : "border-line bg-white text-ink hover:bg-surface"
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {statsError ? <ErrorNote message={statsError} /> : null}
+      {!statsError && !stats ? <Skeleton className="h-40 w-full" /> : null}
+      {!statsError && stats && chart ? (
+        chart.total === 0 ? (
+          <p className="py-8 text-center text-[13px] text-ink-muted">
+            No evaluations for this flag in the selected period.
+          </p>
+        ) : (
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div>
+              <svg
+                viewBox="0 0 100 40"
+                className="h-40 w-full"
+                preserveAspectRatio="none"
+                role="img"
+                aria-label="Evaluations per variation over time"
+              >
+                {chart.hours.map(([hour, counts], i) => {
+                  const barWidth = 100 / chart.hours.length;
+                  let yOffset = 40;
+                  return chart.variations.map((variation) => {
+                    const count = counts.get(variation) ?? 0;
+                    const height = (count / chart.max) * 36;
+                    yOffset -= height;
+                    return (
+                      <rect
+                        key={`${hour}:${variation}`}
+                        x={i * barWidth + barWidth * 0.15}
+                        y={yOffset}
+                        width={barWidth * 0.7}
+                        height={height}
+                        fill={VARIATION_COLORS[variation] ?? "#0067F4"}
+                        opacity={0.9}
+                      >
+                        <title>
+                          {hour} · {variation}: {count.toLocaleString()}
+                        </title>
+                      </rect>
+                    );
+                  });
+                })}
+                <line x1="0" y1="40" x2="100" y2="40" stroke="#e8e4de" strokeWidth="0.4" />
+              </svg>
+              <div className="mt-2 flex items-center gap-4">
+                {chart.variations.map((variation) => (
+                  <span key={variation} className="flex items-center gap-1.5 text-[12px] text-ink-muted">
+                    <span
+                      aria-hidden
+                      className="inline-block h-2 w-2 rounded-full"
+                      style={{ backgroundColor: VARIATION_COLORS[variation] ?? "#0067F4" }}
+                    />
+                    {variation}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="mb-3 text-[13px] font-medium">By country</p>
+              <CountryTable countries={stats.countries} total={chart.total} />
+            </div>
+          </div>
+        )
+      ) : null}
+    </div>
   );
 }

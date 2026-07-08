@@ -262,7 +262,7 @@ describe("POST /v1/evaluate, event emission", () => {
       variation: "on" as const,
       reason: "default" as const,
     }));
-    const events: EvaluationEvent[] = buildEvents(entry, results, {}, "unknown");
+    const events: EvaluationEvent[] = buildEvents(entry, results, {}, "unknown", "unknown");
     const queue = fakeQueue();
     await publishEvents(queue, events);
     expect(queue.batches.map((b) => b.length)).toEqual([100, 100, 50]);

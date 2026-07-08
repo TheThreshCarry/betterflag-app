@@ -211,11 +211,24 @@ export function chunk<T>(items: readonly T[], size: number): T[][] {
   return chunks;
 }
 
+/**
+ * Country of the calling client from Cloudflare's request metadata.
+ * Country-level only (ISO 3166-1 alpha-2), "unknown" when Cloudflare does not
+ * populate it (e.g. `wrangler dev`, tests). Never anything finer than country.
+ */
+export function countryOf(request: Request): string {
+  const cf = (request as { cf?: { country?: unknown } }).cf;
+  const country = cf?.country;
+  if (typeof country !== "string" || country.length === 0) return "unknown";
+  return country.toUpperCase();
+}
+
 export function buildEvents(
   entry: SdkKeyKvEntry,
   results: readonly EvaluationResult[],
   context: EvaluationContext,
   sdk: string,
+  country: string,
 ): EvaluationEvent[] {
   const ts = new Date().toISOString();
   const user_hash = context.userId !== undefined ? hashUserId(context.userId) : "0";
@@ -230,6 +243,7 @@ export function buildEvents(
     actor_kind: "sdk" as const,
     sdk,
     user_hash,
+    country,
   }));
 }
 
@@ -321,7 +335,7 @@ export async function handleEvaluate(
   // Events must never block or fail the response.
   try {
     const sdk = request.headers.get("X-ShipOS-SDK") ?? "unknown";
-    const events = buildEvents(entry, results, context, sdk);
+    const events = buildEvents(entry, results, context, sdk, countryOf(request));
     if (events.length > 0) {
       ctx.waitUntil(
         publishEvents(env.EVENTS, events)

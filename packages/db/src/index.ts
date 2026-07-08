@@ -127,3 +127,19 @@ export const PLAN_LIMITS: Record<
   launch: { projects: 3, agentKeys: 5, includedEvalsPerMonth: 10_000_000 },
   scale: { projects: null, agentKeys: null, includedEvalsPerMonth: 100_000_000 },
 };
+
+/**
+ * Analytics retention per plan, in days — how long evaluation-level analytics
+ * data is kept in total before deletion. The first 7 days are always hot in
+ * ClickHouse (raw-table TTL); after that, days live as gzipped NDJSON in R2
+ * until this window expires (ingest worker cron). Retention is a plan
+ * feature, not a per-org setting. Trial mirrors Launch, like PLAN_LIMITS.
+ */
+export const ANALYTICS_HOT_DAYS = 7;
+
+export const ANALYTICS_RETENTION_DAYS: Record<OrgPlan, number> = {
+  trial: 90,
+  starter: 30,
+  launch: 90,
+  scale: 365,
+};

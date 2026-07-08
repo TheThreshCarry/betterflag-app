@@ -67,6 +67,12 @@ const ENV: IngestEnv = {
     get: () => Promise.resolve(null),
     put: () => Promise.resolve(),
   },
+  ANALYTICS_R2: {
+    head: () => Promise.resolve(null),
+    put: () => Promise.resolve(undefined),
+    delete: () => Promise.resolve(),
+    list: () => Promise.resolve({ objects: [], truncated: false }),
+  },
   SUPABASE_URL: "https://example.supabase.co",
   SUPABASE_SERVICE_ROLE_KEY: "service-role",
   CLICKHOUSE_URL: "https://clickhouse.example.com:8443",
@@ -85,6 +91,7 @@ const EVENT: EvaluationEvent = {
   actor_kind: "sdk",
   sdk: "js/0.1.0",
   user_hash: "12345678901234567890",
+  country: "FR",
 };
 
 const UUID_A = "11111111-1111-4111-8111-111111111111";
@@ -137,6 +144,7 @@ describe("eventToRow", () => {
       actor_kind: "sdk",
       sdk: "js/0.1.0",
       user_hash: "12345678901234567890",
+      country: "FR",
     });
   });
 });
@@ -144,6 +152,13 @@ describe("eventToRow", () => {
 describe("evaluationEventSchema", () => {
   it("accepts a well-formed event", () => {
     expect(evaluationEventSchema.safeParse(EVENT).success).toBe(true);
+  });
+
+  it("defaults a missing country to 'unknown' (pre-country in-flight messages)", () => {
+    const { country: _drop, ...legacy } = EVENT;
+    const parsed = evaluationEventSchema.safeParse(legacy);
+    expect(parsed.success).toBe(true);
+    if (parsed.success) expect(parsed.data.country).toBe("unknown");
   });
 
   it.each([

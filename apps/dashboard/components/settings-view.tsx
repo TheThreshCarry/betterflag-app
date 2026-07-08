@@ -1,6 +1,6 @@
 "use client";
 
-import { PLAN_LIMITS } from "@shipos/db";
+import { ANALYTICS_HOT_DAYS, ANALYTICS_RETENTION_DAYS, PLAN_LIMITS } from "@shipos/db";
 import { useCallback, useEffect, useState } from "react";
 
 import { Button, Card, Chip, ErrorNote, inputClass, type ChipColor } from "@/components/ui";
@@ -230,6 +230,33 @@ function SettingsContent({ org }: { org: ApiOrg }) {
           </div>
         </Card>
       ) : null}
+
+      <Card className="p-6">
+        <h2 className="text-[16px] font-semibold">Analytics data retention</h2>
+        <p className="mt-1 text-[13px] text-ink-muted">
+          Evaluation analytics stay in fast storage for {ANALYTICS_HOT_DAYS} days, then move to
+          cold storage until your plan&apos;s retention window ends, after which they&apos;re
+          deleted. Aggregated charts and the billing meter are unaffected.
+        </p>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div className="rounded-2xl border border-line bg-white p-4">
+            <p className="font-mono text-[22px] font-semibold">{ANALYTICS_HOT_DAYS} days</p>
+            <p className="text-[13px] text-ink-muted">hot storage (all plans)</p>
+          </div>
+          <div className="rounded-2xl border border-line bg-white p-4">
+            <p className="font-mono text-[22px] font-semibold">
+              {ANALYTICS_RETENTION_DAYS[org.plan]} days
+            </p>
+            <p className="text-[13px] text-ink-muted">total retention on your plan</p>
+          </div>
+        </div>
+        {org.plan !== "scale" ? (
+          <p className="mt-3 text-[12px] text-ink-muted">
+            Need longer retention? The Scale plan keeps analytics for{" "}
+            {ANALYTICS_RETENTION_DAYS.scale} days.
+          </p>
+        ) : null}
+      </Card>
 
       <Card className="p-6">
         <h2 className="text-[16px] font-semibold">Members</h2>

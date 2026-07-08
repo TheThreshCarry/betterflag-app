@@ -133,15 +133,43 @@ export interface ApiUsage {
   series: UsagePoint[];
 }
 
+export type AnalyticsPeriod = "24h" | "7d" | "30d" | "90d";
+
 export interface StatsPoint {
   hour: string;
   variation: string;
   evaluations: number;
 }
 
+export interface CountryPoint {
+  /** ISO 3166-1 alpha-2, or "unknown". */
+  country: string;
+  evaluations: number;
+}
+
 export interface ApiStats {
-  period: "24h" | "7d" | "30d";
+  period: AnalyticsPeriod;
+  retentionDays: number;
+  availablePeriods: AnalyticsPeriod[];
   series: StatsPoint[];
+  countries: CountryPoint[];
+}
+
+export interface AnalyticsSeriesPoint {
+  /** Hour start for 24h, day for longer periods (UTC). */
+  bucket: string;
+  evaluations: number;
+}
+
+export interface ApiAnalytics {
+  period: AnalyticsPeriod;
+  retentionDays: number;
+  availablePeriods: AnalyticsPeriod[];
+  total: number;
+  series: AnalyticsSeriesPoint[];
+  countries: CountryPoint[];
+  flags: { flagKey: string; evaluations: number }[];
+  environments: { env: string; evaluations: number }[];
 }
 
 // ── Serializers ──────────────────────────────────────────────────────────────

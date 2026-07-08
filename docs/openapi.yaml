@@ -415,10 +415,13 @@ paths:
       - $ref: "#/components/parameters/EnvSlug"
     get:
       tags: [Flag configs]
-      summary: Hourly per-variation evaluation counts (ClickHouse)
+      summary: Per-flag evaluation analytics (ClickHouse)
       description: |
-        Reads `evals_per_flag_hour`. Returns an empty series when ClickHouse
-        is unconfigured (dev) or the flag has no traffic.
+        Hourly per-variation series (`evals_per_flag_hour`) plus a country
+        breakdown (`evals_per_flag_country_hour`). Returns empty arrays when
+        ClickHouse is unconfigured (dev) or the flag has no traffic. Periods
+        beyond the org plan's analytics retention are rejected with 422
+        `retention_exceeded`.
       operationId: flagStats
       parameters:
         - name: period
@@ -426,16 +429,54 @@ paths:
           required: false
           schema:
             type: string
-            enum: [24h, 7d, 30d]
+            enum: [24h, 7d, 30d, 90d]
             default: 24h
       responses:
         "200":
-          description: Hourly series.
+          description: Hourly series and country breakdown.
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Stats" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /api/v1/analytics:
+    get:
+      tags: [Analytics]
+      summary: Org-wide evaluation analytics (ClickHouse)
+      description: |
+        Totals, time series (hourly for 24h, daily otherwise), country, flag
+        and environment breakdowns from `evals_per_flag_country_hour`.
+        Optional `projectId`/`env` filters. Periods beyond the org plan's
+        analytics retention are rejected with 422 `retention_exceeded`; the
+        response's `availablePeriods` lists what the plan allows.
+      operationId: getAnalytics
+      parameters:
+        - name: period
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [24h, 7d, 30d, 90d]
+            default: 7d
+        - name: projectId
+          in: query
+          required: false
+          schema: { type: string, format: uuid }
+        - name: env
+          in: query
+          required: false
+          schema: { type: string }
+      responses:
+        "200":
+          description: Analytics summary.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Analytics" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
 
   /api/v1/audit:
     get:
@@ -1049,13 +1090,80 @@ components:
         variation: { type: string }
         evaluations: { type: integer }
 
+    CountryPoint:
+      type: object
+      required: [country, evaluations]
+      properties:
+        country:
+          type: string
+          description: ISO 3166-1 alpha-2, or "unknown".
+        evaluations: { type: integer }
+
     Stats:
       type: object
-      required: [period, series]
+      required: [period, retentionDays, availablePeriods, series, countries]
       properties:
         period:
           type: string
-          enum: [24h, 7d, 30d]
+          enum: [24h, 7d, 30d, 90d]
+        retentionDays:
+          type: integer
+          description: The org plan's analytics retention window.
+        availablePeriods:
+          type: array
+          items:
+            type: string
+            enum: [24h, 7d, 30d, 90d]
         series:
           type: array
           items: { $ref: "#/components/schemas/StatsPoint" }
+        countries:
+          type: array
+          items: { $ref: "#/components/schemas/CountryPoint" }
+
+    AnalyticsSeriesPoint:
+      type: object
+      required: [bucket, evaluations]
+      properties:
+        bucket:
+          type: string
+          description: Hour start for 24h periods, day (YYYY-MM-DD) otherwise. UTC.
+        evaluations: { type: integer }
+
+    Analytics:
+      type: object
+      required:
+        [period, retentionDays, availablePeriods, total, series, countries, flags, environments]
+      properties:
+        period:
+          type: string
+          enum: [24h, 7d, 30d, 90d]
+        retentionDays: { type: integer }
+        availablePeriods:
+          type: array
+          items:
+            type: string
+            enum: [24h, 7d, 30d, 90d]
+        total: { type: integer }
+        series:
+          type: array
+          items: { $ref: "#/components/schemas/AnalyticsSeriesPoint" }
+        countries:
+          type: array
+          items: { $ref: "#/components/schemas/CountryPoint" }
+        flags:
+          type: array
+          items:
+            type: object
+            required: [flagKey, evaluations]
+            properties:
+              flagKey: { type: string }
+              evaluations: { type: integer }
+        environments:
+          type: array
+          items:
+            type: object
+            required: [env, evaluations]
+            properties:
+              env: { type: string }
+              evaluations: { type: integer }

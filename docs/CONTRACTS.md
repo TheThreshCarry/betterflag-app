@@ -54,7 +54,8 @@ Errors: `{ "error": { "code": string, "message": string } }` with 400/401/403/40
 | PUT | /api/v1/flags/:id/environments/:env/config | `{enabled?, rolloutPct?, rules?, valueOn?, valueOff?, clearKill?, expectedVersion?}` via `update_flag_config` RPC; 409 on version conflict |
 | POST | /api/v1/flags/:id/environments/:env/kill | `kill_flag` RPC + KV fast path |
 | POST | /api/v1/flags/:id/environments/:env/promote | `{fromEnv}` copies config between envs |
-| GET | /api/v1/flags/:id/environments/:env/stats?period=24h\|7d\|30d | ClickHouse `evals_per_flag_hour` |
+| GET | /api/v1/flags/:id/environments/:env/stats?period=24h\|7d\|30d\|90d | ClickHouse `evals_per_flag_hour` + country breakdown; 422 `retention_exceeded` beyond plan retention |
+| GET | /api/v1/analytics?period=&projectId=&env= | org-wide analytics from `evals_per_flag_country_hour`: total, series, countries, flags, environments; 422 beyond plan retention |
 | POST | /api/v1/keys | dashboard session only, create key; returns plaintext once; not listable |
 | DELETE | /api/v1/keys/:id | dashboard session only, revoke + KV update for sdk keys |
 | GET | /api/v1/audit?actorType=&projectId=&limit=&before= | audit entries, newest first |
@@ -64,7 +65,9 @@ Response envelopes (pinned, MCP normalizers and future SDKs rely on these):
 wire format is camelCase; list endpoints wrap in a named key -
 `{projects}`, `{flags}`, `{flag, configs}`, `{project}`, `{config}`,
 `{apiKey, plaintext}` (create only), `{entries}` (audit),
-`{period, series}` (stats), `{usage…}`. API key hashes are never serialized.
+`{period, retentionDays, availablePeriods, series, countries}` (stats),
+`{period, retentionDays, availablePeriods, total, series, countries, flags, environments}`
+(analytics), `{usage…}`. API key hashes are never serialized.
 Full schemas: docs/openapi.yaml.
 
 Every mutation: RPC (mutation+audit atomically) → enqueue
@@ -81,7 +84,27 @@ config-sync for the affected (project, env).
 - CORS: `*` (keys are publishable for sdk kind).
 - Every evaluated flag emits one `EvaluationEvent` to `EVENTS` via
   `ctx.waitUntil(sendBatch(…))`, chunked ≤100. `user_hash` = `hashUserId()`
-  from core ("0" when anonymous). No Postgres, no ClickHouse on this path.
+  from core ("0" when anonymous). `country` = uppercased ISO 3166-1 alpha-2
+  from Cloudflare's `request.cf.country` ("unknown" when absent); country
+  only, never finer. No Postgres, no ClickHouse on this path.
+
+## Analytics retention (hot → cold → deleted)
+
+- **Hot**: raw `evaluations` rows live in ClickHouse for 7 days
+  (`ANALYTICS_HOT_DAYS` in `@shipos/db`; table TTL in
+  apps/ingest/clickhouse/schema.sql). Aggregate MVs (`evals_per_org_day`
+  billing meter, `evals_per_flag_hour`, `evals_per_flag_country_hour`) keep
+  13 months regardless — retention governs raw event data only.
+- **Cold**: a daily cron in the ingest worker (03:10 UTC) exports the day
+  aging out of the hot window to R2 (binding `ANALYTICS_R2`, bucket
+  `shipos-analytics-cold`) as `analytics/{org_id}/{yyyy-mm-dd}.ndjson.gz`,
+  one object per org per day, ClickHouse JSONEachRow gzipped (re-importable
+  with `INSERT ... FORMAT JSONEachRow`). Idempotent: existing objects are
+  skipped.
+- **Deleted**: the same cron removes R2 objects older than the org's plan
+  retention (`ANALYTICS_RETENTION_DAYS` in `@shipos/db`: starter 30d,
+  launch/trial 90d, scale 365d). Retention is a plan feature, not a per-org
+  setting; the API rejects periods beyond it with 422 `retention_exceeded`.
 
 ## Plan limits
 
