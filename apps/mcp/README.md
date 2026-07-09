@@ -65,6 +65,7 @@ those are for the edge evaluation API.
 
 | Tool | What it does |
 |---|---|
+| `read_docs` | Built-in setup docs: quickstart, sdk-js, sdk-react, mcp-setup, targeting, concepts |
 | `list_flags` | All flags in a project with per-env state (✅ on / ⬜ off / 🔴 killed) and rollout % |
 | `get_flag` | Full detail: per-env config, targeting rules pretty-printed, versions |
 | `create_flag` | Create a flag (boolean/string/number/json); replies with a paste-ready SDK snippet |

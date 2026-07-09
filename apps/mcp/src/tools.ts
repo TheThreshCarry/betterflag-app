@@ -15,6 +15,7 @@ import {
   resolveProject,
   rolloutPctOf,
 } from "./api";
+import { registerDocsTool } from "./docs";
 import { ToolError } from "./errors";
 import { auditLine, flagDetail, flagSummaryLine, renderRule, statsTable } from "./format";
 import {
@@ -67,6 +68,12 @@ const flagKeyFormat = z
 const FLAG_LIST_KEYS = ["flags", "data", "items"] as const;
 
 export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
+  // -------------------------------------------------------------------------
+  // Docs (no API context needed, works before any flag exists)
+  // -------------------------------------------------------------------------
+
+  registerDocsTool(server);
+
   // -------------------------------------------------------------------------
   // Read tools
   // -------------------------------------------------------------------------

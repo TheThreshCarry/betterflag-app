@@ -68,7 +68,7 @@ describe("PRICING_SPEC integrity", () => {
     expect(tier("launch").includedEvaluations).toBe(10_000_000);
     expect(tier("scale").includedEvaluations).toBe(100_000_000);
     expect(tier("starter").overagePerMillionCents).toBe(500);
-    expect(tier("launch").overagePerMillionCents).toBe(500);
+    expect(tier("launch").overagePerMillionCents).toBe(400);
     expect(tier("scale").overagePerMillionCents).toBe(300);
   });
 
@@ -83,10 +83,11 @@ describe("PRICING_SPEC integrity", () => {
     expect(PRICING_SPEC.filter((t) => t.popular).map((t) => t.key)).toEqual(["launch"]);
   });
 
-  it("gives Scale unlimited projects and agent keys", () => {
-    const scale = PRICING_SPEC.find((t) => t.key === "scale")!;
-    expect(scale.projects).toBeNull();
-    expect(scale.agentKeys).toBeNull();
+  it("gives every tier unlimited agent keys, and only Starter a project cap", () => {
+    for (const t of PRICING_SPEC) expect(t.agentKeys).toBeNull();
+    expect(tier("starter").projects).toBe(3);
+    expect(tier("launch").projects).toBeNull();
+    expect(tier("scale").projects).toBeNull();
   });
 
   it("has a non-empty feature list and overage line for every tier", () => {

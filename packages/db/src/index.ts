@@ -128,10 +128,12 @@ export const PLAN_LIMITS: Record<
   OrgPlan,
   { projects: number | null; agentKeys: number | null; includedEvalsPerMonth: number }
 > = {
-  // Trial gets Launch-shaped limits so the trial demonstrates the product.
-  trial: { projects: 3, agentKeys: 5, includedEvalsPerMonth: 10_000_000 },
-  starter: { projects: 1, agentKeys: 1, includedEvalsPerMonth: 2_000_000 },
-  launch: { projects: 3, agentKeys: 5, includedEvalsPerMonth: 10_000_000 },
+  // Agent keys are unlimited on every plan (not a plan metric). Only Starter
+  // caps projects. Trial gets Launch-shaped limits so it demonstrates the
+  // product.
+  trial: { projects: null, agentKeys: null, includedEvalsPerMonth: 10_000_000 },
+  starter: { projects: 3, agentKeys: null, includedEvalsPerMonth: 2_000_000 },
+  launch: { projects: null, agentKeys: null, includedEvalsPerMonth: 10_000_000 },
   scale: { projects: null, agentKeys: null, includedEvalsPerMonth: 100_000_000 },
 };
 
