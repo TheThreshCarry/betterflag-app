@@ -14,6 +14,7 @@ import {
   PROJECT_ID,
   SDK_KEY,
   SDK_KEY_SAME_PREFIX,
+  SNAPSHOT,
   evaluateRequest,
   fakeCtx,
   fakeQueue,
@@ -157,6 +158,72 @@ describe("POST /v1/evaluate, key selection", () => {
     );
     expect(res.status).toBe(400);
     expect(((await res.json()) as ErrorResponse).error.code).toBe("invalid_request");
+  });
+});
+
+describe("POST /v1/evaluate, country fallback from request.cf", () => {
+  /** A flag that serves ON only for country=FR, otherwise 0% rollout = off. */
+  const geoSnapshot = {
+    ...SNAPSHOT,
+    flags: {
+      "geo-flag": {
+        kind: "boolean" as const,
+        enabled: true,
+        killed: false,
+        rolloutPct: 0,
+        rules: [
+          {
+            id: "rule-fr",
+            conditions: [{ attribute: "country", op: "eq" as const, value: "FR" }],
+            serve: "on" as const,
+          },
+        ],
+        valueOn: true,
+        valueOff: false,
+        defaultValue: false,
+      },
+    },
+  };
+
+  it("injects cf.country into the context when the SDK sent none", async () => {
+    const res = await handleRequest(
+      evaluateRequest({
+        token: SDK_KEY,
+        body: { key: "geo-flag", context: { userId: "u1" } },
+        cf: { country: "fr" },
+      }),
+      { CONFIG_KV: await standardKv(undefined, geoSnapshot), EVENTS: fakeQueue() },
+      fakeCtx(),
+    );
+    const body = (await res.json()) as EvaluateResponse;
+    expect(body.results[0]).toMatchObject({ key: "geo-flag", value: true, variation: "on" });
+  });
+
+  it("never overrides an explicit context country", async () => {
+    const res = await handleRequest(
+      evaluateRequest({
+        token: SDK_KEY,
+        body: { key: "geo-flag", context: { userId: "u1", attributes: { country: "US" } } },
+        cf: { country: "fr" },
+      }),
+      { CONFIG_KV: await standardKv(undefined, geoSnapshot), EVENTS: fakeQueue() },
+      fakeCtx(),
+    );
+    const body = (await res.json()) as EvaluateResponse;
+    expect(body.results[0]).toMatchObject({ key: "geo-flag", value: false });
+  });
+
+  it("injects nothing when Cloudflare has no country", async () => {
+    const res = await handleRequest(
+      evaluateRequest({
+        token: SDK_KEY,
+        body: { key: "geo-flag", context: { userId: "u1" } },
+      }),
+      { CONFIG_KV: await standardKv(undefined, geoSnapshot), EVENTS: fakeQueue() },
+      fakeCtx(),
+    );
+    const body = (await res.json()) as EvaluateResponse;
+    expect(body.results[0]).toMatchObject({ key: "geo-flag", value: false });
   });
 });
 

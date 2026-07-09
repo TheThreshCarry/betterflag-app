@@ -110,6 +110,10 @@ instead, hooks, SSR safety, and live updates wired up for you.
 - Evaluations go to `POST edge.shipos.app/v1/evaluate` and are cached
   in-memory per `(flag, userId, attributes)` for `refreshInterval` (min 5s),
   so hot flags cost zero network calls.
+- `country` is auto-detected at the edge from the caller's request when you
+  don't pass it, so country targeting works out of the box in the browser.
+  Passing `country` explicitly always wins - do that on servers, where the
+  detected location would be the server's, not your user's.
 - In the background the client polls `GET /v1/snapshot` with `If-None-Match`;
   a `304` costs almost nothing. When the config version changes, the cache is
   cleared and `'update'` fires.

@@ -138,6 +138,10 @@ shipos.on("update", async () => {
 
 - Evaluations: POST edge.shipos.app/v1/evaluate, cached in-memory per
   (flag, userId, attributes) for refreshInterval (min 5s).
+- country is auto-detected at the edge from the caller's request when not
+  passed, so browser-side country targeting needs no setup; explicit
+  country always wins (pass it on servers — detection would see the
+  server's location).
 - Background polling: GET /v1/snapshot with If-None-Match; on config
   change the cache clears and 'update' fires.
 - \`await shipos.ready()\` blocks until the first config fetch settles
@@ -328,6 +332,11 @@ rollout.
 - description: optional, ≤512 chars
 - conditions: ≤32 per rule; attribute is any user attribute passed to the
   SDK (via flag() attributes or signIn metadata)
+- country: auto-detected at the edge from the caller's request (uppercase
+  ISO 3166-1 alpha-2, e.g. "FR") when the SDK does not pass one, so
+  browser-side country targeting needs no setup. An explicit country
+  always wins — server-side SDKs should pass the end user's country
+  themselves, since the detected value would be the server's location.
 - serve: "on" | "off" — what matching users get
 - rolloutPct: optional 0–100 — serve applies to only that share of
   matching users (stable bucketing)

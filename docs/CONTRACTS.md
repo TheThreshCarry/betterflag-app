@@ -81,6 +81,13 @@ config-sync for the affected (project, env).
   One of key/keys, or neither = all flags.
   Response: `{ version, results: EvaluationResult[] }` (single key still returns array).
   Headers in: `X-ShipOS-SDK` (e.g. `js/0.1.0`) → event `sdk` field.
+  Country fallback: when `context.attributes.country` is absent, the edge
+  injects Cloudflare's `request.cf.country` (uppercased; never when
+  "unknown") before rule matching, so `country` targeting works without the
+  SDK sending it. Explicit context always wins — note the caller's location
+  is the *caller's*, so server-side SDKs targeting the end user's country
+  should keep passing it. `/v1/snapshot` (local evaluation) has no fallback:
+  SDKs evaluating from a snapshot must supply `country` themselves.
 - `GET /v1/snapshot`, same auth; `ETag: "v{version}"`, honors `If-None-Match` → 304.
 - CORS: `*` (keys are publishable for sdk kind).
 - Every evaluated flag emits one `EvaluationEvent` to `EVENTS` via

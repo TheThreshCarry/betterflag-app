@@ -116,15 +116,21 @@ export function evaluateRequest(input: {
   token?: string;
   body?: unknown;
   sdkHeader?: string;
+  /** Simulates Cloudflare's request.cf metadata (e.g. { country: "FR" }). */
+  cf?: { country?: string };
 }): Request {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (input.token !== undefined) headers["Authorization"] = `Bearer ${input.token}`;
   if (input.sdkHeader !== undefined) headers["X-ShipOS-SDK"] = input.sdkHeader;
-  return new Request("https://edge.shipos.app/v1/evaluate", {
+  const request = new Request("https://edge.shipos.app/v1/evaluate", {
     method: "POST",
     headers,
     body: input.body === undefined ? null : JSON.stringify(input.body),
   });
+  if (input.cf !== undefined) {
+    Object.defineProperty(request, "cf", { value: input.cf });
+  }
+  return request;
 }
 
 export function snapshotRequest(input: { token?: string; ifNoneMatch?: string }): Request {

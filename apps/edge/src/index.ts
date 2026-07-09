@@ -223,6 +223,22 @@ export function countryOf(request: Request): string {
   return country.toUpperCase();
 }
 
+/**
+ * Merge the Cloudflare-detected country into the evaluation context as a
+ * fallback `country` attribute, so country targeting works without the SDK
+ * sending it. Explicit context always wins: a server-side caller may pass
+ * the *user's* country, which `cf.country` (the caller's own location, e.g.
+ * an origin server's datacenter) cannot know. "unknown" is never injected.
+ */
+export function withCountryFallback(
+  context: EvaluationContext,
+  country: string,
+): EvaluationContext {
+  if (country === "unknown") return context;
+  if (context.attributes?.country !== undefined) return context;
+  return { ...context, attributes: { ...context.attributes, country } };
+}
+
 export function buildEvents(
   entry: SdkKeyKvEntry,
   results: readonly EvaluationResult[],
@@ -300,7 +316,10 @@ export async function handleEvaluate(
     obs?.log.warn("evaluate: both key and keys provided", { status: 400 });
     return errorResponse(400, "invalid_request", "Provide `key` or `keys`, not both.");
   }
-  const context: EvaluationContext = body.context ?? {};
+  const context: EvaluationContext = withCountryFallback(
+    body.context ?? {},
+    countryOf(request),
+  );
   const requestedKeys = body.key !== undefined ? [body.key] : body.keys;
 
   const snapSpan = obs?.span.startChild("load_snapshot");
