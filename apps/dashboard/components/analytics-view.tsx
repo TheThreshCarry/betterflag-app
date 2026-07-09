@@ -136,7 +136,11 @@ export function AnalyticsView() {
 
       {error ? <ErrorNote message={error} /> : null}
       {!error && !data ? <AnalyticsSkeleton /> : null}
-      {!error && data ? <AnalyticsContent data={data} /> : null}
+      {!error && data ? (
+        <div className="data-in">
+          <AnalyticsContent data={data} />
+        </div>
+      ) : null}
     </div>
   );
 }

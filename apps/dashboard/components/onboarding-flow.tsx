@@ -140,6 +140,8 @@ export function OnboardingFlow({ userEmail }: { userEmail: string | null }) {
       </header>
 
       <main className="mx-auto max-w-2xl px-6 py-12">
+        {/* Keyed by step so each onboarding stage blurs + fades in. */}
+        <div key={step} className={step === "loading" ? undefined : "data-in"}>
         {step === "loading" ? (
           <OnboardingResumeSkeleton />
         ) : step === "org" ? (
@@ -175,6 +177,7 @@ export function OnboardingFlow({ userEmail }: { userEmail: string | null }) {
             onDone={() => router.push("/flags")}
           />
         ) : null}
+        </div>
         <ErrorNote message={error} />
       </main>
     </div>

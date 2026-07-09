@@ -63,7 +63,9 @@ export function UsageView() {
       {!usage || !chart ? (
         <UsageSkeleton />
       ) : (
-        <UsageContent usage={usage} chart={chart} />
+        <div className="data-in">
+          <UsageContent usage={usage} chart={chart} />
+        </div>
       )}
     </div>
   );

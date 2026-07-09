@@ -168,7 +168,7 @@ export function FlagDetail({ flagId }: { flagId: string }) {
   const shownConfigs = scoped.length > 0 ? scoped : configs;
 
   return (
-    <div>
+    <div className="data-in">
       <div className="mb-2 text-[13px] text-ink-muted">
         <Link href="/flags" className="hover:text-ink">
           Flags
@@ -869,7 +869,7 @@ function EnvSparkline({ flagId, envSlug }: { flagId: string; envSlug: string }) 
   }
 
   return (
-    <span className="flex items-center gap-2" title={`${total.toLocaleString()} evaluations in the last 24h`}>
+    <span className="data-in flex items-center gap-2" title={`${total.toLocaleString()} evaluations in the last 24h`}>
       <svg width="96" height="28" viewBox="0 0 96 28" fill="none" aria-hidden>
         <polyline points={path} stroke="#0067F4" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
@@ -978,11 +978,11 @@ function FlagAnalytics({ flagId, envSlug }: { flagId: string; envSlug: string })
       {!statsError && !stats ? <Skeleton className="h-40 w-full" /> : null}
       {!statsError && stats && chart ? (
         chart.total === 0 ? (
-          <p className="py-8 text-center text-[13px] text-ink-muted">
+          <p className="data-in py-8 text-center text-[13px] text-ink-muted">
             No evaluations for this flag in the selected period.
           </p>
         ) : (
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="data-in grid gap-6 lg:grid-cols-2">
             <div>
               <svg
                 viewBox="0 0 100 40"

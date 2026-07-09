@@ -126,12 +126,15 @@ export function FlagsView() {
       {!flags ? (
         <DataTableSkeleton columns={FLAG_COLUMNS} />
       ) : flags.length === 0 ? (
-        <EmptyState
-          title="Ship your first flag"
-          body="Flags are created with configs in every environment, disabled by default."
-          action={<Button onClick={() => setDialogOpen(true)}>New flag</Button>}
-        />
+        <div className="data-in">
+          <EmptyState
+            title="Ship your first flag"
+            body="Flags are created with configs in every environment, disabled by default."
+            action={<Button onClick={() => setDialogOpen(true)}>New flag</Button>}
+          />
+        </div>
       ) : (
+        <div className="data-in">
         <DataTable columns={FLAG_COLUMNS}>
           {flags.map((flag) => {
                 const lastUpdated = flag.configs.reduce<string | null>(
@@ -194,6 +197,7 @@ export function FlagsView() {
                 );
               })}
         </DataTable>
+        </div>
       )}
 
       <NewFlagDialog

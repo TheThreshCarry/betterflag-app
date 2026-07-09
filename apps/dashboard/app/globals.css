@@ -209,3 +209,29 @@ input[type="range"].shipos-range::-moz-range-thumb {
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
 }
+/*
+ * Data entrance: content that replaces a skeleton blurs + fades in
+ * (same motion language as the landing page reveals).
+ */
+@keyframes data-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+.data-in {
+  animation: data-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .data-in {
+    animation: none;
+  }
+}

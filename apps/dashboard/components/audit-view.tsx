@@ -109,16 +109,18 @@ export function AuditView() {
       {!entries ? (
         <AuditListSkeleton />
       ) : entries.length === 0 ? (
-        <EmptyState
-          title="Nothing here yet"
-          body={
-            filter === "agent"
-              ? "No agent activity yet. Create an agent key and let your agents ship."
-              : "Mutations will show up here as they happen."
-          }
-        />
+        <div className="data-in">
+          <EmptyState
+            title="Nothing here yet"
+            body={
+              filter === "agent"
+                ? "No agent activity yet. Create an agent key and let your agents ship."
+                : "Mutations will show up here as they happen."
+            }
+          />
+        </div>
       ) : (
-        <div className="overflow-hidden rounded-3xl border border-line">
+        <div className="data-in overflow-hidden rounded-3xl border border-line">
           {entries.map((entry) => {
             const expanded = expandedId === entry.id;
             return (

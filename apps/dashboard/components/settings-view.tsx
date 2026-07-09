@@ -79,7 +79,9 @@ export function SettingsView() {
       {!org ? (
         <SettingsSkeleton />
       ) : (
-        <SettingsContent org={org} />
+        <div className="data-in">
+          <SettingsContent org={org} />
+        </div>
       )}
     </div>
   );
