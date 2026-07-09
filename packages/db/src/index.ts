@@ -33,6 +33,13 @@ export interface OrgRow {
   billing_synced_at: string | null;
 }
 
+/** Private-alpha allowlist (migration 20260709100000). Service-role only. */
+export interface AlphaAllowlistRow {
+  email: string;
+  note: string | null;
+  created_at: string;
+}
+
 export interface OrgMemberRow {
   org_id: string;
   user_id: string;

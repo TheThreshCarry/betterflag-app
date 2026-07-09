@@ -59,7 +59,8 @@ Errors: `{ "error": { "code": string, "message": string } }` with 400/401/403/40
 | POST | /api/v1/keys | dashboard session only, create key; returns plaintext once; not listable |
 | DELETE | /api/v1/keys/:id | dashboard session only, revoke + KV update for sdk keys |
 | GET | /api/v1/audit?actorType=&projectId=&limit=&before= | audit entries, newest first |
-| GET | /api/v1/usage?days=30 | ClickHouse `evals_per_org_day` + plan + trial state |
+| GET | /api/v1/usage?days=30 | ClickHouse `evals_per_org_day` + plan + billing state |
+| PATCH | /api/v1/orgs/:id | session-only, owner/admin; `{plan}` picks the tier pre-subscription (onboarding); 409 once a Polar subscription exists |
 
 Response envelopes (pinned, MCP normalizers and future SDKs rely on these):
 wire format is camelCase; list endpoints wrap in a named key -
@@ -111,3 +112,34 @@ config-sync for the affected (project, env).
 From `PLAN_LIMITS` in `@shipos/db`, projects and agent keys enforced at
 creation time in the control plane; evaluations are metered, never blocked
 mid-cycle (except Starter throttle at 3× included volume, Phase 5).
+
+## Billing access policy (trial + subscription)
+
+Decided by `billingDecisionForOrg` (apps/dashboard/lib/billing-status.ts):
+
+- Org WITHOUT a synced Polar subscription: full access while
+  `trial_ends_at` is in the future (`trialing`), then **`expired`** — the
+  dashboard shell hard-redirects to `/billing` (plan cards → Polar checkout)
+  and write APIs return 402; **flags keep serving from the edge**.
+- Org WITH a synced status: the July-2026 lifecycle policy (active,
+  14-day past_due grace, then read-only `restricted`).
+- Onboarding is org → **pick plan** (PATCH /api/v1/orgs/:id, no card) →
+  project → first flag. `orgs.plan === 'trial'` means the plan step was
+  never completed.
+
+## Lifecycle worker (welcome email sequence)
+
+`apps/lifecycle`, Cloudflare Workflows + Email Service (`send_email` binding,
+sender `hi@shipos.app`; the shipos.app domain must be onboarded in
+dash → Email Sending).
+
+- Trigger: `POST {LIFECYCLE_URL}/trigger` with
+  `Authorization: Bearer LIFECYCLE_SECRET`, body
+  `{ "orgId": uuid, "email": string, "orgName": string }`.
+  Producer: control plane, after org creation (best-effort, never fails the
+  request). 201 = started, 200 = instance already exists.
+- One workflow instance per org, id `welcome-{orgId}` (idempotent).
+- Schedule: day 0 welcome → day 3 agentic/MCP setup → day 10 trial-ending.
+  Before each post-day-0 email the workflow re-reads the org from Supabase:
+  deleted org stops the sequence, an active/trialing Polar subscription
+  skips the day-10 upsell.

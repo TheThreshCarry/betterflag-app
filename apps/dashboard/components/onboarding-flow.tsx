@@ -1,9 +1,13 @@
 "use client";
 
 /**
- * Two-step onboarding (org → project) followed by a "first flag in
+ * Onboarding: org → pick plan → project, followed by a "first flag in
  * 5 minutes" checklist. Time-to-first-flag is THE activation metric: the
  * clock starts at org creation and stops when the first flag exists.
+ *
+ * The plan step starts the 14-day trial on the chosen tier — no card, no
+ * checkout (settled positioning). Payment happens from Settings, either
+ * immediately or when the trial-expiry billing wall appears.
  */
 
 import { useRouter } from "next/navigation";
@@ -23,8 +27,9 @@ import { OnboardingResumeSkeleton } from "@/components/skeletons";
 import type { ApiApiKey, ApiFlag, ApiOrg, ApiProject } from "@/lib/api-types";
 import { api } from "@/lib/client-api";
 import { createBrowserSupabase } from "@/lib/supabase/client";
+import { usePricingTiers } from "@/lib/use-pricing";
 
-type Step = "loading" | "org" | "project" | "checklist";
+type Step = "loading" | "org" | "plan" | "project" | "checklist";
 
 function formatElapsed(ms: number): string {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
@@ -63,6 +68,11 @@ export function OnboardingFlow({ userEmail }: { userEmail: string | null }) {
           return;
         }
         setOrg(existingOrg);
+        // plan === "trial" means no tier was ever picked; resume at the plan step.
+        if (existingOrg.plan === "trial") {
+          setStep("plan");
+          return;
+        }
         const { projects } = await api<{ projects: ApiProject[] }>("/api/v1/projects");
         if (cancelled) return;
         const existingProject = projects[0] ?? null;
@@ -90,9 +100,10 @@ export function OnboardingFlow({ userEmail }: { userEmail: string | null }) {
         <Logo href="/onboarding" size="sm" showText />
         <div className="flex min-w-0 flex-1 items-center justify-end gap-4">
           <div className="hidden items-center gap-2 sm:flex">
-            {(["Create org", "Create project", "First flag"] as const).map((label, index) => {
-              const stepIndex = step === "org" ? 0 : step === "project" ? 1 : 2;
-              const done = index < stepIndex || (index === 2 && firstFlag !== null);
+            {(["Create org", "Pick plan", "Create project", "First flag"] as const).map((label, index) => {
+              const stepIndex =
+                step === "org" ? 0 : step === "plan" ? 1 : step === "project" ? 2 : 3;
+              const done = index < stepIndex || (index === 3 && firstFlag !== null);
               const active = index === stepIndex;
               return (
                 <span
@@ -135,6 +146,14 @@ export function OnboardingFlow({ userEmail }: { userEmail: string | null }) {
           <OrgStep
             onCreated={(createdOrg) => {
               setOrg(createdOrg);
+              setStep("plan");
+            }}
+          />
+        ) : step === "plan" && org ? (
+          <PlanStep
+            org={org}
+            onSelected={(updatedOrg) => {
+              setOrg(updatedOrg);
               setStep("project");
             }}
           />
@@ -206,6 +225,93 @@ function OrgStep({ onCreated }: { onCreated: (org: ApiOrg) => void }) {
           {busy ? "Creating…" : "Create organization"}
         </Button>
       </form>
+    </div>
+  );
+}
+
+function PlanStep({
+  org,
+  onSelected,
+}: {
+  org: ApiOrg;
+  onSelected: (org: ApiOrg) => void;
+}) {
+  const tiers = usePricingTiers();
+  const [selecting, setSelecting] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function choose(planKey: string) {
+    setError(null);
+    setSelecting(planKey);
+    try {
+      const { org: updated } = await api<{ org: ApiOrg }>(`/api/v1/orgs/${org.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ plan: planKey }),
+      });
+      onSelected(updated);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to select plan");
+      setSelecting(null);
+    }
+  }
+
+  return (
+    <div className="rounded-[32px] border border-line bg-surface p-10">
+      <h1 className="text-[32px] font-semibold tracking-[-0.02em]">Pick your plan.</h1>
+      <p className="mt-2 text-[15px] text-ink-muted">
+        Every plan starts with a <strong className="text-ink">14-day free trial, no card</strong>.
+        Unlimited flags, seats and environments on all of them — the only meter is evaluations.
+      </p>
+
+      {!tiers ? (
+        <div className="mt-8 grid gap-4 sm:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="h-48 animate-pulse rounded-2xl border border-line bg-white" />
+          ))}
+        </div>
+      ) : (
+        <div className="mt-8 grid gap-4 sm:grid-cols-3">
+          {tiers.map((tier) => (
+            <div
+              key={tier.key}
+              className="flex flex-col rounded-2xl border border-line bg-white p-5"
+              style={tier.popular ? { borderColor: "#FF5A1A" } : undefined}
+            >
+              <div className="flex items-baseline justify-between">
+                <p className="text-[15px] font-semibold">{tier.name}</p>
+                {tier.popular ? (
+                  <Chip color="orange" className="!px-2 !py-0.5 text-[11px]">
+                    Popular
+                  </Chip>
+                ) : null}
+              </div>
+              <p className="mt-1 font-mono text-[22px] font-semibold">
+                {tier.price}
+                <span className="text-[12px] font-normal text-ink-muted">{tier.period}</span>
+              </p>
+              <p className="mt-1 text-[12px] text-ink-muted">
+                {(tier.includedEvaluations / 1_000_000).toLocaleString()}M evaluations / mo
+              </p>
+              <p className="mt-1 flex-1 text-[12px] text-ink-muted">{tier.tagline}</p>
+              <Button
+                size="sm"
+                variant={tier.popular ? "primary" : "secondary"}
+                className="mt-4 w-full"
+                disabled={selecting !== null}
+                onClick={() => void choose(tier.key)}
+              >
+                {selecting === tier.key ? "Starting trial…" : `Start trial on ${tier.name}`}
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <p className="mt-4 text-[12px] text-ink-muted">
+        You won&apos;t pay anything today. When the trial ends, you add payment from Settings —
+        and your flags keep serving either way. You can switch tiers any time.
+      </p>
+      <ErrorNote message={error} />
     </div>
   );
 }

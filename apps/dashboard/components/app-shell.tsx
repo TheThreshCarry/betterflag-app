@@ -82,6 +82,12 @@ export function AppShell({
           router.replace("/onboarding");
           return;
         }
+        // No active plan (trial over, never subscribed): hard wall. Flags keep
+        // serving from the edge; the dashboard requires picking a plan.
+        if (loadedOrgs[0]!.billingState === "expired") {
+          router.replace("/billing");
+          return;
+        }
         setOrgs(loadedOrgs);
 
         let loadedProjects: ApiProject[] = [];

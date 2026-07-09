@@ -8,7 +8,8 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "polar:setup": "bun run scripts/polar-setup.ts"
+    "polar:setup": "bun run scripts/polar-setup.ts",
+    "alpha:admit": "bun run scripts/admit-alpha.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

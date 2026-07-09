@@ -15,6 +15,7 @@ interface; the dashboard is the observation layer.
 | [apps/edge](apps/edge) | Cloudflare Worker at `edge.shipos.app`, flag evaluation from KV snapshots, no DB on the hot path |
 | [apps/ingest](apps/ingest) | Cloudflare Worker, Queues consumers: evaluation events → ClickHouse, config-sync → KV snapshots |
 | [apps/mcp](apps/mcp) | Cloudflare Worker at `mcp.shipos.app`, MCP server wrapping the REST API with agent-scoped keys |
+| [apps/lifecycle](apps/lifecycle) | Cloudflare Worker, welcome email sequence on Workflows + Email Service (day 0 / 3 / 10) |
 | [packages/core](packages/core) | Pure evaluation engine (murmur3 bucketing, targeting rules) shared by edge + SDKs, never forked |
 | [packages/db](packages/db) | Supabase migrations, RLS, audit function, atomic RPCs, row types |
 | [packages/sdk-js](packages/sdk-js) | `@shiposapp/sdk`, Node + browser SDK (MIT) |

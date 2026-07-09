@@ -15,7 +15,7 @@
  *   bun run version:sync                      # rewrite all version.gen.ts from package.json
  *   bun run version:check                     # fail if any version.gen.ts drifted (CI guard)
  *
- * <app> is one of: edge, ingest, mcp, webhooks, dashboard.
+ * <app> is one of: edge, ingest, mcp, webhooks, lifecycle, dashboard.
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -29,6 +29,7 @@ const APPS = [
   { name: "ingest", dir: "apps/ingest", gen: "src/version.gen.ts" },
   { name: "mcp", dir: "apps/mcp", gen: "src/version.gen.ts" },
   { name: "webhooks", dir: "apps/webhooks", gen: "src/version.gen.ts" },
+  { name: "lifecycle", dir: "apps/lifecycle", gen: "src/version.gen.ts" },
   { name: "dashboard", dir: "apps/dashboard", gen: "lib/version.gen.ts" },
 ];
 

@@ -8,10 +8,12 @@ import type { OrgMemberRow, OrgRow } from "@shipos/db";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
+import { isAllowedEmail } from "@/lib/allowlist";
 import { toApiOrg, type ApiOrgMember } from "@/lib/api-types";
 import { resolveSessionUser } from "@/lib/auth";
 import { recordAudit } from "@/lib/db";
 import { HttpError, parseJson, parseQuery, unwrap, withErrors } from "@/lib/errors";
+import { triggerWelcomeSequence } from "@/lib/lifecycle";
 import { createServiceClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -85,7 +87,18 @@ const createOrgSchema = z.object({
 
 export const POST = withErrors(async (request: NextRequest) => {
   rejectBearer(request);
-  const { userId } = await resolveSessionUser();
+  const { userId, email } = await resolveSessionUser();
+
+  // Private alpha: only allowlisted emails can create an org (existing
+  // members never hit this path, they already have an org).
+  if (!(await isAllowedEmail(email))) {
+    throw new HttpError(
+      403,
+      "alpha_access_required",
+      "ShipOS is in private alpha; this email hasn't been admitted yet",
+    );
+  }
+
   const body = await parseJson(request, createOrgSchema);
   const service = createServiceClient();
 
@@ -105,6 +118,11 @@ export const POST = withErrors(async (request: NextRequest) => {
     subject: `org:${org.id}`,
     after: { id: org.id, name: org.name, plan: org.plan },
   });
+
+  // Kick off the welcome email sequence (best-effort, never fails the request).
+  if (email) {
+    await triggerWelcomeSequence({ orgId: org.id, email, orgName: org.name });
+  }
 
   return NextResponse.json({ org: toApiOrg(org, "owner") }, { status: 201 });
 });

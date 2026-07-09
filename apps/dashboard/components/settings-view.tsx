@@ -140,7 +140,10 @@ function SettingsContent({ org }: { org: ApiOrg }) {
               </span>
             ) : null}
           </div>
-          <Chip color={org.plan === "trial" ? "orange" : "green"}>{org.plan}</Chip>
+          <Chip color={org.billingState === "trialing" ? "orange" : "green"}>
+            {org.plan}
+            {org.billingState === "trialing" ? " (trial)" : ""}
+          </Chip>
         </div>
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
           <div className="rounded-2xl border border-line bg-white p-4">
@@ -162,13 +165,14 @@ function SettingsContent({ org }: { org: ApiOrg }) {
             <p className="text-[13px] text-ink-muted">evaluations / month</p>
           </div>
         </div>
-        {org.plan === "trial" ? (
+        {org.billingState === "trialing" ? (
           <p className="mt-4 text-[13px] text-ink-muted">
             Trial ends{" "}
             <span className="font-medium text-ink">
               {new Date(org.trialEndsAt).toLocaleDateString()}
             </span>
-            . Pick a plan below to keep shipping.
+            . Add payment below to keep the dashboard unlocked, your flags keep serving either
+            way.
           </p>
         ) : null}
       </Card>

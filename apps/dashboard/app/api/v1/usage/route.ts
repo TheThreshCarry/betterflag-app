@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import type { ApiUsage } from "@/lib/api-types";
 import { resolveActor } from "@/lib/auth";
+import { billingDecisionForOrg } from "@/lib/billing-status";
 import { usageByDay } from "@/lib/clickhouse";
 import { getOrg } from "@/lib/db";
 import { parseQuery, withErrors } from "@/lib/errors";
@@ -31,6 +32,7 @@ export const GET = withErrors(async (request: NextRequest) => {
 
   const usage: ApiUsage = {
     plan: org.plan,
+    billingState: billingDecisionForOrg(org).state,
     trialEndsAt: org.trial_ends_at,
     includedEvalsPerMonth: limits.includedEvalsPerMonth,
     used,

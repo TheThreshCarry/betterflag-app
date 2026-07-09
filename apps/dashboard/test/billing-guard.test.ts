@@ -8,31 +8,84 @@ import { HttpError } from "@/lib/errors";
 const DAY = 86_400_000;
 const daysAgo = (n: number) => new Date(Date.now() - n * DAY).toISOString();
 
+// A trial that ends in 7 days (the common case for un-synced orgs).
+const LIVE_TRIAL = daysAgo(-7);
+
 describe("billingDecisionForOrg", () => {
-  it("treats a null status as trialing (never lock pre-billing orgs)", () => {
-    const d = billingDecisionForOrg({ subscription_status: null, past_due_since: null });
+  it("treats a null status with a live trial as trialing", () => {
+    const d = billingDecisionForOrg({
+      subscription_status: null,
+      past_due_since: null,
+      trial_ends_at: LIVE_TRIAL,
+    });
     expect(d.state).toBe("trialing");
     expect(d.access.dashboardWrites).toBe(true);
   });
 
-  it("treats an unknown status as trialing", () => {
-    const d = billingDecisionForOrg({ subscription_status: "weird", past_due_since: null });
+  it("treats an unknown status with a live trial as trialing", () => {
+    const d = billingDecisionForOrg({
+      subscription_status: "weird",
+      past_due_since: null,
+      trial_ends_at: LIVE_TRIAL,
+    });
     expect(d.state).toBe("trialing");
   });
 
+  it("expires a null-status org whose trial has ended (flags still serve)", () => {
+    const d = billingDecisionForOrg({
+      subscription_status: null,
+      past_due_since: null,
+      trial_ends_at: daysAgo(1),
+    });
+    expect(d.state).toBe("expired");
+    expect(d.access.flagsServe).toBe(true);
+    expect(d.access.dashboardWrites).toBe(false);
+  });
+
+  it("never locks a null-status org with an unparseable trial date", () => {
+    const d = billingDecisionForOrg({
+      subscription_status: null,
+      past_due_since: null,
+      trial_ends_at: "not-a-date",
+    });
+    expect(d.state).toBe("trialing");
+  });
+
+  it("an expired trial does NOT override a synced active subscription", () => {
+    const d = billingDecisionForOrg({
+      subscription_status: "active",
+      past_due_since: null,
+      trial_ends_at: daysAgo(30),
+    });
+    expect(d.state).toBe("active");
+    expect(d.access.dashboardWrites).toBe(true);
+  });
+
   it("allows active", () => {
-    const d = billingDecisionForOrg({ subscription_status: "active", past_due_since: null });
+    const d = billingDecisionForOrg({
+      subscription_status: "active",
+      past_due_since: null,
+      trial_ends_at: LIVE_TRIAL,
+    });
     expect(d.access.dashboardWrites).toBe(true);
   });
 
   it("allows past_due while inside the grace window", () => {
-    const d = billingDecisionForOrg({ subscription_status: "past_due", past_due_since: daysAgo(3) });
+    const d = billingDecisionForOrg({
+      subscription_status: "past_due",
+      past_due_since: daysAgo(3),
+      trial_ends_at: LIVE_TRIAL,
+    });
     expect(d.state).toBe("grace");
     expect(d.access.dashboardWrites).toBe(true);
   });
 
   it("restricts past_due after the grace window (flags still serve)", () => {
-    const d = billingDecisionForOrg({ subscription_status: "past_due", past_due_since: daysAgo(30) });
+    const d = billingDecisionForOrg({
+      subscription_status: "past_due",
+      past_due_since: daysAgo(30),
+      trial_ends_at: LIVE_TRIAL,
+    });
     expect(d.state).toBe("restricted");
     expect(d.access.flagsServe).toBe(true);
     expect(d.access.dashboardWrites).toBe(false);
@@ -40,12 +93,18 @@ describe("billingDecisionForOrg", () => {
 
   it("restricts canceled / unpaid", () => {
     expect(
-      billingDecisionForOrg({ subscription_status: "canceled", past_due_since: null }).access
-        .dashboardWrites,
+      billingDecisionForOrg({
+        subscription_status: "canceled",
+        past_due_since: null,
+        trial_ends_at: LIVE_TRIAL,
+      }).access.dashboardWrites,
     ).toBe(false);
     expect(
-      billingDecisionForOrg({ subscription_status: "unpaid", past_due_since: null }).access
-        .dashboardWrites,
+      billingDecisionForOrg({
+        subscription_status: "unpaid",
+        past_due_since: null,
+        trial_ends_at: LIVE_TRIAL,
+      }).access.dashboardWrites,
     ).toBe(false);
   });
 });

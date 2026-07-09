@@ -1,0 +1,40 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "shipos-lifecycle",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-06-01",
+  "observability": {
+    "enabled": true
+  },
+  // Distinct dev ports so parallel `wrangler dev` instances don't collide.
+  "dev": {
+    "port": 8791,
+    "inspector_port": 9234
+  },
+  // Welcome email sequence, one instance per org (id `welcome-{orgId}`).
+  "workflows": [
+    {
+      "name": "shipos-welcome-sequence",
+      "binding": "WELCOME_SEQUENCE",
+      "class_name": "WelcomeSequence"
+    }
+  ],
+  // Cloudflare Email Service. The shipos.app domain must be onboarded in
+  // dash → Email Sending before deploying (adds SPF/DKIM/DMARC on cf-bounce).
+  "send_email": [
+    {
+      "name": "EMAIL",
+      "remote": true
+    }
+  ],
+  // SUPABASE_URL is non-secret. Secrets go in apps/lifecycle/.dev.vars locally
+  // and via `wrangler secret put` in prod:
+  //   echo <random 32+ chars>          | wrangler secret put LIFECYCLE_SECRET
+  //   echo <supabase service role key> | wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+  //   echo <better stack token>        | wrangler secret put BETTER_STACK_SOURCE_TOKEN
+  "vars": {
+    "SUPABASE_URL": "https://tnlbktwyrctrxmpoafwb.supabase.co",
+    "SHIPOS_ENV": "production",
+    "BETTER_STACK_LOGS_ENDPOINT": "https://s2578180.eu-fsn-3.betterstackdata.com"
+  }
+}

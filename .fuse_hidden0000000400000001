@@ -73,21 +73,6 @@
         "wrangler": "^4.107.0",
       },
     },
-    "apps/lifecycle": {
-      "name": "@shipos/lifecycle",
-      "version": "0.1.0",
-      "dependencies": {
-        "@shipos/observability": "workspace:*",
-        "@supabase/supabase-js": "^2.110.0",
-        "zod": "^4.4.3",
-      },
-      "devDependencies": {
-        "@cloudflare/workers-types": "^5.20260704.1",
-        "typescript": "^5.9.2",
-        "vitest": "^4.1.9",
-        "wrangler": "^4.107.0",
-      },
-    },
     "apps/mcp": {
       "name": "@shipos/mcp",
       "version": "0.1.1",
@@ -537,8 +522,6 @@
     "@shipos/edge": ["@shipos/edge@workspace:apps/edge"],
 
     "@shipos/ingest": ["@shipos/ingest@workspace:apps/ingest"],
-
-    "@shipos/lifecycle": ["@shipos/lifecycle@workspace:apps/lifecycle"],
 
     "@shipos/mcp": ["@shipos/mcp@workspace:apps/mcp"],
 
@@ -1417,8 +1400,6 @@
     "@shipos/edge/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "@shipos/ingest/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
-
-    "@shipos/lifecycle/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "@shipos/observability/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 

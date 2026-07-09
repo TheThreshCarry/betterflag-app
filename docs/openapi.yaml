@@ -684,6 +684,57 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "422": { $ref: "#/components/responses/ValidationError" }
 
+  /api/v1/orgs/{id}:
+    patch:
+      tags: [Orgs]
+      summary: Pick the org's plan tier pre-subscription (session only)
+      description: |
+        Onboarding's "pick your plan" step. Owner/admin only. Sets `orgs.plan`
+        to a paid tier while the org is still on its no-card trial
+        (`subscription_status` stays null; `trial_ends_at` governs access).
+        Rejected with 409 `subscription_exists` once a Polar subscription
+        exists — plan changes then go through checkout.
+      operationId: patchOrg
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [plan]
+              properties:
+                plan: { type: string, enum: [starter, launch, scale] }
+      responses:
+        "200":
+          description: Updated org.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [org]
+                properties:
+                  org: { $ref: "#/components/schemas/Org" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403":
+          description: Caller is a plain member.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: A Polar subscription already exists.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1041,7 +1092,7 @@ components:
 
     Org:
       type: object
-      required: [id, name, plan, trialEndsAt, createdAt, role]
+      required: [id, name, plan, trialEndsAt, createdAt, role, restricted, billingState, billingMessage]
       properties:
         id: { type: string, format: uuid }
         name: { type: string }
@@ -1054,6 +1105,19 @@ components:
           type: string
           enum: [owner, admin, member]
           description: The caller's role in this org.
+        restricted:
+          type: boolean
+          description: True when billing has made the account read-only (flags still serve).
+        billingState:
+          type: string
+          enum: [trialing, active, grace, restricted, expired]
+          description: |
+            Effective billing lifecycle state. `expired` = no active plan
+            (trial over, never subscribed); the dashboard shell redirects to
+            the /billing wall.
+        billingMessage:
+          type: string
+          description: Human-readable billing status line for banners.
         members:
           type: array
           description: Present when requested with `?members=1`.

@@ -116,6 +116,11 @@ export interface ApiOrg {
   members?: ApiOrgMember[];
   /** True when billing has flipped the account read-only (flags still serve). */
   restricted: boolean;
+  /**
+   * Effective billing lifecycle state. `expired` = no active plan (trial over,
+   * no subscription) → the dashboard shell hard-redirects to /billing.
+   */
+  billingState: "trialing" | "active" | "grace" | "restricted" | "expired";
   /** Human-readable billing status line for banners. */
   billingMessage: string;
 }
@@ -127,6 +132,7 @@ export interface UsagePoint {
 
 export interface ApiUsage {
   plan: OrgPlan;
+  billingState: ApiOrg["billingState"];
   trialEndsAt: string;
   includedEvalsPerMonth: number;
   used: number;
@@ -270,6 +276,7 @@ export function toApiOrg(row: OrgRow, role: OrgRole, members?: ApiOrgMember[]): 
     createdAt: row.created_at,
     role,
     restricted: !decision.access.dashboardWrites,
+    billingState: decision.state,
     billingMessage: decision.message,
   };
   if (members) org.members = members;

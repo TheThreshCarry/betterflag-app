@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { isAllowedEmail } from "@/lib/allowlist";
 import { createServiceClient, createSessionClient } from "@/lib/supabase/server";
 
 export default async function Home() {
@@ -20,7 +21,8 @@ export default async function Home() {
     .limit(1);
 
   if (!data || data.length === 0) {
-    redirect("/onboarding");
+    // Private alpha: non-admitted users park on the waitlist screen.
+    redirect((await isAllowedEmail(user.email ?? null)) ? "/onboarding" : "/waitlist");
   }
 
   redirect("/flags");

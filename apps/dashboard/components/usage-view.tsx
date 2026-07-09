@@ -52,7 +52,9 @@ export function UsageView() {
           </p>
         </div>
         {usage ? (
-          <Chip color={usage.plan === "trial" ? "orange" : "green"}>{usage.plan} plan</Chip>
+          <Chip color={usage.billingState === "trialing" ? "orange" : "green"}>
+            {usage.plan} plan{usage.billingState === "trialing" ? " (trial)" : ""}
+          </Chip>
         ) : (
           <div className="h-7 w-20 animate-pulse rounded-full bg-line" />
         )}
@@ -83,7 +85,7 @@ function UsageContent({
 
   return (
     <>
-      {usage.plan === "trial" ? (
+      {usage.billingState === "trialing" ? (
         <div className="mb-6 flex items-center justify-between rounded-3xl border border-line bg-surface px-6 py-4">
           <div>
             <p className="text-[14px] font-medium">
@@ -93,11 +95,12 @@ function UsageContent({
               </span>
             </p>
             <p className="mt-0.5 text-[13px] text-ink-muted">
-              You have Launch-plan limits during the trial. Pick a plan to keep shipping.
+              After that the dashboard locks until you add payment — your flags keep serving
+              either way.
             </p>
           </div>
           <Link href="/settings">
-            <Button size="sm">Choose a plan</Button>
+            <Button size="sm">Add payment</Button>
           </Link>
         </div>
       ) : null}
