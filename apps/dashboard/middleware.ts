@@ -60,7 +60,8 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Everything except: /api/*, /auth/*, Next internals, and files with an
-  // extension (static assets).
-  matcher: ["/((?!api/|auth/|_next/|favicon\\.ico|.*\\.[a-zA-Z0-9]+$).*)"],
+  // Everything except: /api/*, /auth/*, /dock/* (PostHog proxy — must not
+  // be auth-redirected), Next internals, and files with an extension
+  // (static assets).
+  matcher: ["/((?!api/|auth/|dock/|_next/|favicon\\.ico|.*\\.[a-zA-Z0-9]+$).*)"],
 };
