@@ -646,7 +646,7 @@ function RulesEditor({
 
   return (
     <div className="rounded-2xl border border-line bg-white p-4">
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-3 flex items-start justify-between gap-4">
         <div>
           <p className="text-[14px] font-medium">Targeting rules</p>
           <p className="text-[12px] text-ink-muted">
@@ -656,6 +656,7 @@ function RulesEditor({
         <Button
           variant="secondary"
           size="sm"
+          className="shrink-0 whitespace-nowrap"
           onClick={() =>
             onChange([
               ...rules,

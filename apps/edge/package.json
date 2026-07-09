@@ -7,6 +7,7 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy --var SHIPOS_GIT_SHA:$(git rev-parse --short=7 HEAD 2>/dev/null || echo unknown)",
     "test": "vitest run",
+    "test:prod": "vitest run --config vitest.prod.config.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -16,6 +17,8 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260704.1",
+    "@types/node": "^26.1.1",
+    "dotenv": "^17.4.2",
     "typescript": "^5.9.2",
     "vitest": "^4.1.9",
     "wrangler": "^4.107.0"

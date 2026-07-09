@@ -44,14 +44,9 @@ export function AppShellLoading() {
             </div>
           </div>
 
-          {/* Environment chips placeholder. */}
+          {/* Environment dropdown placeholder (single quiet row). */}
           <div className="px-2 py-1 group-data-[collapsible=icon]:hidden">
-            <Skeleton className="mb-2 ml-2 h-2.5 w-16" />
-            <div className="flex gap-1 px-1">
-              <Skeleton className="h-6 w-12 rounded-md" />
-              <Skeleton className="h-6 w-16 rounded-md" />
-              <Skeleton className="h-6 w-12 rounded-md" />
-            </div>
+            <Skeleton className="h-7 w-full rounded-md" />
           </div>
         </SidebarHeader>
 
