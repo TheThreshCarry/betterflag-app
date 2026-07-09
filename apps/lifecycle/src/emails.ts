@@ -80,7 +80,7 @@ export function agenticEmail(): EmailContent {
         <li>Ask it to "create a flag and roll it out to 10%"</li>
       </ol>
       ${cta(`${APP_URL}/keys`, "Mint an agent key")}
-      <p style="margin:0 0 16px;">Agents don't buy seats — which is exactly why we don't sell seats.</p>
+      <p style="margin:0 0 16px;">ShipOS - Feature Flags made easy. Unlimited seats on every plan.</p>
       <p style="margin:0;">— Mehdi</p>`);
   const text = `The thing that makes ShipOS different: your coding agent can drive it.
 
@@ -92,7 +92,7 @@ Setup is one key and one config block:
 2. Add the MCP server to your agent's config
 3. Ask it to "create a flag and roll it out to 10%"
 
-Agents don't buy seats — which is exactly why we don't sell seats.
+ShipOS - Feature Flags made easy. Unlimited seats on every plan.
 
 — Mehdi${TEXT_FOOTER}`;
   return { subject, html, text };
