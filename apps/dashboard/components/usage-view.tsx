@@ -97,7 +97,7 @@ function UsageContent({
               </span>
             </p>
             <p className="mt-0.5 text-[13px] text-ink-muted">
-              After that the dashboard locks until you add payment — your flags keep serving
+              After that the dashboard locks until you add payment, but your flags keep serving
               either way.
             </p>
           </div>

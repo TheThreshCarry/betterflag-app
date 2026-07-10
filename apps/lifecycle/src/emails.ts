@@ -43,7 +43,7 @@ function cta(href: string, label: string): string {
 const TEXT_FOOTER =
   "\n\n---\nYou're getting this because you created a ShipOS account. This is a short 3-email onboarding series, then I'll leave your inbox alone. Reply any time, it lands in my actual inbox.";
 
-/** Day 0 — welcome, sent right after org creation. */
+/** Day 0 - welcome, sent right after org creation. */
 export function welcomeEmail(orgName: string): EmailContent {
   const subject = "Welcome to ShipOS: your first flag is 5 minutes away";
   const html = layout(`
@@ -67,7 +67,7 @@ Your 14-day trial is running: every feature, no card. If anything feels off, hit
   return { subject, html, text };
 }
 
-/** Day 3 — the agentic angle: MCP server, agent keys, audit trail. */
+/** Day 3 - the agentic angle: MCP server, agent keys, audit trail. */
 export function agenticEmail(): EmailContent {
   const subject = "Let your agent manage your flags (this is the good part)";
   const html = layout(`
@@ -98,7 +98,7 @@ ShipOS - Feature Flags made easy. Unlimited seats on every plan.
   return { subject, html, text };
 }
 
-/** Day 10 — trial ending; only sent when the org has no active subscription. */
+/** Day 10 - trial ending; only sent when the org has no active subscription. */
 export function trialEndingEmail(daysLeft: number): EmailContent {
   const days = Math.max(daysLeft, 0);
   const when = days === 0 ? "today" : days === 1 ? "tomorrow" : `in ${days} days`;

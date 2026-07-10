@@ -138,7 +138,7 @@ export const PLAN_LIMITS: Record<
 };
 
 /**
- * Analytics retention per plan, in days — how long evaluation-level analytics
+ * Analytics retention per plan, in days: how long evaluation-level analytics
  * data is kept in total before deletion. The first 7 days are always hot in
  * ClickHouse (raw-table TTL); after that, days live as gzipped NDJSON in R2
  * until this window expires (ingest worker cron). Retention is a plan

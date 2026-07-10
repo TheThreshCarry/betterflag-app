@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   transpilePackages: ["@shipos/core", "@shipos/db"],
   typedRoutes: false,
   // PostHog reverse proxy (EU cloud): first-party path so analytics survive
-  // ad-blockers. Deliberately NOT "/ingest" — that's PostHog's documented
+  // ad-blockers. Deliberately NOT "/ingest", which is PostHog's documented
   // default and is matched by ad-blocker filter lists. Same prefix as
   // shipos-landing; keep it bland (no analytics/telemetry/track/ingest).
   async rewrites() {

@@ -99,7 +99,7 @@ describe.skipIf(SDK_KEY === undefined)(
       const smoke = await evaluateOnce("bench-smoke");
       expect(
         smoke.status,
-        `edge returned ${smoke.status}: ${JSON.stringify(smoke.body)} — a 401 ` +
+        `edge returned ${smoke.status}: ${JSON.stringify(smoke.body)}. A 401 ` +
           `usually means the key's KV entry was never provisioned (the ` +
           `dashboard only writes to Cloudflare KV when CF_ACCOUNT_ID / ` +
           `CF_API_TOKEN / CF_KV_NAMESPACE_ID are set in its environment).`,
@@ -134,7 +134,7 @@ describe.skipIf(SDK_KEY === undefined)(
 
       const fmt = (n: number) => `${n.toFixed(1)}ms`;
       console.log("");
-      console.log(`edge evaluate latency — ${EDGE_URL}`);
+      console.log(`edge evaluate latency: ${EDGE_URL}`);
       console.log(
         `  target: ${FLAG_KEY ?? "(all flags)"} · samples: ${SAMPLES} · config v${smoke.body.version}`,
       );

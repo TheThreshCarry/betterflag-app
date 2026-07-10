@@ -23,11 +23,11 @@ remote server and click **Connect**. The flow:
    screen (`app.shipos.app/mcp/consent`), where you sign in and **pick which
    organization** the connection may access.
 3. Approving mints a dedicated agent key for the connection
-   (`source: oauth` — visible on the Keys page, exempt from the plan
+   (`source: oauth`, visible on the Keys page and exempt from the plan
    agent-key limit). The key rides encrypted inside the OAuth grant; the
    client only ever sees opaque access/refresh tokens.
 
-Disconnect any time by revoking that key on the Keys page — tokens keep
+Disconnect any time by revoking that key on the Keys page: tokens keep
 working until expiry at most an hour, and every wrapped REST call
 re-verifies the key, so revocation cuts access immediately.
 

@@ -311,7 +311,7 @@ function PlanStep({
       )}
 
       <p className="mt-4 text-[12px] text-ink-muted">
-        You won&apos;t pay anything today. When the trial ends, you add payment from Settings —
+        You won&apos;t pay anything today. When the trial ends, you add payment from Settings,
         and your flags keep serving either way. You can switch tiers any time.
       </p>
       <ErrorNote message={error} />

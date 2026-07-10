@@ -4,12 +4,12 @@
  * Raw evaluation rows are HOT in ClickHouse for 7 days (table TTL). A daily
  * cron in this worker:
  *
- *   1. EXPORT — copies the finished day that is about to age out of hot
+ *   1. EXPORT: copies the finished day that is about to age out of hot
  *      storage (today − 6, fully complete, exported one day before the TTL
  *      fires) to R2 as `analytics/{org_id}/{yyyy-mm-dd}.ndjson.gz`, one
  *      object per org per day. Idempotent: existing objects are skipped, so
  *      redelivered/overlapping cron runs are safe.
- *   2. SWEEP — deletes R2 objects older than the org's plan retention
+ *   2. SWEEP: deletes R2 objects older than the org's plan retention
  *      (ANALYTICS_RETENTION_DAYS from @shipos/db; plans, not per-org knobs).
  *
  * Aggregate MVs (billing meter, chart series) never leave ClickHouse; this
