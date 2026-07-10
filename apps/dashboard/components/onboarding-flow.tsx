@@ -5,7 +5,7 @@
  * 5 minutes" checklist. Time-to-first-flag is THE activation metric: the
  * clock starts at org creation and stops when the first flag exists.
  *
- * The plan step starts the 14-day trial on the chosen tier — no card, no
+ * The plan step starts the 14-day trial on the chosen tier: no card, no
  * checkout (settled positioning). Payment happens from Settings, either
  * immediately or when the trial-expiry billing wall appears.
  */
@@ -263,7 +263,7 @@ function PlanStep({
       <h1 className="text-[32px] font-semibold tracking-[-0.02em]">Pick your plan.</h1>
       <p className="mt-2 text-[15px] text-ink-muted">
         Every plan starts with a <strong className="text-ink">14-day free trial, no card</strong>.
-        Unlimited flags, seats and environments on all of them — the only meter is evaluations.
+        Unlimited flags, seats and environments on all of them; the only meter is evaluations.
       </p>
 
       {!tiers ? (

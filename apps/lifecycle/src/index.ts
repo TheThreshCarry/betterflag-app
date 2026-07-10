@@ -1,5 +1,5 @@
 /**
- * ShipOS lifecycle worker — the welcome email sequence, built on Cloudflare
+ * ShipOS lifecycle worker: the welcome email sequence, built on Cloudflare
  * Workflows + Cloudflare Email Service (native `send_email` binding).
  *
  * One workflow instance per org (id `welcome-{orgId}`, so re-triggering is
@@ -82,14 +82,14 @@ export class WelcomeSequence extends WorkflowEntrypoint<LifecycleEnv, WelcomePar
     // Re-validate: params crossed a serialization boundary.
     const params = welcomeParamsSchema.parse(event.payload);
 
-    // Day 0 — welcome.
+    // Day 0 - welcome.
     await step.do("send welcome email", async () => {
       return await send(this.env.EMAIL, params.email, welcomeEmail(params.orgName));
     });
 
     await step.sleep("wait until day 3", "3 days");
 
-    // Day 3 — agentic setup, only if the org still exists.
+    // Day 3 - agentic setup, only if the org still exists.
     const day3 = await step.do("read org state (day 3)", async () => {
       return await readOrgState(this.env, params.orgId);
     });
@@ -100,7 +100,7 @@ export class WelcomeSequence extends WorkflowEntrypoint<LifecycleEnv, WelcomePar
 
     await step.sleep("wait until day 10", "7 days");
 
-    // Day 10 — trial ending, skipped for subscribed (or deleted) orgs.
+    // Day 10 - trial ending, skipped for subscribed (or deleted) orgs.
     const day10 = await step.do("read org state (day 10)", async () => {
       return await readOrgState(this.env, params.orgId);
     });
@@ -170,7 +170,7 @@ const handler = {
         });
         return json(201, { started: true, instanceId: instance.id });
       } catch (error) {
-        // A duplicate id means the sequence already ran/is running — fine.
+        // A duplicate id means the sequence already ran/is running, which is fine.
         const message = error instanceof Error ? error.message : String(error);
         if (/already exists|instance.*exists/i.test(message)) {
           obs.logger.info("welcome sequence already exists", { org_id: parsed.data.orgId });

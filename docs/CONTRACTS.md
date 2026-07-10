@@ -84,8 +84,8 @@ config-sync for the affected (project, env).
   Country fallback: when `context.attributes.country` is absent, the edge
   injects Cloudflare's `request.cf.country` (uppercased; never when
   "unknown") before rule matching, so `country` targeting works without the
-  SDK sending it. Explicit context always wins — note the caller's location
-  is the *caller's*, so server-side SDKs targeting the end user's country
+  SDK sending it. Explicit context always wins. Note that the caller's
+  location is the *caller's*, so server-side SDKs targeting the end user's country
   should keep passing it. `/v1/snapshot` (local evaluation) has no fallback:
   SDKs evaluating from a snapshot must supply `country` themselves.
 - `GET /v1/snapshot`, same auth; `ETag: "v{version}"`, honors `If-None-Match` → 304.
@@ -102,7 +102,7 @@ config-sync for the affected (project, env).
   (`ANALYTICS_HOT_DAYS` in `@shipos/db`; table TTL in
   apps/ingest/clickhouse/schema.sql). Aggregate MVs (`evals_per_org_day`
   billing meter, `evals_per_flag_hour`, `evals_per_flag_country_hour`) keep
-  13 months regardless — retention governs raw event data only.
+  13 months regardless; retention governs raw event data only.
 - **Cold**: a daily cron in the ingest worker (03:10 UTC) exports the day
   aging out of the hot window to R2 (binding `ANALYTICS_R2`, bucket
   `shipos-analytics-cold`) as `analytics/{org_id}/{yyyy-mm-dd}.ndjson.gz`,
@@ -125,7 +125,7 @@ mid-cycle (except Starter throttle at 3× included volume, Phase 5).
 Decided by `billingDecisionForOrg` (apps/dashboard/lib/billing-status.ts):
 
 - Org WITHOUT a synced Polar subscription: full access while
-  `trial_ends_at` is in the future (`trialing`), then **`expired`** — the
+  `trial_ends_at` is in the future (`trialing`), then **`expired`**: the
   dashboard shell hard-redirects to `/billing` (plan cards → Polar checkout)
   and write APIs return 402; **flags keep serving from the edge**.
 - Org WITH a synced status: the July-2026 lifecycle policy (active,

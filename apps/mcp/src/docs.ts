@@ -5,7 +5,7 @@
  * session or guessing from training data.
  *
  * Content mirrors packages/sdk-js/README.md, packages/sdk-react/README.md
- * and apps/mcp/README.md — keep them in sync when the SDKs change.
+ * and apps/mcp/README.md; keep them in sync when the SDKs change.
  */
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
@@ -24,27 +24,27 @@ export type DocTopic = (typeof DOC_TOPICS)[number];
 
 const DOCS: Record<DocTopic, { title: string; body: string }> = {
   index: {
-    title: "ShipOS docs — available topics",
+    title: "ShipOS docs: available topics",
     body: `# ShipOS docs
 
 Call read_docs with one of these topics:
 
-- quickstart — ship your first flag in 5 minutes (key, install, evaluate)
-- sdk-js — @shiposapp/sdk for Node and the browser (API + config reference)
-- sdk-react — @shiposapp/react hooks, Next.js App Router patterns, SSR
-- mcp-setup — connect this MCP server (OAuth or agent key, .mcp.json)
-- targeting — targeting rule format and operators for set_targeting
-- concepts — environments, rollouts, kill switch, key types, audit log
+- quickstart: ship your first flag in 5 minutes (key, install, evaluate)
+- sdk-js: @shiposapp/sdk for Node and the browser (API + config reference)
+- sdk-react: @shiposapp/react hooks, Next.js App Router patterns, SSR
+- mcp-setup: connect this MCP server (OAuth or agent key, .mcp.json)
+- targeting: targeting rule format and operators for set_targeting
+- concepts: environments, rollouts, kill switch, key types, audit log
 
 Full web documentation: https://docs.shipos.app`,
   },
 
   quickstart: {
-    title: "Quickstart — first flag in 5 minutes",
+    title: "Quickstart: first flag in 5 minutes",
     body: `# ShipOS quickstart
 
 1. Grab an SDK key from the dashboard: Project → Environment → API keys.
-   SDK keys (sos_sdk_...) are publishable — they can only evaluate flags,
+   SDK keys (sos_sdk_...) are publishable: they can only evaluate flags,
    so they are safe to ship to browsers.
 
 2. Install and evaluate:
@@ -65,7 +65,7 @@ if (enabled) renderNewCheckout();
 No init ceremony, no waiting. \`flag()\` never throws: on any failure
 (network down, typo'd key, flag archived) you get your \`default\` back.
 
-3. Create and control the flag — either in the dashboard, or right here via
+3. Create and control the flag, either in the dashboard or right here via
    MCP tools: create_flag → toggle_flag → set_rollout. New flags start OFF
    at 0% in every environment; enable them once the code is deployed.
 
@@ -74,7 +74,7 @@ topic "sdk-js" or https://docs.shipos.app`,
   },
 
   "sdk-js": {
-    title: "@shiposapp/sdk — Node & browser SDK",
+    title: "@shiposapp/sdk: Node & browser SDK",
     body: `# @shiposapp/sdk
 
 Feature flags for Node and the browser. Zero dependencies. Never throws.
@@ -119,7 +119,7 @@ const shipos = createClient({
 });
 \`\`\`
 
-The background refresh timer is unref'd — the client never holds the
+The background refresh timer is unref'd, so the client never holds the
 process open; no close() needed before exit.
 
 ## Browser
@@ -140,7 +140,7 @@ shipos.on("update", async () => {
   (flag, userId, attributes) for refreshInterval (min 5s).
 - country is auto-detected at the edge from the caller's request when not
   passed, so browser-side country targeting needs no setup; explicit
-  country always wins (pass it on servers — detection would see the
+  country always wins (pass it on servers, since detection would see the
   server's location).
 - Background polling: GET /v1/snapshot with If-None-Match; on config
   change the cache clears and 'update' fires.
@@ -149,7 +149,7 @@ shipos.on("update", async () => {
 
 ## API
 
-- flag(key, { userId?, attributes?, default }) → Promise<T> — value or default, never throws
+- flag(key, { userId?, attributes?, default }) → Promise<T>: value or default, never throws
 - flagDetail(key, opts?) → { value, reason, variation, ruleId?, bucket? }
 - allFlags(context?) → Record<string, JsonValue>
 - signIn(userId, metadata?) / signOut() / getUser()
@@ -158,20 +158,20 @@ shipos.on("update", async () => {
 
 ## Config options
 
-- key (required) — SDK key, sos_sdk_...
-- baseUrl — default https://edge.shipos.app
-- refreshInterval — poll cadence + cache TTL in ms, default 30000, 0 disables
-- defaults — offline fallbacks by flag key
-- fetch — custom fetch (tests, proxies)
-- onError — observes every swallowed error`,
+- key (required): SDK key, sos_sdk_...
+- baseUrl: default https://edge.shipos.app
+- refreshInterval: poll cadence + cache TTL in ms, default 30000, 0 disables
+- defaults: offline fallbacks by flag key
+- fetch: custom fetch (tests, proxies)
+- onError: observes every swallowed error`,
   },
 
   "sdk-react": {
-    title: "@shiposapp/react — hooks & Next.js",
+    title: "@shiposapp/react: hooks & Next.js",
     body: `# @shiposapp/react
 
 React hooks for ShipOS flags. SSR-safe (useSyncExternalStore), live-updating,
-built on @shiposapp/sdk. Hooks never throw — they fall back to your defaults.
+built on @shiposapp/sdk. Hooks never throw; they fall back to your defaults.
 
 \`\`\`bash
 npm i @shiposapp/react
@@ -245,11 +245,11 @@ real values, still hydration-safe.
 
 ## Exports
 
-- ShipOSProvider — { client } or { clientKey, baseUrl?, defaults?, refreshInterval? } plus user?, bootstrap?
+- ShipOSProvider: { client } or { clientKey, baseUrl?, defaults?, refreshInterval? } plus user?, bootstrap?
 - useFlag(key, defaultValue, overrides?) → value
 - useFlagDetail(key, defaultValue, overrides?) → { value, reason, loading }
 - useShipOS() → underlying client
-- createFlagStore — advanced/testing`,
+- createFlagStore: advanced/testing`,
   },
 
   "mcp-setup": {
@@ -290,7 +290,7 @@ claude mcp add --transport http shipos https://mcp.shipos.app/mcp \\
   --header "Authorization: Bearer sos_agt_..."
 \`\`\`
 
-Admin keys (sos_adm_*) also work. SDK keys (sos_sdk_*) do NOT — those are
+Admin keys (sos_adm_*) also work. SDK keys (sos_sdk_*) do NOT: those are
 publishable evaluation credentials for the edge, not management keys.
 
 ## Notes
@@ -303,7 +303,7 @@ publishable evaluation credentials for the edge, not management keys.
   },
 
   targeting: {
-    title: "Targeting rules — format & operators",
+    title: "Targeting rules: format & operators",
     body: `# Targeting rules (set_targeting)
 
 Rules are evaluated in order, FIRST MATCH WINS. Conditions inside a rule
@@ -335,10 +335,10 @@ rollout.
 - country: auto-detected at the edge from the caller's request (uppercase
   ISO 3166-1 alpha-2, e.g. "FR") when the SDK does not pass one, so
   browser-side country targeting needs no setup. An explicit country
-  always wins — server-side SDKs should pass the end user's country
+  always wins; server-side SDKs should pass the end user's country
   themselves, since the detected value would be the server's location.
-- serve: "on" | "off" — what matching users get
-- rolloutPct: optional 0–100 — serve applies to only that share of
+- serve: "on" | "off" - what matching users get
+- rolloutPct: optional 0–100; serve applies to only that share of
   matching users (stable bucketing)
 - Max 64 rules per flag/environment.
 
@@ -368,7 +368,7 @@ semver_eq, semver_gt, semver_lt
   },
 
   concepts: {
-    title: "Core concepts — envs, rollouts, keys, kill switch",
+    title: "Core concepts: envs, rollouts, keys, kill switch",
     body: `# ShipOS core concepts
 
 ## Environments
@@ -382,7 +382,7 @@ values. promote_config copies a full config between environments
 
 set_rollout sets the share of users that get the ON variation. Bucketing
 is stable: users hash to fixed buckets, so raising the percentage only
-adds users — nobody who already has the flag loses it. New flags start
+adds users, nobody who already has the flag loses it. New flags start
 OFF at 0% everywhere.
 
 ## Kill switch
@@ -394,17 +394,17 @@ clearKill) before re-enabling.
 
 ## Key types
 
-- sos_sdk_* — SDK keys: publishable, evaluation-only, safe in browsers.
+- sos_sdk_* - SDK keys: publishable, evaluation-only, safe in browsers.
   Used by @shiposapp/sdk against edge.shipos.app.
-- sos_agt_* — agent keys: management access for MCP/REST, scoped and
+- sos_agt_* - agent keys: management access for MCP/REST, scoped and
   audited by key prefix. What agents should use.
-- sos_adm_* — admin keys: management access for humans/CI.
+- sos_adm_* - admin keys: management access for humans/CI.
 SDK keys are rejected on the control plane; agent/admin keys are rejected
 on the edge evaluation path.
 
 ## Audit log
 
-Every mutation is logged: humans by email, agents by key prefix — what
+Every mutation is logged (humans by email, agents by key prefix): what
 action, which flag/env, when. get_audit_log reads it (filter by
 actorType: user|agent).
 

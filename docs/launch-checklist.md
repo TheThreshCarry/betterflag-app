@@ -1,4 +1,4 @@
-# ShipOS Alpha Launch — Master Checklist
+# ShipOS Alpha Launch - Master Checklist
 
 Target: **Thursday, July 23, 2026, 12:01 AM PT** (T-0). Today = T-14.
 Companion docs: `product-hunt-alpha-launch.md` (assets & copy),
@@ -11,7 +11,7 @@ Rule of thumb: everything in "Product & Dev" and "Billing" must be done by
 
 ## 1. Product & Dev (deadline T-7)
 
-**Critical path — a trial user must be able to: sign up → create project →
+**Critical path: a trial user must be able to sign up → create project →
 create flag → evaluate from SDK → connect MCP → upgrade to paid.**
 
 - [ ] **Full trial walkthrough on a fresh account** (not your dev account):
@@ -20,27 +20,27 @@ create flag → evaluate from SDK → connect MCP → upgrade to paid.**
 - [ ] Kill switch drill: `kill_flag` from Claude Code propagates to edge
       globally; measure and record the actual latency (you'll quote it).
 - [ ] Plan limits enforced: evaluations metering, overage behavior, project
-      caps, agent-key caps per tier — test at the limit, not just under it.
+      caps, agent-key caps per tier; test at the limit, not just under it.
 - [ ] Trial expiry path: what happens on day 15 without a card? (Grace
       state, not data loss.)
 - [ ] **Deploy pending work from this week:**
   - [ ] shipos-landing: PostHog `/dock` proxy + instrumentation fix (ITR-55)
-  - [ ] shipos-app dashboard: PostHog wiring — `bun install`, env var, deploy (ITR-57)
+  - [ ] shipos-app dashboard: PostHog wiring - `bun install`, env var, deploy (ITR-57)
   - [ ] shipos-docs: OG image (ITR-56)
 - [ ] SDKs published to npm (`@shipos/sdk-js`, `@shipos/sdk-react`) with
       correct READMEs; `npm install` from a clean machine works.
 - [ ] Error tracking on all surfaces (dashboard, edge, ingest, mcp,
-      webhooks workers) — you want stack traces at 12:05 AM, not logs.
+      webhooks workers); you want stack traces at 12:05 AM, not logs.
 - [ ] Rate limiting on auth, waitlist, and newsletter endpoints (HN will
       fuzz them for sport).
 - [ ] Load test landing + edge evaluate endpoint (see the PH checklist blog
-      post you already wrote — follow your own advice: `hey -z 30s -c 200`).
+      post you already wrote; follow your own advice: `hey -z 30s -c 200`).
 - [ ] Feature-freeze at T-7. After that, only bug fixes. Ship day is not
       refactor day.
 
 ## 2. Infra & Ops (deadline T-5)
 
-- [ ] **Status page live** (Better Stack — already connected): monitors on
+- [ ] **Status page live** (Better Stack, already connected): monitors on
       app.shipos.app, edge, mcp.shipos.app, docs; status.shipos.app CNAME.
 - [ ] Uptime alerts → phone/Slack, not email. On-call = you; write down the
       escalation ritual anyway (what you check first, in order).
@@ -50,12 +50,12 @@ create flag → evaluate from SDK → connect MCP → upgrade to paid.**
       enabled and a restore actually tested once.
 - [ ] DNS + TLS on all subdomains (www, app, edge, mcp, docs, status, t).
 - [ ] Domain email deliverability: SPF/DKIM/DMARC for shipos.app (lifecycle
-      emails + waitlist blast will tank without it) — test with
+      emails + waitlist blast will tank without it); test with
       mail-tester.com.
 - [ ] Secrets audit: no keys in repos, prod env vars documented, personal
       tokens rotated out of CI.
 - [ ] Rollback plan written: how to revert a bad dashboard deploy and a bad
-      worker deploy in <5 min (and — yes — your own kill switches on any
+      worker deploy in <5 min (and, yes, your own kill switches on any
       risky launch-adjacent features).
 
 ## 3. Analytics & Funnel (deadline T-5)
@@ -63,12 +63,12 @@ create flag → evaluate from SDK → connect MCP → upgrade to paid.**
 - [ ] PostHog events verified end-to-end AFTER the /dock deploys: pageview →
       waitlist/trial signup → activation (first flag) → MCP connected →
       upgrade. One funnel insight + one dashboard; don't overbuild.
-- [ ] UTM discipline: `?ref=producthunt`, `?ref=hn`, `?ref=x` — confirm
+- [ ] UTM discipline: `?ref=producthunt`, `?ref=hn`, `?ref=x`; confirm
       PostHog captures ref/UTM on first touch.
 - [ ] Server-side capture for the conversion events (signup, upgrade) so ad
       blockers can't blind you on the numbers that matter.
 - [ ] Uptime/latency numbers you'll quote publicly (<50ms) re-measured and
-      screenshotted — someone on HN will check.
+      screenshotted; someone on HN will check.
 
 ## 4. Billing & Business (deadline T-7)
 
@@ -79,7 +79,7 @@ create flag → evaluate from SDK → connect MCP → upgrade to paid.**
 - [ ] Test the full money path with a real card: trial → upgrade → invoice
       → refund. Check the invoice says the right legal entity.
 - [ ] Tax handling confirmed (Polar as merchant of record covers VAT/sales
-      tax — verify your account is configured for EU + US).
+      tax; verify your account is configured for EU + US).
 - [ ] Refund policy page (`/refund` exists) matches what Polar actually
       does; terms + privacy reviewed once with fresh eyes (Supabase,
       Cloudflare, PostHog EU, Polar as subprocessors).
@@ -92,7 +92,7 @@ create flag → evaluate from SDK → connect MCP → upgrade to paid.**
 ## 5. Marketing & Content (T-7 → T-1)
 
 - [ ] **Remove/replace placeholder "Trusted by founders at" logos**
-      (`SocialProofFlags.tsx:18`) — known blocker, do it first.
+      (`SocialProofFlags.tsx:18`) - known blocker, do it first.
 - [ ] Generate images for the 5 blog drafts (prompts in each folder),
       publish `launchdarkly-alternatives-2026` + `feature-flags-mcp` by
       T-3 so they're indexed before launch traffic.
@@ -102,21 +102,21 @@ create flag → evaluate from SDK → connect MCP → upgrade to paid.**
 - [ ] PH listing assets built from `product-hunt-alpha-launch.md`: pick
       tagline, thumbnail GIF, 6 statics with copy overlays (≤3MB each).
 - [ ] Waitlist email wave 1 (T-7): "we launch on the 23rd, here's your 50%
-      code" — through the lifecycle/React Email stack, no em dashes.
+      code", sent through the lifecycle/React Email stack, no em dashes.
 - [ ] Waitlist email wave 2 (T-0 morning): "we're live on PH" + direct link.
 - [ ] X thread + Show HN drafted (kit has them); schedule the X thread,
       post Show HN manually ~8-9 AM ET.
 - [ ] Line up 10-15 people who'll genuinely engage on PH launch morning
-      (comments > upvotes; never ask for upvotes explicitly — PH penalizes).
-- [ ] MCP registry submissions prepped (submit T+1, not launch day — let
-      the listing link to a live PH page).
+      (comments > upvotes; never ask for upvotes explicitly, PH penalizes it).
+- [ ] MCP registry submissions prepped (submit T+1, not launch day, so
+      the listing can link to a live PH page).
 
 ## 6. Docs & Onboarding (deadline T-3)
 
 - [ ] docs.shipos.app covers: 5-min quickstart, JS + React SDK, MCP setup
       (OAuth + agent key), targeting/rollouts, kill switch, pricing/limits
       FAQ. Every code sample copy-paste tested.
-- [ ] `llms.txt` current (it exists — verify content matches the pivot).
+- [ ] `llms.txt` current (it exists; verify content matches the pivot).
 - [ ] Dashboard empty states point somewhere useful (no dead ends for a
       brand-new account).
 - [ ] Onboarding email sequence (lifecycle app) reviewed: day 0 welcome,
@@ -126,7 +126,7 @@ create flag → evaluate from SDK → connect MCP → upgrade to paid.**
 
 - [ ] 12:01 AM PT: listing live; maker comment posted immediately.
 - [ ] Verify site, signup, and checkout while traffic ramps (fresh browser,
-      ad blocker ON — you know why).
+      ad blocker ON, you know why).
 - [ ] Morning: waitlist wave 2, X thread, Show HN (~8-9 AM ET).
 - [ ] Reply to every PH comment + HN thread all day; the autonomy/approval
       question in the maker comment is your discussion engine.
@@ -140,7 +140,7 @@ create flag → evaluate from SDK → connect MCP → upgrade to paid.**
 - [ ] T+1: MCP registry submissions; thank-you note to engaged commenters.
 - [ ] T+2: personal email to every trial signup (founder voice, one
       question: "what were you hoping this would do?").
-- [ ] T+3: launch retro blog post (numbers, honest) — feeds the content
+- [ ] T+3: launch retro blog post (numbers, honest); it feeds the content
       flywheel either way.
 - [ ] T+7: funnel review vs. plan (trial starts, activation %, trial→paid
       trajectory, CAC by ref) and decide the next two weekly posts.
@@ -151,8 +151,8 @@ create flag → evaluate from SDK → connect MCP → upgrade to paid.**
 
 ## Known open items feeding this list (from Linear)
 
-- ITR-55 — landing PostHog /dock fix: **needs deploy**
-- ITR-56 — docs OG image: **needs deploy**
-- ITR-57 — dashboard PostHog: **needs bun install + env + deploy**
-- ITR-58 — 5 blog drafts: **need images + publish**
-- ITR-59 — PH kit: **needs assets built from prompts + demo clip**
+- ITR-55 - landing PostHog /dock fix: **needs deploy**
+- ITR-56 - docs OG image: **needs deploy**
+- ITR-57 - dashboard PostHog: **needs bun install + env + deploy**
+- ITR-58 - 5 blog drafts: **need images + publish**
+- ITR-59 - PH kit: **needs assets built from prompts + demo clip**

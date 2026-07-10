@@ -75,8 +75,8 @@ paths:
       summary: Create a project (dev/staging/prod environments included)
       description: |
         Runs the `create_project_with_envs` RPC (project + three
-        environments + audit, atomically). Enforces `PLAN_LIMITS.projects`
-       , exceeding it returns 403 with code `plan_limit`.
+        environments + audit, atomically). Enforces `PLAN_LIMITS.projects`;
+        exceeding it returns 403 with code `plan_limit`.
       operationId: createProject
       requestBody:
         required: true
@@ -693,7 +693,7 @@ paths:
         to a paid tier while the org is still on its no-card trial
         (`subscription_status` stays null; `trial_ends_at` governs access).
         Rejected with 409 `subscription_exists` once a Polar subscription
-        exists — plan changes then go through checkout.
+        exists; plan changes then go through checkout.
       operationId: patchOrg
       security:
         - cookieAuth: []

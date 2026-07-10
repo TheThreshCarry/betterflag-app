@@ -70,7 +70,7 @@ export async function readOrgState(env: SupabaseEnv, orgId: string): Promise<Org
   };
 }
 
-/** A live subscription means upsell emails are noise — skip them. */
+/** A live subscription means upsell emails are noise, so skip them. */
 export function hasActiveSubscription(state: OrgEmailState): boolean {
   return state.subscriptionStatus === "active" || state.subscriptionStatus === "trialing";
 }

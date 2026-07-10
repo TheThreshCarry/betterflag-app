@@ -1,5 +1,5 @@
 /**
- * PATCH /api/v1/orgs/:id — session-only org updates. Today that is exactly
+ * PATCH /api/v1/orgs/:id: session-only org updates. Today that is exactly
  * one thing: picking the plan tier during onboarding (or from settings)
  * BEFORE any Polar subscription exists. The org keeps its trial state
  * (subscription_status stays null, trial_ends_at governs access); the chosen

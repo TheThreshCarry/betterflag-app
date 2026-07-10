@@ -1,5 +1,5 @@
 /**
- * GET /api/v1/analytics — org-wide evaluation analytics from ClickHouse
+ * GET /api/v1/analytics: org-wide evaluation analytics from ClickHouse
  * (evals_per_flag_country_hour): totals, time series, country and flag and
  * environment breakdowns for a period. Optional projectId/env filters.
  *

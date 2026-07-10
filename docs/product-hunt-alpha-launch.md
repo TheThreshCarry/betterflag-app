@@ -1,9 +1,9 @@
-# ShipOS — Product Hunt Alpha Launch Kit
+# ShipOS Product Hunt Alpha Launch Kit
 
 Positioning note for this launch: **lead with agentic-first** (agents create
 flags, stage rollouts, pull kill switches over MCP), supported by edge speed
 and 5-minute setup. Simple one-meter pricing is the closer, and "unlimited
-seats" appears exactly once (pricing slide) — it's a supporting detail here,
+seats" appears exactly once (pricing slide); it's a supporting detail here,
 not the headline USP.
 
 PH format constraints: tagline ≤60 chars, description ≤500 chars, gallery
@@ -17,9 +17,9 @@ images 1270×760, thumbnail 240×240, all assets <3MB.
 
 **Tagline (pick one, all ≤60):**
 
-1. `Feature flags your coding agents can ship with` — 47 chars *(recommended)*
-2. `Ship, roll out, kill features straight from your agent` — 55 chars
-3. `The feature flag platform built for the agent era` — 50 chars
+1. `Feature flags your coding agents can ship with` - 47 chars *(recommended)*
+2. `Ship, roll out, kill features straight from your agent` - 55 chars
+3. `The feature flag platform built for the agent era` - 50 chars
 
 **Topics:** Developer Tools · Artificial Intelligence · SaaS · Tech
 
@@ -27,7 +27,7 @@ images 1270×760, thumbnail 240×240, all assets <3MB.
 
 > ShipOS is a feature flag platform where the MCP server and REST API are the
 > primary interface. Claude Code or Cursor can create flags, stage percentage
-> rollouts, target beta users, and pull kill switches — with agent-scoped
+> rollouts, target beta users, and pull kill switches, with agent-scoped
 > keys, an agent-attributed audit trail, and approval guardrails for prod.
 > Flags evaluate from Cloudflare's edge in under 50ms. One simple meter, from
 > $9.99/mo. Private alpha: 50% off for life.
@@ -41,7 +41,7 @@ images 1270×760, thumbnail 240×240, all assets <3MB.
 > Hey Product Hunt 👋
 >
 > I'm Mehdi, and I built ShipOS because of a moment that kept repeating: my
-> coding agent would finish a feature in minutes — code written, PR open —
+> coding agent would finish a feature in minutes (code written, PR open)
 > and then everything stopped so a human (me) could log into a flag
 > dashboard and do data entry. Create the flag the agent already named. Wire
 > up three environments. Click the rollout slider. The agent did the
@@ -57,32 +57,32 @@ images 1270×760, thumbnail 240×240, all assets <3MB.
 > autonomously.
 >
 > Under the hood, flags are served from Cloudflare's edge in under 50ms
-> globally, and setup is genuinely five minutes — SDKs for JS, React, and
-> Node.
+> globally, and setup is genuinely five minutes, with SDKs for JS, React,
+> and Node.
 >
 > Pricing is deliberately boring: one meter (flag evaluations), public
 > prices, from $9.99/mo, no "Contact sales". That's the whole model.
 >
 > Today we're opening the **private alpha**. Everyone who joins from this
-> launch locks in **50% off, for life** — and gets a direct line to me while
+> launch locks in **50% off, for life**, and gets a direct line to me while
 > we shape the roadmap.
 >
 > I'd love the community's take on one question in particular: where should
 > the line between agent autonomy and human approval sit by default? I have
 > opinions, but I'd rather hear yours.
 >
-> Ask me anything — I'll be here all day. 🚢
+> Ask me anything. I'll be here all day. 🚢
 
 ---
 
 ## 3. Thumbnail (240×240)
 
-**Option A — animated GIF (recommended):** the ShipOS logo mark on the dark
+**Option A - animated GIF (recommended):** the ShipOS logo mark on the dark
 `#222222` rounded tile; a minimal toggle switch below it flips from off to
 on, the knob turning orange `#FF5A1A` on flip; loops every ~2s. Build in
-Figma/After Effects from the real logo — don't AI-generate the logo.
+Figma/After Effects from the real logo. Don't AI-generate the logo.
 
-**Option B — static prompt:**
+**Option B - static prompt:**
 
 > Flat minimal vector icon, warm off-white background #F6F5F3: a single
 > rounded-square app tile in near-black #222222 containing a simple white
@@ -95,7 +95,7 @@ Figma/After Effects from the real logo — don't AI-generate the logo.
 ## 4. Gallery (1270×760, in order)
 
 Rule for all statics: illustration prompts generate the **background scene
-only — no text in the image**. Overlay headline/sub in Figma using the brand
+only, with no text in the image**. Overlay headline/sub in Figma using the brand
 type (Plus Jakarta Sans 600, negative tracking; mono for numbers), ink
 `#171717` on the warm canvas, orange reserved for one accent per slide.
 
@@ -106,13 +106,13 @@ illustration, warm off-white background #F6F5F3, near-black ink line work
 words anywhere, editorial tech aesthetic, wide 1270x760 composition with
 clear space in the upper third for a headline overlay.*
 
-### Slide 1 — the 30-second agent demo (video slot)
+### Slide 1 - the 30-second agent demo (video slot)
 
 Per the launch playbook this is the centerpiece: screen recording of Claude
 Code creating `checkout-v2`, enabling staging, staging a 10% prod rollout,
-then `kill_flag`. No static prompt — real product footage. Captions burned in.
+then `kill_flag`. No static prompt: real product footage. Captions burned in.
 
-### Slide 2 — hero claim
+### Slide 2 - hero claim
 
 - **Overlay:** `Feature flags your agents can ship with` / sub: `MCP + REST
   as the primary interface. The dashboard is for watching.`
@@ -121,7 +121,7 @@ then `kill_flag`. No static prompt — real product footage. Captions burned in.
   the right; one toggle orange and ON; a small calm human figure observes
   from a distance holding a coffee cup.
 
-### Slide 3 — the full loop, no dashboard
+### Slide 3 - the full loop, no dashboard
 
 - **Overlay:** `Create → stage → roll out → kill` / sub: `One session in
   Claude Code or Cursor. Zero tabs.`
@@ -131,7 +131,7 @@ then `kill_flag`. No static prompt — real product footage. Captions burned in.
   (3) the flag multiplied across a grid of tiny user dots with a pie-slice
   filled orange, (4) a large lever pulled down. Even rhythm, diagram-like.
 
-### Slide 4 — guardrails & audit
+### Slide 4 - guardrails & audit
 
 - **Overlay:** `Autonomy with a paper trail` / sub: `Agent-scoped keys,
   agent-attributed audit log, human approval where you want it.`
@@ -140,7 +140,7 @@ then `kill_flag`. No static prompt — real product footage. Captions burned in.
   and a human figure each pressing their own distinct stamp onto separate
   rows; one stamped row highlighted orange; a small shield glyph at top.
 
-### Slide 5 — edge speed
+### Slide 5 - edge speed
 
 - **Overlay:** `Evaluated at the edge in <50ms` / sub: `Served from
   Cloudflare's network, everywhere your users are.`
@@ -149,17 +149,17 @@ then `kill_flag`. No static prompt — real product footage. Captions burned in.
   straight spark line; exactly one dot enlarged with an orange pulse ring
   around it; a tiny stopwatch glyph floating upper right.
 
-### Slide 6 — pricing
+### Slide 6 - pricing
 
-- **Overlay:** `One meter. Public prices.` / sub: `From $9.99/mo — unlimited
+- **Overlay:** `One meter. Public prices.` / sub: `From $9.99/mo. Unlimited
   flags, environments, and seats. Pay for evaluations, not headcount.`
   *(the single seats mention of the launch)*
 - **Prompt:** One large clean utility meter with a simple dial, its needle
   resting in an orange-marked zone, mounted alone on a wall; beneath it a
-  single small price tag shape (blank); pointedly minimal — one object, lots
+  single small price tag shape (blank); pointedly minimal: one object, lots
   of negative space.
 
-### Slide 7 — alpha offer / CTA
+### Slide 7 - alpha offer / CTA
 
 - **Overlay:** `Private alpha, open today` / sub: `Founding users lock in
   50% off, for life.`
@@ -178,11 +178,11 @@ then `kill_flag`. No static prompt — real product footage. Captions burned in.
 >
 > It's a feature flag platform where your coding agent is a first-class
 > operator: Claude Code creates the flag, stages the rollout, and pulls the
-> kill switch — audited, scoped, reversible.
+> kill switch. Audited, scoped, reversible.
 >
 > 30-second demo below. Alpha users get 50% off for life. 👇
 
-**Show HN title:** `Show HN: ShipOS – feature flags managed by coding agents over MCP`
+**Show HN title:** `Show HN: ShipOS - feature flags managed by coding agents over MCP`
 
 **Show HN text (short, technical, no marketing tone):**
 

@@ -101,7 +101,7 @@ export function BillingWall({ userEmail }: { userEmail: string | null }) {
             {org ? <Chip color="orange">no active plan</Chip> : null}
           </div>
           <p className="mt-2 text-[15px] text-ink-muted">
-            Your flags are <strong className="text-ink">still serving from the edge</strong> —
+            Your flags are <strong className="text-ink">still serving from the edge</strong>;
             production is never held hostage over billing. But the dashboard and API are locked
             until you pick a plan{org ? <> for <strong className="text-ink">{org.name}</strong></> : null}.
           </p>
@@ -154,8 +154,8 @@ export function BillingWall({ userEmail }: { userEmail: string | null }) {
           )}
 
           <p className="mt-4 text-[12px] text-ink-muted">
-            You&apos;ll be taken to Polar to complete payment. Everything you built — flags,
-            targeting, keys, audit log — is exactly where you left it.
+            You&apos;ll be taken to Polar to complete payment. Everything you built (flags,
+            targeting, keys, audit log) is exactly where you left it.
           </p>
           <ErrorNote message={error} />
         </div>

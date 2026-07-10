@@ -1,4 +1,4 @@
-# ShipOS Waitlist Tweets — 20 drafts
+# ShipOS Waitlist Tweets - 20 drafts
 
 Goal: drive traffic to shipos.app and waitlist signups (50% off for life for alpha users).
 Split: 10 personal founder-voice / 10 ShipOS official.
@@ -6,7 +6,7 @@ All under 280 chars. No hashtags (technical Twitter culture), no em dashes.
 
 ---
 
-## Personal account — founder voice (10)
+## Personal account - founder voice (10)
 
 **1. The pivot story**
 I killed 3 of the 4 modules I was building. ShipOS is now feature flags, nothing else. One category, one villain: LaunchDarkly's pricing. Waitlist is open at shipos.app

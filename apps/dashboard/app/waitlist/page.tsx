@@ -48,7 +48,7 @@ export default async function WaitlistPage() {
           ShipOS is in private alpha and I&apos;m admitting people from the
           waitlist in waves. Your account{" "}
           <span className="font-medium text-ink">{user.email}</span> is created
-          and ready — as soon as you&apos;re admitted, you&apos;ll land straight
+          and ready. As soon as you&apos;re admitted, you&apos;ll land straight
           in onboarding the next time you sign in.
         </p>
         <p className="mt-3 text-[14px] leading-relaxed text-ink-muted">
