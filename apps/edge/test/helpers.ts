@@ -1,6 +1,6 @@
 import { sdkKeyKvKey, sha256Hex, snapshotKvKey } from "@shipos/core";
 import type { EvaluationEvent, ProjectSnapshot, SdkKeyKvEntry } from "@shipos/core";
-import type { ConfigKvLike, EventsQueueLike, WaitUntilLike } from "../src/index";
+import type { ConfigKvLike, EvalsDatasetLike, EventsQueueLike, WaitUntilLike } from "../src/index";
 
 /** A well-formed SDK key: sos_sdk_ + 40 lowercase hex chars. */
 export const SDK_KEY = `sos_sdk_${"a".repeat(40)}`;
@@ -92,6 +92,20 @@ export function fakeQueue(): FakeQueue {
     events: () => batches.flat().map((m) => m.body),
     async sendBatch(messages) {
       batches.push([...messages]);
+    },
+  };
+}
+
+export interface FakeDataset extends EvalsDatasetLike {
+  points: { indexes?: string[]; blobs?: string[]; doubles?: number[] }[];
+}
+
+export function fakeDataset(): FakeDataset {
+  const points: FakeDataset["points"] = [];
+  return {
+    points,
+    writeDataPoint(point) {
+      points.push(point);
     },
   };
 }
