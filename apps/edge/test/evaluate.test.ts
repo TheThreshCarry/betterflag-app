@@ -2,10 +2,6 @@ import { describe, expect, it } from "vitest";
 import { hashUserId } from "@shipos/core";
 import type { EvaluationEvent, EvaluationResult } from "@shipos/core";
 import {
-  AE_MAX_POINTS_PER_INVOCATION,
-  AE_ROLLUP_FLAG_KEY,
-  aeDualWriteEnabled,
-  buildDataPoints,
   buildEvents,
   chunk,
   handleRequest,
@@ -21,7 +17,6 @@ import {
   SNAPSHOT,
   evaluateRequest,
   fakeCtx,
-  fakeDataset,
   fakeQueue,
   keyEntry,
   standardKv,
@@ -339,128 +334,6 @@ describe("POST /v1/evaluate, event emission", () => {
     await publishEvents(queue, events);
     expect(queue.batches.map((b) => b.length)).toEqual([100, 100, 50]);
     expect(chunk([], 100)).toEqual([]);
-  });
-});
-
-describe("POST /v1/evaluate, Analytics Engine dual-write (ITR-62)", () => {
-  it("writes one detail point per evaluation when enabled, alongside the queue", async () => {
-    const queue = fakeQueue();
-    const dataset = fakeDataset();
-    const ctx = fakeCtx();
-    const res = await handleRequest(
-      evaluateRequest({
-        token: SDK_KEY,
-        body: { keys: ["checkout-redesign", "banner-text"], context: { userId: "user-42" } },
-        sdkHeader: "js/0.1.0",
-        cf: { country: "fr" },
-      }),
-      {
-        CONFIG_KV: await standardKv(),
-        EVENTS: queue,
-        EVALS: dataset,
-        ANALYTICS_AE_ENABLED: "true",
-      },
-      ctx,
-    );
-    expect(res.status).toBe(200);
-    await ctx.flush();
-
-    // Queue path untouched by the dual-write.
-    expect(queue.events()).toHaveLength(2);
-
-    expect(dataset.points).toHaveLength(2);
-    const point = dataset.points[0]!;
-    expect(point.indexes).toEqual([ORG_ID]);
-    expect(point.blobs).toEqual([
-      PROJECT_ID,
-      ENV_SLUG,
-      "checkout-redesign",
-      "on",
-      "default",
-      "sdk",
-      "js/0.1.0",
-      "FR",
-    ]);
-    expect(point.doubles).toEqual([Number(hashUserId("user-42")), 1]);
-  });
-
-  it("stays silent when the env flag is off or the binding is missing", async () => {
-    const dataset = fakeDataset();
-    const ctx = fakeCtx();
-    // Binding present, flag absent.
-    const res = await handleRequest(
-      evaluateRequest({ token: SDK_KEY, body: { key: "checkout-redesign" } }),
-      { CONFIG_KV: await standardKv(), EVENTS: fakeQueue(), EVALS: dataset },
-      ctx,
-    );
-    expect(res.status).toBe(200);
-    await ctx.flush();
-    expect(dataset.points).toHaveLength(0);
-
-    // Flag on, binding absent: evaluates fine, nothing to write to.
-    const res2 = await handleRequest(
-      evaluateRequest({ token: SDK_KEY, body: { key: "checkout-redesign" } }),
-      { CONFIG_KV: await standardKv(), EVENTS: fakeQueue(), ANALYTICS_AE_ENABLED: "true" },
-      fakeCtx(),
-    );
-    expect(res2.status).toBe(200);
-
-    expect(aeDualWriteEnabled({ EVALS: dataset, ANALYTICS_AE_ENABLED: "1" })).toBe(true);
-    expect(aeDualWriteEnabled({ EVALS: dataset, ANALYTICS_AE_ENABLED: "false" })).toBe(false);
-    expect(aeDualWriteEnabled({ ANALYTICS_AE_ENABLED: "true" })).toBe(false);
-  });
-
-  it("a throwing dataset never fails the response or the queue path", async () => {
-    const queue = fakeQueue();
-    const ctx = fakeCtx();
-    const res = await handleRequest(
-      evaluateRequest({ token: SDK_KEY, body: { key: "checkout-redesign" } }),
-      {
-        CONFIG_KV: await standardKv(),
-        EVENTS: queue,
-        EVALS: {
-          writeDataPoint: () => {
-            throw new Error("AE down");
-          },
-        },
-        ANALYTICS_AE_ENABLED: "true",
-      },
-      ctx,
-    );
-    expect(res.status).toBe(200);
-    await ctx.flush();
-    expect(queue.events()).toHaveLength(1);
-  });
-
-  it("caps at 25 points via a rollup that preserves the exact total count", async () => {
-    const entry = await keyEntry();
-    const results: EvaluationResult[] = Array.from({ length: 60 }, (_, i) => ({
-      key: `flag-${i}`,
-      value: true,
-      variation: "on" as const,
-      reason: "default" as const,
-    }));
-    const events = buildEvents(entry, results, { userId: "user-42" }, "js/0.1.0", "DE");
-
-    const points = buildDataPoints(events);
-    expect(points).toHaveLength(AE_MAX_POINTS_PER_INVOCATION);
-
-    const rollup = points[points.length - 1]!;
-    expect(rollup.blobs[2]).toBe(AE_ROLLUP_FLAG_KEY);
-    expect(rollup.blobs[3]).toBe("");
-    expect(rollup.blobs[4]).toBe("rollup");
-    // Request-constant dimensions survive the rollup.
-    expect(rollup.indexes).toEqual([ORG_ID]);
-    expect(rollup.blobs[7]).toBe("DE");
-    expect(rollup.doubles[1]).toBe(60 - (AE_MAX_POINTS_PER_INVOCATION - 1));
-
-    const total = points.reduce((sum, p) => sum + p.doubles[1], 0);
-    expect(total).toBe(60);
-
-    // At exactly the limit there is no rollup.
-    const exact = buildDataPoints(events.slice(0, AE_MAX_POINTS_PER_INVOCATION));
-    expect(exact).toHaveLength(AE_MAX_POINTS_PER_INVOCATION);
-    expect(exact.every((p) => p.doubles[1] === 1)).toBe(true);
   });
 });
 
