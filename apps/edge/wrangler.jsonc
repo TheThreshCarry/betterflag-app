@@ -26,6 +26,15 @@
       }
     ]
   },
+  // Workers Analytics Engine dual-write (ITR-62 Phase 1, shadow mode).
+  // ClickHouse via the EVENTS queue stays the source of truth until the
+  // parity check over the dual-write window passes (Phase 2).
+  "analytics_engine_datasets": [
+    {
+      "binding": "EVALS",
+      "dataset": "shipos_evaluations"
+    }
+  ],
   // Observability (Better Stack). Logs AND OTLP traces both go to the
   // "shipos-edge" source (same endpoint + token) for one-click log↔trace
   // correlation. The endpoint is non-secret; the ingest token is a SECRET:
@@ -33,7 +42,9 @@
   // For `wrangler dev` the token comes from apps/edge/.dev.vars (gitignored).
   "vars": {
     "SHIPOS_ENV": "production",
-    "BETTER_STACK_LOGS_ENDPOINT": "https://s2578178.eu-fsn-3.betterstackdata.com"
+    "BETTER_STACK_LOGS_ENDPOINT": "https://s2578178.eu-fsn-3.betterstackdata.com",
+    // Kill switch for the ITR-62 AE dual-write (flip to "false" + redeploy).
+    "ANALYTICS_AE_ENABLED": "true"
   }
   // Production route, enable once DNS for edge.shipos.app is on this zone:
   // "routes": [{ "pattern": "edge.shipos.app", "custom_domain": true }]
