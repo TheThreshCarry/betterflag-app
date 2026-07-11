@@ -31,9 +31,10 @@ Two planes, strictly separated:
   transaction) → a config-sync enqueue. Nothing bypasses audit.
 - **Data plane** (Cloudflare): the edge worker evaluates flags from a
   denormalized KV snapshot (`cfg:{projectId}:{env}`) and emits events to
-  Queues; the ingest worker lands them in ClickHouse. The hot path never
-  touches Postgres. Kill-switches write KV directly from the request path,
-  then reconcile through the queue.
+  Queues; the ingest worker lands them in ClickHouse. The same events are
+  dual-written to Workers Analytics Engine while the ITR-62 migration is in
+  shadow mode. The hot path never touches Postgres. Kill-switches write KV
+  directly from the request path, then reconcile through the queue.
 
 Cross-service interfaces (KV keys, queue messages, key format, REST surface)
 are pinned in [docs/CONTRACTS.md](docs/CONTRACTS.md). The REST API is specced

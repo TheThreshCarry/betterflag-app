@@ -2,8 +2,10 @@
  * ShipOS edge worker, flag evaluation at the edge (edge.shipos.app).
  *
  * Hot-path budget (p50 < 10 ms): one KV read for the SDK key, one KV read
- * for the snapshot, nothing else. Evaluation events are fire-and-forget via
- * `ctx.waitUntil` and must never block or fail the response.
+ * for the snapshot, nothing else. Evaluation events are fire-and-forget
+ * (Queues via `ctx.waitUntil`, plus an Analytics Engine dual-write while
+ * ANALYTICS_AE_ENABLED is set, see ITR-62) and must never block or fail
+ * the response.
  *
  * All evaluation logic lives in `@shipos/core`, this worker only does
  * routing, auth, and transport. See docs/CONTRACTS.md.
@@ -47,9 +49,30 @@ export interface EventsQueueLike {
   sendBatch(messages: Iterable<{ body: EvaluationEvent }>): Promise<void>;
 }
 
+/** The slice of an Analytics Engine dataset binding this worker uses. */
+export interface EvalsDatasetLike {
+  writeDataPoint(point: {
+    indexes?: string[];
+    blobs?: string[];
+    doubles?: number[];
+  }): void;
+}
+
 export interface EdgeEnv {
   CONFIG_KV: ConfigKvLike;
   EVENTS: EventsQueueLike;
+  /**
+   * Workers Analytics Engine dataset `shipos_evaluations` (ITR-62). Optional
+   * so unit tests can omit it and so the worker keeps serving if the binding
+   * is ever removed.
+   */
+  EVALS?: EvalsDatasetLike;
+  /**
+   * "true"/"1" turns on the Analytics Engine dual-write (ITR-62 Phase 1,
+   * shadow mode: ClickHouse via Queues stays the source of truth). Env var
+   * for now; dogfood via a ShipOS flag once selfhosting works.
+   */
+  ANALYTICS_AE_ENABLED?: string;
   // Observability config, all optional so unit tests can pass plain fakes and
   // so the worker degrades to console-only logging when unset. Tokens are set
   // via `wrangler secret put`; endpoints via wrangler `vars`.
@@ -273,6 +296,78 @@ export async function publishEvents(
 }
 
 // ---------------------------------------------------------------------------
+// Analytics Engine dual-write (ITR-62), one data point per evaluation
+// ---------------------------------------------------------------------------
+
+/** Platform limit: writeDataPoint calls per Worker invocation. */
+export const AE_MAX_POINTS_PER_INVOCATION = 25;
+
+/**
+ * Sentinel flag_key for the rollup point emitted when a request evaluates
+ * more flags than the writeDataPoint budget. Totals stay exact (billing);
+ * per-flag series lose detail for the flags folded into the rollup.
+ */
+export const AE_ROLLUP_FLAG_KEY = "__rollup";
+
+/**
+ * Dataset point layout (see docs/CONTRACTS.md "Analytics Engine dataset"):
+ * index1 = org_id (per-customer sampling fairness); blobs 1-8 = project_id,
+ * env, flag_key, variation, reason, actor_kind, sdk, country; double1 =
+ * user_hash (f64, lossy above 2^53, only used for approximate distincts),
+ * double2 = count (sum with `_sample_interval` weighting at query time).
+ */
+export interface EvalDataPoint {
+  indexes: [string];
+  blobs: [string, string, string, string, string, string, string, string];
+  doubles: [number, number];
+}
+
+function toDataPoint(event: EvaluationEvent, count: number): EvalDataPoint {
+  return {
+    indexes: [event.org_id],
+    blobs: [
+      event.project_id,
+      event.env,
+      event.flag_key,
+      event.variation,
+      event.reason,
+      event.actor_kind,
+      event.sdk,
+      event.country,
+    ],
+    doubles: [Number(event.user_hash), count],
+  };
+}
+
+/**
+ * One detail point (count 1) per evaluation while the request fits the
+ * 25-point budget. Beyond that: 24 detail points + one rollup carrying
+ * `count = remaining` so sum(count) always equals the evaluation count.
+ * Within one request every event shares org/project/env/sdk/country/actor,
+ * so the rollup only collapses flag_key/variation/reason.
+ */
+export function buildDataPoints(events: readonly EvaluationEvent[]): EvalDataPoint[] {
+  if (events.length <= AE_MAX_POINTS_PER_INVOCATION) {
+    return events.map((event) => toDataPoint(event, 1));
+  }
+  const detail = events.slice(0, AE_MAX_POINTS_PER_INVOCATION - 1);
+  // Non-empty: events.length > AE_MAX_POINTS_PER_INVOCATION here.
+  const rest = events.slice(AE_MAX_POINTS_PER_INVOCATION - 1);
+  const rollup = toDataPoint(
+    { ...rest[0]!, flag_key: AE_ROLLUP_FLAG_KEY, variation: "", reason: "rollup" },
+    rest.length,
+  );
+  return [...detail.map((event) => toDataPoint(event, 1)), rollup];
+}
+
+export function aeDualWriteEnabled(env: Pick<EdgeEnv, "EVALS" | "ANALYTICS_AE_ENABLED">): boolean {
+  return (
+    env.EVALS !== undefined &&
+    (env.ANALYTICS_AE_ENABLED === "true" || env.ANALYTICS_AE_ENABLED === "1")
+  );
+}
+
+// ---------------------------------------------------------------------------
 // POST /v1/evaluate
 // ---------------------------------------------------------------------------
 
@@ -356,6 +451,17 @@ export async function handleEvaluate(
     const sdk = request.headers.get("X-ShipOS-SDK") ?? "unknown";
     const events = buildEvents(entry, results, context, sdk, countryOf(request));
     if (events.length > 0) {
+      // ITR-62 dual-write: Analytics Engine alongside the Queues path.
+      // writeDataPoint is synchronous fire-and-forget; its own try so an AE
+      // failure can never take down the queue publish or the response.
+      if (aeDualWriteEnabled(env)) {
+        try {
+          for (const point of buildDataPoints(events)) env.EVALS?.writeDataPoint(point);
+        } catch (error) {
+          console.error("failed to write AE data points", error);
+          obs?.log.error("failed to write AE data points", { error: errText(error) });
+        }
+      }
       ctx.waitUntil(
         publishEvents(env.EVENTS, events)
           .catch((error: unknown) => {
