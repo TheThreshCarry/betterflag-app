@@ -95,37 +95,6 @@ config-sync for the affected (project, env).
   from core ("0" when anonymous). `country` = uppercased ISO 3166-1 alpha-2
   from Cloudflare's `request.cf.country` ("unknown" when absent); country
   only, never finer. No Postgres, no ClickHouse on this path.
-- While `ANALYTICS_AE_ENABLED` is "true"/"1", the same events are also
-  written to the Analytics Engine dataset (next section). Dual-write is
-  shadow mode: ClickHouse stays the source of truth until the ITR-62
-  Phase 2 parity gate passes.
-
-## Analytics Engine dataset (ITR-62 dual-write)
-
-Dataset `shipos_evaluations`, binding `EVALS` on the edge worker
-(analytics_engine_datasets in apps/edge/wrangler.jsonc). One data point per
-evaluation, written inline (writeDataPoint is fire-and-forget, adds no edge
-latency):
-
-- `index1`: `org_id` (AE samples per index, so sampling fairness is
-  per customer)
-- `blob1..blob8`: `project_id`, `env`, `flag_key`, `variation`, `reason`,
-  `actor_kind`, `sdk`, `country`
-- `double1`: `user_hash` as f64 (lossy above 2^53; only for approximate
-  distinct-user counts, exact identity stays in ClickHouse/R2)
-- `double2`: `count` (1 for detail points)
-
-Counts MUST be queried as `sum(_sample_interval * double2)`, never
-`count()`: AE samples at high per-index volume, and rollup points carry
-`count > 1`.
-
-25-point budget: Workers allow 25 `writeDataPoint` calls per invocation.
-When one request evaluates more than 25 flags, the edge writes 24 detail
-points plus one rollup point with `flag_key = "__rollup"`,
-`reason = "rollup"`, empty `variation`, and `count` = remaining
-evaluations. Totals (billing) stay exact; per-flag series lose detail for
-flags folded into the rollup. Consumers must exclude `flag_key = '__rollup'`
-from per-flag charts.
 
 ## Analytics retention (hot → cold → deleted)
 
