@@ -106,7 +106,7 @@ export function trialEndingEmail(daysLeft: number): EmailContent {
   const html = layout(`
       <p style="margin:0 0 16px;">Quick heads-up: your trial ends <strong>${when}</strong>.</p>
       <p style="margin:0 0 16px;">Here's what happens if you do nothing: your flags <em>keep serving from the edge</em> (I will never break your production over billing), but the dashboard and API go read-only until you pick a plan.</p>
-      <p style="margin:0 0 16px;">Plans start at $9.99/mo for 2M evaluations, and every tier has unlimited flags, seats and environments. Public pricing, no "contact sales".</p>
+      <p style="margin:0 0 16px;">Plans start at $9.99/mo for 1M evaluations, and every tier has unlimited flags, seats and environments. Public pricing, no "contact sales".</p>
       ${cta(`${APP_URL}/settings`, "Pick a plan")}
       <p style="margin:0 0 16px;">Not convinced? Reply and tell me why: worst case you help me fix something, best case I change your mind.</p>
       <p style="margin:0;">- Mehdi</p>`);
@@ -114,7 +114,7 @@ export function trialEndingEmail(daysLeft: number): EmailContent {
 
 Here's what happens if you do nothing: your flags keep serving from the edge (I will never break your production over billing), but the dashboard and API go read-only until you pick a plan.
 
-Plans start at $9.99/mo for 2M evaluations, and every tier has unlimited flags, seats and environments. Public pricing, no "contact sales".
+Plans start at $9.99/mo for 1M evaluations, and every tier has unlimited flags, seats and environments. Public pricing, no "contact sales".
 
 Pick a plan: ${APP_URL}/settings
 

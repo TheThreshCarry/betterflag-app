@@ -1,0 +1,50 @@
+{
+  "tool": "edge-loadtest",
+  "generatedAt": "2026-07-12T22:16:52.905Z",
+  "target": {
+    "edge_url": "https://shipos-edge.mehdichioukh.workers.dev",
+    "flag_key": null,
+    "mode": "all-flags",
+    "flags_per_request": 8,
+    "snapshot_version": 1783798079411
+  },
+  "window": {
+    "startedAt": "2026-07-12T22:16:22.865Z",
+    "endedAt": "2026-07-12T22:16:52.905Z"
+  },
+  "totals": {
+    "requests_sent": 3000,
+    "requests_ok": 3000,
+    "requests_failed": 0,
+    "error_rate": 0,
+    "billable_evaluations": 24000
+  },
+  "stages": [
+    {
+      "stage": 1,
+      "target_rps": 100,
+      "seconds": 30,
+      "startedAt": "2026-07-12T22:16:22.865Z",
+      "endedAt": "2026-07-12T22:16:52.901Z",
+      "sent": 3000,
+      "ok": 3000,
+      "failed": 0,
+      "dropped": 0,
+      "abandoned": 0,
+      "statusCounts": {},
+      "errorCounts": {},
+      "maxInFlight": 11,
+      "achieved_rps": 99.9,
+      "client": {
+        "count": 3000,
+        "min_ms": 19.4,
+        "p50_ms": 29.3,
+        "p95_ms": 39.9,
+        "p99_ms": 77.3,
+        "max_ms": 137.5,
+        "avg_ms": 30.7
+      }
+    }
+  ],
+  "note": "client.* is RTT observed from the load generator and includes network distance. Server-side p50/p95/p99 come from Better Stack duration_ms, see analyze-loadtest.mjs."
+}

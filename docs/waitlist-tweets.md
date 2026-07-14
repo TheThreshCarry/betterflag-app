@@ -49,7 +49,7 @@ Feature flags with no seat tax and no MAU bill. Unlimited flags, seats and envir
 Agents don't buy seats. Your AI coding agent can create flags, stage rollouts and kill features through our MCP server. Priced on evaluations, not humans. shipos.app
 
 **3. Pricing in public**
-Our pricing, in public: Starter $9.99 (2M evals), Launch $25 (10M), Scale $95 (100M). Unlimited seats on all of them. No sales call required, ever. shipos.app
+Our pricing, in public: Starter $9.99 (1M evals), Launch $24.99 (5M), Scale $99.99 (50M). Unlimited seats on all of them. No sales call required, ever. shipos.app
 
 **4. The seat tax**
 Your feature flag bill should not scale with your headcount. Hiring an engineer doesn't make a boolean more expensive. Unlimited seats, every tier. shipos.app

@@ -64,9 +64,9 @@ describe("PRICING_SPEC integrity", () => {
     expect(tier("starter").priceCents).toBe(999);
     expect(tier("launch").priceCents).toBe(2499);
     expect(tier("scale").priceCents).toBe(9999);
-    expect(tier("starter").includedEvaluations).toBe(2_000_000);
-    expect(tier("launch").includedEvaluations).toBe(10_000_000);
-    expect(tier("scale").includedEvaluations).toBe(100_000_000);
+    expect(tier("starter").includedEvaluations).toBe(1_000_000);
+    expect(tier("launch").includedEvaluations).toBe(5_000_000);
+    expect(tier("scale").includedEvaluations).toBe(50_000_000);
     expect(tier("starter").overagePerMillionCents).toBe(500);
     expect(tier("launch").overagePerMillionCents).toBe(400);
     expect(tier("scale").overagePerMillionCents).toBe(300);

@@ -1,0 +1,31 @@
+{
+  "bench": "insert",
+  "label": "large-batch",
+  "startedAt": "2026-07-11T19:07:50.890Z",
+  "finishedAt": "2026-07-11T19:09:39.030Z",
+  "wallSeconds": 108.14,
+  "events": 5000000,
+  "batchSize": 10000,
+  "concurrency": 4,
+  "insertedRows": 5000000,
+  "failedBatches": 0,
+  "retries": 0,
+  "rowsPerSecond": 46237,
+  "batchLatency": {
+    "count": 500,
+    "p50Ms": 824.38,
+    "p95Ms": 1066.13,
+    "p99Ms": 1137.96,
+    "minMs": 349.87,
+    "maxMs": 1240.91,
+    "meanMs": 839.1
+  },
+  "generator": {
+    "seed": 62,
+    "orgs": 50,
+    "orgPrefix": "benchbig-org",
+    "windowDays": 30,
+    "windowStart": "2026-06-11T19:07:50.877Z",
+    "windowEnd": "2026-07-11T19:07:50.877Z"
+  }
+}

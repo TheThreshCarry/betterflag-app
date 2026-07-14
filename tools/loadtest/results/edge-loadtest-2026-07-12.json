@@ -1,0 +1,199 @@
+{
+  "tool": "edge-loadtest",
+  "issue": "edge evaluation worker load test (P50/P95/P99)",
+  "generatedAt": "2026-07-12T22:18:30Z",
+  "target": {
+    "edge_url": "https://shipos-edge.mehdichioukh.workers.dev",
+    "note_url": "same Worker as edge.shipos.app, same Better Stack source",
+    "mode": "all-flags",
+    "flags_per_request": 8,
+    "snapshot_version": 1783798079411,
+    "environment": "production"
+  },
+  "methodology": {
+    "generator": "tools/loadtest/edge-loadtest.mjs (open-loop, fixed cadence, not gated on responses)",
+    "stages_run_separately": "each stage ran in its own process because the sandbox suspends background processes between calls",
+    "server_latency_source": {
+      "provider": "Better Stack",
+      "source": "shipos-edge",
+      "source_id": 2578178,
+      "table": "t330657.shipos_edge",
+      "field": "duration_ms",
+      "meaning": "the Worker's own span duration (auth + KV snapshot read + evaluate). Excludes network RTT. EDGE_LOG_SUCCESS_SAMPLE_RATE = 1, so every request is logged.",
+      "filter": "path = '/v1/evaluate' AND message = 'request'"
+    },
+    "client_latency_meaning": "round-trip time observed from the load generator. Includes network distance to the nearest Cloudflare PoP, so it is NOT a measure of the edge itself.",
+    "percentile_method": "ClickHouse quantile() over duration_ms"
+  },
+  "headline": {
+    "requests": 11254,
+    "failures": 0,
+    "error_rate": 0.0,
+    "server_p50_ms": 7,
+    "server_p95_ms": 9,
+    "server_p99_ms": 20,
+    "verdict": "P50/P95 flat across an 8x load increase (25 -> 200 RPS). No degradation, no errors."
+  },
+  "overall": {
+    "window_utc": {
+      "start": "2026-07-12T22:15:15Z",
+      "end": "2026-07-12T22:17:27Z"
+    },
+    "server": {
+      "requests": 11254,
+      "min_ms": 4,
+      "p50_ms": 7,
+      "p90_ms": 8,
+      "p95_ms": 9,
+      "p99_ms": 20,
+      "p999_ms": 117.6,
+      "max_ms": 488,
+      "avg_ms": 7.5,
+      "over_50ms": 36,
+      "over_50ms_pct": 0.32,
+      "non_200": 0
+    }
+  },
+  "stages": [
+    {
+      "stage": 1,
+      "target_rps": 25,
+      "achieved_rps": 25.0,
+      "seconds": 30,
+      "window_utc": {
+        "start": "2026-07-12T22:15:15.458Z",
+        "end": "2026-07-12T22:15:45.482Z"
+      },
+      "client": {
+        "requests_sent": 750,
+        "requests_ok": 750,
+        "requests_failed": 0,
+        "max_in_flight": 4,
+        "p50_ms": 27.2,
+        "p95_ms": 34.8,
+        "p99_ms": 91.6
+      },
+      "server": {
+        "requests": 751,
+        "min_ms": 5,
+        "p50_ms": 6,
+        "p90_ms": 7,
+        "p95_ms": 8,
+        "p99_ms": 10.5,
+        "max_ms": 312,
+        "avg_ms": 7.3,
+        "non_200": 0
+      }
+    },
+    {
+      "stage": 2,
+      "target_rps": 50,
+      "achieved_rps": 50.0,
+      "seconds": 30,
+      "window_utc": {
+        "start": "2026-07-12T22:15:49.417Z",
+        "end": "2026-07-12T22:16:19.447Z"
+      },
+      "client": {
+        "requests_sent": 1500,
+        "requests_ok": 1500,
+        "requests_failed": 0,
+        "max_in_flight": 5,
+        "p50_ms": 28.7,
+        "p95_ms": 41.5,
+        "p99_ms": 68.3
+      },
+      "server": {
+        "requests": 1501,
+        "min_ms": 5,
+        "p50_ms": 7,
+        "p90_ms": 8,
+        "p95_ms": 9,
+        "p99_ms": 13,
+        "max_ms": 488,
+        "avg_ms": 7.46,
+        "non_200": 0
+      }
+    },
+    {
+      "stage": 3,
+      "target_rps": 100,
+      "achieved_rps": 99.9,
+      "seconds": 30,
+      "window_utc": {
+        "start": "2026-07-12T22:16:22.865Z",
+        "end": "2026-07-12T22:16:52.901Z"
+      },
+      "client": {
+        "requests_sent": 3000,
+        "requests_ok": 3000,
+        "requests_failed": 0,
+        "max_in_flight": 11,
+        "p50_ms": 29.3,
+        "p95_ms": 39.9,
+        "p99_ms": 77.3
+      },
+      "server": {
+        "requests": 3001,
+        "min_ms": 4,
+        "p50_ms": 7,
+        "p90_ms": 9,
+        "p95_ms": 9,
+        "p99_ms": 11,
+        "max_ms": 103,
+        "avg_ms": 7.34,
+        "non_200": 0
+      }
+    },
+    {
+      "stage": 4,
+      "target_rps": 200,
+      "achieved_rps": 199.7,
+      "seconds": 30,
+      "window_utc": {
+        "start": "2026-07-12T22:16:56.707Z",
+        "end": "2026-07-12T22:17:26.746Z"
+      },
+      "client": {
+        "requests_sent": 6000,
+        "requests_ok": 6000,
+        "requests_failed": 0,
+        "max_in_flight": 23,
+        "p50_ms": 24.8,
+        "p95_ms": 39.0,
+        "p99_ms": 80.7
+      },
+      "server": {
+        "requests": 6001,
+        "min_ms": 4,
+        "p50_ms": 7,
+        "p90_ms": 9,
+        "p95_ms": 10,
+        "p99_ms": 23,
+        "max_ms": 223,
+        "avg_ms": 7.61,
+        "non_200": 0
+      }
+    }
+  ],
+  "cost": {
+    "requests": 11250,
+    "flags_per_request": 8,
+    "billable_evaluations": 90000,
+    "better_stack_log_lines": 11254,
+    "note": "all-flags mode bills one evaluation per flag returned, so 8 per request"
+  },
+  "findings": [
+    "Server-side P50 is 6-7ms and P95 is 8-10ms, essentially flat from 25 to 200 RPS. The worker is not the bottleneck at this load.",
+    "P99 stays in single/low double digits until 200 RPS, where it rises to 23ms. Still far inside the <50ms product claim.",
+    "Only 36 of 11,254 requests (0.32%) exceeded 50ms. The 312/488ms maxima are isolated cold-start / isolate spin-up outliers, not sustained degradation.",
+    "Zero non-200 responses across the whole ramp.",
+    "The hot-path budget in apps/edge/src/index.ts says 'p50 < 10ms'. Measured P50 = 7ms, inside budget.",
+    "Client-observed RTT (~25-29ms p50) is dominated by network distance from the generator, which is why the Better Stack duration_ms figure is the one to quote."
+  ],
+  "caveats": [
+    "200 RPS is the ceiling actually tested; it is not a breaking-point test. The worker showed no strain, so the real limit is higher and untested.",
+    "Load originated from a single host in one region, so this does not exercise multi-PoP behaviour.",
+    "The evaluated project is a KV-only bench fixture (bench-e2e-flag-0..7), not a database-backed project."
+  ]
+}

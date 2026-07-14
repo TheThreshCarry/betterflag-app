@@ -131,10 +131,10 @@ export const PLAN_LIMITS: Record<
   // Agent keys are unlimited on every plan (not a plan metric). Only Starter
   // caps projects. Trial gets Launch-shaped limits so it demonstrates the
   // product.
-  trial: { projects: null, agentKeys: null, includedEvalsPerMonth: 10_000_000 },
-  starter: { projects: 3, agentKeys: null, includedEvalsPerMonth: 2_000_000 },
-  launch: { projects: null, agentKeys: null, includedEvalsPerMonth: 10_000_000 },
-  scale: { projects: null, agentKeys: null, includedEvalsPerMonth: 100_000_000 },
+  trial: { projects: null, agentKeys: null, includedEvalsPerMonth: 5_000_000 },
+  starter: { projects: 3, agentKeys: null, includedEvalsPerMonth: 1_000_000 },
+  launch: { projects: null, agentKeys: null, includedEvalsPerMonth: 5_000_000 },
+  scale: { projects: null, agentKeys: null, includedEvalsPerMonth: 50_000_000 },
 };
 
 /**
