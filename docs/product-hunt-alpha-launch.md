@@ -29,7 +29,7 @@ images 1270×760, thumbnail 240×240, all assets <3MB.
 > primary interface. Claude Code or Cursor can create flags, stage percentage
 > rollouts, target beta users, and pull kill switches, with agent-scoped
 > keys, an agent-attributed audit trail, and approval guardrails for prod.
-> Flags evaluate from Cloudflare's edge in under 50ms. One simple meter, from
+> Flags evaluate from the edge in under 100ms. One simple meter, from
 > $9.99/mo. Private alpha: 50% off for life.
 
 **Links:** shipos.app (with `?ref=producthunt`), docs.shipos.app
@@ -56,7 +56,7 @@ images 1270×760, thumbnail 240×240, all assets <3MB.
 > the scary stuff (like prod kill switches) while everything else runs
 > autonomously.
 >
-> Under the hood, flags are served from Cloudflare's edge in under 50ms
+> Under the hood, flags are served from the edge in under 100ms
 > globally, and setup is genuinely five minutes, with SDKs for JS, React,
 > and Node.
 >
@@ -142,7 +142,7 @@ then `kill_flag`. No static prompt: real product footage. Captions burned in.
 
 ### Slide 5 - edge speed
 
-- **Overlay:** `Evaluated at the edge in <50ms` / sub: `Served from
+- **Overlay:** `Evaluated at the edge in <100ms` / sub: `Served from
   Cloudflare's network, everywhere your users are.`
 - **Prompt:** A globe drawn from thin latitude/longitude hairlines with
   small ink dots scattered across continents; from each dot a very short
@@ -191,7 +191,7 @@ then `kill_flag`. No static prompt: real product footage. Captions burned in.
 > has full API parity: create_flag, set_rollout, set_targeting, kill_flag,
 > evaluation stats, audit log. Agent keys are scoped and every action is
 > attributed; you can require human approval per action type (e.g. prod
-> kills). Evaluation happens on Cloudflare workers at the edge, <50ms.
+> kills). Evaluation happens at the edge, <100ms.
 > Curious what HN thinks about the autonomy/approval line for prod changes.
 
 ---

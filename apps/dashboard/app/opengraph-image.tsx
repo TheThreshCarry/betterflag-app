@@ -192,7 +192,7 @@ export default async function Image() {
               color: INK,
             }}
           >
-            Unlimited flags, seats & environments, edge-served in &lt;50ms.
+            Unlimited flags, seats & environments, edge-served in &lt;100ms.
           </div>
         </div>
       </div>

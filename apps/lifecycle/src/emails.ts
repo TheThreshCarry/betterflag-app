@@ -48,14 +48,14 @@ export function welcomeEmail(orgName: string): EmailContent {
   const subject = "Welcome to ShipOS: your first flag is 5 minutes away";
   const html = layout(`
       <p style="margin:0 0 16px;">Hey, Mehdi here. I built ShipOS.</p>
-      <p style="margin:0 0 16px;">Thanks for creating <strong>${escapeHtml(orgName)}</strong>. Here's the whole pitch in one line: unlimited flags, seats and environments, one meter (evaluations), served from Cloudflare's edge in under 50ms. No seat tax, no MAU bill.</p>
+      <p style="margin:0 0 16px;">Thanks for creating <strong>${escapeHtml(orgName)}</strong>. Here's the whole pitch in one line: unlimited flags, seats and environments, one meter (evaluations), served from the edge in under 100ms. No seat tax, no MAU bill.</p>
       <p style="margin:0 0 16px;">The fastest way to feel it: create a flag, curl the edge, watch it flip. The onboarding checklist walks you through it in about 5 minutes.</p>
       ${cta(`${APP_URL}/onboarding`, "Ship your first flag")}
       <p style="margin:0 0 16px;">Your 14-day trial is running: every feature, no card. If anything feels off, hit reply and tell me. I read all of it.</p>
       <p style="margin:0;">- Mehdi</p>`);
   const text = `Hey, Mehdi here. I built ShipOS.
 
-Thanks for creating ${orgName}. Here's the whole pitch in one line: unlimited flags, seats and environments, one meter (evaluations), served from Cloudflare's edge in under 50ms. No seat tax, no MAU bill.
+Thanks for creating ${orgName}. Here's the whole pitch in one line: unlimited flags, seats and environments, one meter (evaluations), served from the edge in under 100ms. No seat tax, no MAU bill.
 
 The fastest way to feel it: create a flag, curl the edge, watch it flip. The onboarding checklist walks you through it in about 5 minutes.
 

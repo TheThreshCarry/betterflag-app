@@ -67,7 +67,7 @@ create flag → evaluate from SDK → connect MCP → upgrade to paid.**
       PostHog captures ref/UTM on first touch.
 - [ ] Server-side capture for the conversion events (signup, upgrade) so ad
       blockers can't blind you on the numbers that matter.
-- [ ] Uptime/latency numbers you'll quote publicly (<50ms) re-measured and
+- [ ] Uptime/latency numbers you'll quote publicly (<100ms) re-measured and
       screenshotted; someone on HN will check.
 
 ## 4. Billing & Business (deadline T-7)
