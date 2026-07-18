@@ -532,6 +532,10 @@ function Checklist({
   const elapsed = (firstFlagAtRef.current ?? now) - orgCreatedAt;
   const edgeUrl = process.env.NEXT_PUBLIC_EDGE_URL ?? "https://edge.shipos.app";
   const flagKeyForSnippet = firstFlag?.key ?? (slugifyFlagKey(flagName) || "my-first-flag");
+  const snippet = `curl -X POST ${edgeUrl}/v1/evaluate \\
+  -H "Authorization: Bearer ${sdkKey ?? "sos_sdk_YOUR_KEY"}" \\
+  -H "Content-Type: application/json" \\
+  -d '{"key":"${flagKeyForSnippet}","context":{"userId":"u_123"}}'`;
 
   const items: { label: string; done: boolean }[] = [
     { label: `Organization "${org.name}" created`, done: true },
@@ -630,14 +634,86 @@ function Checklist({
           <span className="h-3 w-3 rounded-full bg-[#ffbd2e]" />
           <span className="h-3 w-3 rounded-full bg-[#28c840]" />
           <span className="ml-2 font-mono text-[12px] text-white/60">evaluate.sh</span>
+          <TerminalCopyButton text={snippet} />
         </div>
         <pre className="overflow-x-auto bg-terminal-dark p-5 font-mono text-[12.5px] leading-relaxed text-[#d7dae0]">
-          {`curl -X POST ${edgeUrl}/v1/evaluate \\
-  -H "Authorization: Bearer ${sdkKey ?? "sos_sdk_YOUR_KEY"}" \\
-  -H "Content-Type: application/json" \\
-  -d '{"key":"${flagKeyForSnippet}","context":{"userId":"u_123"}}'`}
+          {snippet}
         </pre>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Copy control for the dark terminal header. The button morphs to a green
+ * check + "Copied", and a small toast pops beneath it, both auto-resetting.
+ */
+function TerminalCopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    },
+    [],
+  );
+
+  const copy = useCallback(() => {
+    void navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(() => setCopied(false), 1600);
+    });
+  }, [text]);
+
+  return (
+    <div className="relative ml-auto">
+      <button
+        type="button"
+        onClick={copy}
+        aria-label={copied ? "Copied to clipboard" : "Copy command"}
+        className={`flex items-center gap-1.5 rounded-md px-2 py-1 font-mono text-[11px] transition-colors ${
+          copied
+            ? "text-[#28c840]"
+            : "text-white/55 hover:bg-white/10 hover:text-white/90"
+        }`}
+      >
+        <span key={copied ? "check" : "copy"} className="animate-in zoom-in-75 fade-in duration-200">
+          {copied ? (
+            <svg width="12" height="12" viewBox="0 0 10 10" fill="none" aria-hidden>
+              <path
+                d="M1.5 5.5l2.5 2.5 4.5-6"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          ) : (
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden>
+              <rect x="5.5" y="5.5" width="8" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
+              <path
+                d="M10.5 5.5V4A1.5 1.5 0 0 0 9 2.5H4A1.5 1.5 0 0 0 2.5 4v5A1.5 1.5 0 0 0 4 10.5h1.5"
+                stroke="currentColor"
+                strokeWidth="1.3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          )}
+        </span>
+        {copied ? "Copied" : "Copy"}
+      </button>
+
+      {copied ? (
+        <span
+          role="status"
+          className="pointer-events-none absolute right-0 top-full z-10 mt-2 whitespace-nowrap rounded-lg bg-ink px-2.5 py-1.5 text-[11px] font-medium text-white shadow-lg animate-in fade-in slide-in-from-top-1 duration-200"
+        >
+          Copied to clipboard
+        </span>
+      ) : null}
     </div>
   );
 }

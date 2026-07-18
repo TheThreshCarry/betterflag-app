@@ -31,6 +31,8 @@ export interface OrgRow {
   past_due_since: string | null;
   /** Timestamp of the last Polar event applied (out-of-order guard). */
   billing_synced_at: string | null;
+  /** Super-admin freeze (migration 20260718090000). Null = active. */
+  frozen_at: string | null;
 }
 
 /** Private-alpha allowlist (migration 20260709100000). Service-role only. */
