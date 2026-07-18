@@ -14,6 +14,7 @@ import { resolveSessionUser } from "@/lib/auth";
 import { recordAudit } from "@/lib/db";
 import { HttpError, parseJson, parseQuery, unwrap, withErrors } from "@/lib/errors";
 import { triggerWelcomeSequence } from "@/lib/lifecycle";
+import { captureServer } from "@/lib/posthog-server";
 import { createServiceClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -123,6 +124,13 @@ export const POST = withErrors(async (request: NextRequest) => {
   if (email) {
     await triggerWelcomeSequence({ orgId: org.id, email, orgName: org.name });
   }
+
+  await captureServer({
+    distinctId: userId,
+    event: "onboarding_org_created",
+    properties: { orgId: org.id, orgName: org.name, plan: org.plan },
+    groups: { organization: org.id },
+  });
 
   return NextResponse.json({ org: toApiOrg(org, "owner") }, { status: 201 });
 });

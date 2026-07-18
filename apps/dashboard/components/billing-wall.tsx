@@ -13,6 +13,7 @@ import { useEffect, useState } from "react";
 
 import { Logo } from "@/components/logo";
 import { Button, Chip, ErrorNote } from "@/components/ui";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { ApiOrg } from "@/lib/api-types";
 import { api } from "@/lib/client-api";
 import { createBrowserSupabase } from "@/lib/supabase/client";
@@ -109,7 +110,23 @@ export function BillingWall({ userEmail }: { userEmail: string | null }) {
           {!tiers || !org ? (
             <div className="mt-8 grid gap-4 sm:grid-cols-3">
               {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="h-48 animate-pulse rounded-2xl border border-line bg-white" />
+                <div
+                  key={i}
+                  className="flex flex-col rounded-2xl border border-line bg-white p-5"
+                >
+                  <div className="flex items-baseline justify-between">
+                    <p className="text-[15px] font-semibold">
+                      <Skeleton className="inline-block h-[1em] w-16 align-middle" />
+                    </p>
+                  </div>
+                  <p className="mt-1 font-mono text-[22px] font-semibold">
+                    <Skeleton className="inline-block h-[1em] w-20 align-middle" />
+                  </p>
+                  <p className="mt-1 flex-1 text-[12px]">
+                    <Skeleton className="inline-block h-[1em] w-28 align-middle" />
+                  </p>
+                  <Skeleton className="mt-4 h-8 w-full rounded-2xl" />
+                </div>
               ))}
             </div>
           ) : (

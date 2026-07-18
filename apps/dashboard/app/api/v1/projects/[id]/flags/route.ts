@@ -9,6 +9,7 @@ import { assertOrgWritable } from "@/lib/billing-guard";
 import { enqueueConfigSync } from "@/lib/cloudflare";
 import { getProjectInOrg, listEnvironments } from "@/lib/db";
 import { parseJson, unwrap, withErrors } from "@/lib/errors";
+import { captureServer, distinctIdForActor } from "@/lib/posthog-server";
 import { createServiceClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -93,6 +94,22 @@ export const POST = withErrors<{ id: string }>(async (request: NextRequest, { pa
       environmentId: env.id,
       envSlug: env.slug,
       orgId: actor.orgId,
+    });
+  }
+
+  // Onboarding completes on the first flag shipped in the project. The count
+  // includes the flag just inserted, so <= 1 means this was the first.
+  const { count: flagCount } = await service
+    .from("flags")
+    .select("id", { count: "exact", head: true })
+    .eq("project_id", project.id)
+    .is("archived_at", null);
+  if ((flagCount ?? 0) <= 1) {
+    await captureServer({
+      distinctId: distinctIdForActor(actor),
+      event: "onboarding_completed",
+      properties: { orgId: actor.orgId, projectId: project.id, flagKey: flag.key },
+      groups: { organization: actor.orgId },
     });
   }
 

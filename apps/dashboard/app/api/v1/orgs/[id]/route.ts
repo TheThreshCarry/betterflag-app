@@ -16,6 +16,7 @@ import { toApiOrg } from "@/lib/api-types";
 import { resolveSessionUser } from "@/lib/auth";
 import { getOrg, recordAudit } from "@/lib/db";
 import { HttpError, parseJson, unwrap, withErrors } from "@/lib/errors";
+import { captureServer } from "@/lib/posthog-server";
 import { createServiceClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -68,6 +69,13 @@ export const PATCH = withErrors<{ id: string }>(async (request: NextRequest, { p
     subject: `org:${orgId}`,
     before: { plan: before },
     after: { plan: updated.plan },
+  });
+
+  await captureServer({
+    distinctId: userId,
+    event: "onboarding_plan_selected",
+    properties: { orgId, plan: updated.plan, previousPlan: before },
+    groups: { organization: orgId },
   });
 
   return NextResponse.json({ org: toApiOrg(updated, membership.role) });

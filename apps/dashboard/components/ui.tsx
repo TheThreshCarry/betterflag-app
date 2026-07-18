@@ -93,7 +93,7 @@ export function Button({
       type={type}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
-      className={`inline-flex items-center justify-center gap-2 rounded-2xl font-medium transition-colors ${sizing} ${BUTTON_CLASSES[variant]} ${loading ? "cursor-wait !opacity-100" : ""} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-2xl font-medium transition-colors ${sizing} ${BUTTON_CLASSES[variant]} ${loading ? "cursor-wait" : ""} ${className}`}
       {...props}
     >
       {loading ? <Spinner size={size === "sm" ? 14 : 16} /> : null}

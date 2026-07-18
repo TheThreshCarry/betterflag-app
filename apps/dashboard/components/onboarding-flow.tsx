@@ -24,6 +24,7 @@ import {
   inputClass,
 } from "@/components/ui";
 import { OnboardingResumeSkeleton } from "@/components/skeletons";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { ApiApiKey, ApiFlag, ApiOrg, ApiProject } from "@/lib/api-types";
 import { api } from "@/lib/client-api";
 import { createBrowserSupabase } from "@/lib/supabase/client";
@@ -277,7 +278,29 @@ function PlanStep({
       {!tiers ? (
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-52 animate-pulse rounded-2xl border border-line bg-white" />
+            <div
+              key={i}
+              className="flex flex-col rounded-2xl border border-line bg-white p-5"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[15px] font-semibold">
+                  <Skeleton className="inline-block h-[1em] w-16 align-middle" />
+                </p>
+              </div>
+              <p className="mt-2 font-mono text-[22px] font-semibold">
+                <Skeleton className="inline-block h-[1em] w-20 align-middle" />
+              </p>
+              <p className="mt-2 text-[12px]">
+                <Skeleton className="inline-block h-[1em] w-28 align-middle" />
+              </p>
+              <p className="mt-1 text-[12px]">
+                <Skeleton className="inline-block h-[1em] w-24 align-middle" />
+              </p>
+              <span className="mt-4 flex items-center gap-1.5 text-[12px]">
+                <span className="h-4 w-4 rounded-full border border-line-strong" />
+                <Skeleton className="inline-block h-[1em] w-12 align-middle" />
+              </span>
+            </div>
           ))}
         </div>
       ) : (

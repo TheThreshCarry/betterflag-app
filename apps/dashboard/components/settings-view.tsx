@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { Button, Card, Chip, ErrorNote, inputClass, type ChipColor } from "@/components/ui";
 import { SettingsSkeleton } from "@/components/skeletons";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { ApiOrg } from "@/lib/api-types";
 import { api } from "@/lib/client-api";
 import { tierForPlan, usePricingTiers } from "@/lib/use-pricing";
@@ -179,7 +180,7 @@ function SettingsContent({ org }: { org: ApiOrg }) {
         ) : null}
       </Card>
 
-      {tiers && tiers.length > 0 ? (
+      {tiers === null || tiers.length > 0 ? (
         <Card className="p-6">
           <h2 className="text-[16px] font-semibold">Change plan</h2>
           <p className="mt-1 text-[13px] text-ink-muted">
@@ -192,7 +193,27 @@ function SettingsContent({ org }: { org: ApiOrg }) {
             </p>
           ) : null}
           <div className="mt-4 grid gap-4 sm:grid-cols-3">
-            {tiers.map((t) => {
+            {tiers === null
+              ? Array.from({ length: 3 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="flex flex-col rounded-2xl border border-line bg-white p-4"
+                  >
+                    <div className="flex items-baseline justify-between">
+                      <p className="text-[15px] font-semibold">
+                        <Skeleton className="inline-block h-[1em] w-16 align-middle" />
+                      </p>
+                    </div>
+                    <p className="mt-1 font-mono text-[20px] font-semibold">
+                      <Skeleton className="inline-block h-[1em] w-20 align-middle" />
+                    </p>
+                    <p className="mt-1 text-[12px]">
+                      <Skeleton className="inline-block h-[1em] w-28 align-middle" />
+                    </p>
+                    <Skeleton className="mt-4 h-8 w-full rounded-2xl" />
+                  </div>
+                ))
+              : tiers.map((t) => {
               const isCurrent = t.key === org.plan;
               return (
                 <div

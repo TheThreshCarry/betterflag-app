@@ -8,6 +8,7 @@ import { assertOrgWritable } from "@/lib/billing-guard";
 import { enqueueConfigSync } from "@/lib/cloudflare";
 import { getOrg, listEnvironments } from "@/lib/db";
 import { HttpError, parseJson, unwrap, withErrors } from "@/lib/errors";
+import { captureServer, distinctIdForActor } from "@/lib/posthog-server";
 import { createServiceClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -86,6 +87,13 @@ export const POST = withErrors(async (request: NextRequest) => {
       orgId: actor.orgId,
     });
   }
+
+  await captureServer({
+    distinctId: distinctIdForActor(actor),
+    event: "onboarding_project_created",
+    properties: { orgId: actor.orgId, projectId: project.id, projectName: project.name },
+    groups: { organization: actor.orgId },
+  });
 
   return NextResponse.json({ project: toApiProject(project, environments) }, { status: 201 });
 });
