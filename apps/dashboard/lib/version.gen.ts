@@ -3,4 +3,4 @@
 // (and every log line, error, and trace it emits) carries its own version.
 // Update with:  bun run version:bump dashboard <patch|minor|major|x.y.z>
 //         or:   bun run version:sync   (after editing package.json directly)
-export const VERSION = "0.7.0";
+export const VERSION = "0.8.0";
