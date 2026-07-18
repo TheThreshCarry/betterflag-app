@@ -127,10 +127,18 @@ export function AppShell({
     window.localStorage.setItem(ACTIVE_PROJECT_KEY, id);
   }, []);
 
-  const setActiveEnvSlug = useCallback((slug: string) => {
-    setActiveEnvSlugState(slug);
-    window.localStorage.setItem(ACTIVE_ENV_KEY, slug);
-  }, []);
+  const setActiveEnvSlug = useCallback(
+    (slug: string) => {
+      if (slug === activeEnvSlug) return;
+      window.localStorage.setItem(ACTIVE_ENV_KEY, slug);
+      setActiveEnvSlugState(slug);
+      // Full reload so every view (flags, keys, analytics, detail) re-fetches
+      // data scoped to the new environment. The slug is read back from
+      // localStorage on mount, so the reload lands on the chosen env.
+      window.location.reload();
+    },
+    [activeEnvSlug],
+  );
 
   const activeProject = useMemo(
     () => projects.find((p) => p.id === activeProjectId) ?? projects[0] ?? null,

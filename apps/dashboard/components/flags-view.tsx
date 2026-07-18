@@ -92,15 +92,12 @@ export function FlagsView() {
     [activeProject],
   );
 
-  // Show only flags that are live (enabled) in the currently selected
-  // environment. Selecting "prod" shows prod flags, "dev" shows dev flags, etc.
-  const visibleFlags = useMemo(() => {
-    if (!flags) return null;
-    if (!activeEnv) return flags;
-    return flags.filter((flag) =>
-      flag.configs.some((c) => c.environmentId === activeEnv.id && c.enabled),
-    );
-  }, [flags, activeEnv]);
+  // Every flag exists in every environment (configs are created for all of
+  // them, disabled by default), so the list is project-wide. The per-flag
+  // environment dots below show each flag's enabled/killed state per env.
+  // We must NOT hide disabled flags here: a brand-new flag is disabled
+  // everywhere, and filtering it out would make it unreachable from the UI.
+  const visibleFlags = flags;
 
   if (!activeProject) {
     return (
@@ -144,13 +141,6 @@ export function FlagsView() {
             title="Ship your first flag"
             body="Flags are created with configs in every environment, disabled by default."
             action={<Button onClick={() => setDialogOpen(true)}>New flag</Button>}
-          />
-        </div>
-      ) : visibleFlags.length === 0 ? (
-        <div className="data-in">
-          <EmptyState
-            title={`No flags live in ${activeEnv?.name ?? "this environment"}`}
-            body="Nothing is enabled here yet. Switch environments up top, or open a flag to turn it on."
           />
         </div>
       ) : (
