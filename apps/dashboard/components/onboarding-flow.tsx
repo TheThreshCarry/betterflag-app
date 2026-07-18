@@ -95,11 +95,30 @@ export function OnboardingFlow({ userEmail }: { userEmail: string | null }) {
   }, []);
 
   return (
-    <div className="min-h-screen bg-canvas">
+    <div className="flex min-h-screen flex-col bg-canvas">
       <header className="flex h-16 items-center justify-between gap-4 px-8">
         <Logo href="/onboarding" size="sm" showText />
-        <div className="flex min-w-0 flex-1 items-center justify-end gap-4">
-          <div className="hidden items-center gap-2 sm:flex">
+        {userEmail ? (
+          <div className="flex shrink-0 items-center gap-2 text-[13px]">
+            <span className="max-w-[140px] truncate text-ink-muted sm:max-w-[220px]">
+              {userEmail}
+            </span>
+            <button
+              type="button"
+              disabled={signingOut}
+              onClick={() => void signOut()}
+              className="font-medium text-ink underline underline-offset-2 disabled:opacity-50"
+            >
+              {signingOut ? "Logging out…" : "logout"}
+            </button>
+          </div>
+        ) : null}
+      </header>
+
+      <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-12">
+        {/* Progress stepper, centered above the onboarding container. */}
+        {step !== "loading" ? (
+          <div className="mb-6 flex flex-wrap items-center justify-center gap-2">
             {(["Create org", "Pick plan", "Create project", "First flag"] as const).map((label, index) => {
               const stepIndex =
                 step === "org" ? 0 : step === "plan" ? 1 : step === "project" ? 2 : 3;
@@ -121,25 +140,8 @@ export function OnboardingFlow({ userEmail }: { userEmail: string | null }) {
               );
             })}
           </div>
-          {userEmail ? (
-            <div className="flex shrink-0 items-center gap-2 text-[13px]">
-              <span className="max-w-[140px] truncate text-ink-muted sm:max-w-[220px]">
-                {userEmail}
-              </span>
-              <button
-                type="button"
-                disabled={signingOut}
-                onClick={() => void signOut()}
-                className="font-medium text-ink underline underline-offset-2 disabled:opacity-50"
-              >
-                {signingOut ? "Logging out…" : "logout"}
-              </button>
-            </div>
-          ) : null}
-        </div>
-      </header>
+        ) : null}
 
-      <main className="mx-auto max-w-2xl px-6 py-12">
         {/* Keyed by step so each onboarding stage blurs + fades in. */}
         <div key={step} className={step === "loading" ? undefined : "data-in"}>
         {step === "loading" ? (
@@ -180,6 +182,10 @@ export function OnboardingFlow({ userEmail }: { userEmail: string | null }) {
         </div>
         <ErrorNote message={error} />
       </main>
+
+      <footer className="py-8 text-center text-[12px] text-ink-muted">
+        ShipOS @ 2026
+      </footer>
     </div>
   );
 }
@@ -240,8 +246,10 @@ function PlanStep({
   onSelected: (org: ApiOrg) => void;
 }) {
   const tiers = usePricingTiers();
+  const [selected, setSelected] = useState<string | null>(null);
   const [selecting, setSelecting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const selectedTier = tiers?.find((tier) => tier.key === selected) ?? null;
 
   async function choose(planKey: string) {
     setError(null);
@@ -269,46 +277,86 @@ function PlanStep({
       {!tiers ? (
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-48 animate-pulse rounded-2xl border border-line bg-white" />
+            <div key={i} className="h-52 animate-pulse rounded-2xl border border-line bg-white" />
           ))}
         </div>
       ) : (
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
-          {tiers.map((tier) => (
-            <div
-              key={tier.key}
-              className="flex flex-col rounded-2xl border border-line bg-white p-5"
-              style={tier.popular ? { borderColor: "#FF5A1A" } : undefined}
-            >
-              <div className="flex items-baseline justify-between">
-                <p className="text-[15px] font-semibold">{tier.name}</p>
-                {tier.popular ? (
-                  <Chip color="orange" className="!px-2 !py-0.5 text-[11px]">
-                    Popular
-                  </Chip>
-                ) : null}
-              </div>
-              <p className="mt-1 font-mono text-[22px] font-semibold">
-                {tier.price}
-                <span className="text-[12px] font-normal text-ink-muted">{tier.period}</span>
-              </p>
-              <p className="mt-1 text-[12px] text-ink-muted">
-                {(tier.includedEvaluations / 1_000_000).toLocaleString()}M evaluations / mo
-              </p>
-              <p className="mt-1 flex-1 text-[12px] text-ink-muted">{tier.tagline}</p>
-              <Button
-                size="sm"
-                variant={tier.popular ? "primary" : "secondary"}
-                className="mt-4 w-full"
+          {tiers.map((tier) => {
+            const isSelected = selected === tier.key;
+            return (
+              <button
+                key={tier.key}
+                type="button"
+                aria-pressed={isSelected}
                 disabled={selecting !== null}
-                onClick={() => void choose(tier.key)}
+                onClick={() => setSelected(tier.key)}
+                className={`flex flex-col rounded-2xl border bg-white p-5 text-left transition-colors disabled:opacity-60 ${
+                  isSelected
+                    ? "border-[#FF5A1A] ring-2 ring-[#FF5A1A]/30"
+                    : "border-line hover:border-line-strong"
+                }`}
               >
-                {selecting === tier.key ? "Starting trial…" : `Start trial on ${tier.name}`}
-              </Button>
-            </div>
-          ))}
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[15px] font-semibold">{tier.name}</p>
+                  {tier.popular ? (
+                    <Chip color="orange" className="!px-2 !py-0.5 text-[11px]">
+                      Popular
+                    </Chip>
+                  ) : null}
+                </div>
+                <p className="mt-2 flex items-baseline gap-0.5 font-mono font-semibold">
+                  <span className="text-[22px] tracking-tight tabular-nums">{tier.price}</span>
+                  <span className="text-[12px] font-normal text-ink-muted">{tier.period}</span>
+                </p>
+                <p className="mt-2 text-[12px] text-ink-muted">
+                  {(tier.includedEvaluations / 1_000_000).toLocaleString()}M evaluations / mo
+                </p>
+                <p className="mt-1 text-[12px] text-ink-muted">{tier.tagline}</p>
+                <span
+                  className={`mt-4 flex items-center gap-1.5 text-[12px] font-medium ${
+                    isSelected ? "text-[#FF5A1A]" : "text-ink-muted"
+                  }`}
+                >
+                  <span
+                    className={`flex h-4 w-4 items-center justify-center rounded-full border ${
+                      isSelected ? "border-[#FF5A1A] bg-[#FF5A1A] text-white" : "border-line-strong"
+                    }`}
+                  >
+                    {isSelected ? (
+                      <svg width="9" height="9" viewBox="0 0 10 10" fill="none" aria-hidden>
+                        <path
+                          d="M1.5 5.5l2.5 2.5 4.5-6"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    ) : null}
+                  </span>
+                  {isSelected ? "Selected" : "Select"}
+                </span>
+              </button>
+            );
+          })}
         </div>
       )}
+
+      <div className="mt-6">
+        <Button
+          size="lg"
+          className="w-full sm:w-auto"
+          disabled={!selectedTier || selecting !== null}
+          onClick={() => selectedTier && void choose(selectedTier.key)}
+        >
+          {selecting !== null
+            ? "Starting trial…"
+            : selectedTier
+              ? `Start 14-day trial on ${selectedTier.name}`
+              : "Select a plan to continue"}
+        </Button>
+      </div>
 
       <p className="mt-4 text-[12px] text-ink-muted">
         You won&apos;t pay anything today. When the trial ends, you add payment from Settings,

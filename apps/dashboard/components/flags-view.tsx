@@ -59,7 +59,7 @@ export function slugifyProjectSlug(name: string): string {
 }
 
 export function FlagsView() {
-  const { activeProject } = useApp();
+  const { activeProject, activeEnv } = useApp();
   const router = useRouter();
   const [flags, setFlags] = useState<FlagWithConfigs[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -92,6 +92,16 @@ export function FlagsView() {
     [activeProject],
   );
 
+  // Show only flags that are live (enabled) in the currently selected
+  // environment. Selecting "prod" shows prod flags, "dev" shows dev flags, etc.
+  const visibleFlags = useMemo(() => {
+    if (!flags) return null;
+    if (!activeEnv) return flags;
+    return flags.filter((flag) =>
+      flag.configs.some((c) => c.environmentId === activeEnv.id && c.enabled),
+    );
+  }, [flags, activeEnv]);
+
   if (!activeProject) {
     return (
       <EmptyState
@@ -109,8 +119,11 @@ export function FlagsView() {
           <h1 className="text-[28px] font-semibold tracking-[-0.01em]">Flags</h1>
           <p className="mt-0.5 text-[14px] text-ink-muted">
             {activeProject.name}
-            {flags ? `, ${flags.length} flag${flags.length === 1 ? "" : "s"}` : null}
-            {!flags ? (
+            {activeEnv ? ` · ${activeEnv.name}` : null}
+            {visibleFlags
+              ? `, ${visibleFlags.length} flag${visibleFlags.length === 1 ? "" : "s"}`
+              : null}
+            {!visibleFlags ? (
               <>
                 {", "}
                 <span className="inline-block h-3.5 w-12 translate-y-0.5 animate-pulse rounded-md bg-muted align-middle" />
@@ -123,7 +136,7 @@ export function FlagsView() {
 
       <ErrorNote message={error} />
 
-      {!flags ? (
+      {!flags || !visibleFlags ? (
         <DataTableSkeleton columns={FLAG_COLUMNS} />
       ) : flags.length === 0 ? (
         <div className="data-in">
@@ -133,10 +146,17 @@ export function FlagsView() {
             action={<Button onClick={() => setDialogOpen(true)}>New flag</Button>}
           />
         </div>
+      ) : visibleFlags.length === 0 ? (
+        <div className="data-in">
+          <EmptyState
+            title={`No flags live in ${activeEnv?.name ?? "this environment"}`}
+            body="Nothing is enabled here yet. Switch environments up top, or open a flag to turn it on."
+          />
+        </div>
       ) : (
         <div className="data-in">
         <DataTable columns={FLAG_COLUMNS}>
-          {flags.map((flag) => {
+          {visibleFlags.map((flag) => {
                 const lastUpdated = flag.configs.reduce<string | null>(
                   (latest, config) =>
                     !latest || config.updatedAt > latest ? config.updatedAt : latest,
