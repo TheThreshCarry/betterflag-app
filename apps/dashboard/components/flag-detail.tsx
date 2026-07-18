@@ -295,7 +295,8 @@ function EditFlagDialog({
             Cancel
           </Button>
           <Button
-            disabled={busy || name.trim().length === 0}
+            loading={busy}
+            disabled={name.trim().length === 0}
             onClick={() => {
               setBusy(true);
               setError(null);
@@ -552,7 +553,7 @@ function EnvConfigCard({
         </Button>
         <div className="flex items-center gap-3">
           {dirty ? <span className="text-[12px] text-ink-muted">Unsaved changes</span> : null}
-          <Button size="sm" disabled={!dirty || busy || conflict} onClick={() => void save()}>
+          <Button size="sm" loading={busy} disabled={!dirty || conflict} onClick={() => void save()}>
             {busy ? "Saving…" : "Save changes"}
           </Button>
         </div>

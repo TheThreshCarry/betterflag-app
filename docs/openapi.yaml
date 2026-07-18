@@ -30,8 +30,11 @@ info:
 
     ## Errors
     All errors share one shape: `{ "error": { "code": string, "message": string } }`
-    with status 400/401/403/404/409/422. Version conflicts from optimistic
+    with status 400/401/402/403/404/409/422. Version conflicts from optimistic
     concurrency (`expectedVersion`) return 409 with code `version_conflict`.
+    Org-level write blocks: 402 `billing_restricted` (trial expired or
+    subscription lapsed) and 403 `org_frozen` (org frozen by ShipOS support);
+    reads and edge flag serving keep working in both cases.
 servers:
   - url: https://app.shipos.app
     description: Production

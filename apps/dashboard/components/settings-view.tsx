@@ -219,6 +219,7 @@ function SettingsContent({ org }: { org: ApiOrg }) {
                     variant={isCurrent ? "secondary" : "primary"}
                     size="sm"
                     className="mt-4 w-full"
+                    loading={checkingOut === t.key}
                     disabled={isCurrent || checkingOut !== null}
                     onClick={() => startCheckout(t.key)}
                   >

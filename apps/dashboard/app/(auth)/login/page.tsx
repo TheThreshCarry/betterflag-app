@@ -262,7 +262,7 @@ export default function LoginPage() {
                   onChange={(event) => setPassword(event.target.value)}
                   className={`${inputClass} h-12`}
                 />
-                <Button type="submit" size="lg" className="w-full" disabled={busy !== null}>
+                <Button type="submit" size="lg" className="w-full" loading={busy === "password"} disabled={busy !== null}>
                   {busy === "password"
                     ? mode === "signup"
                       ? "Creating account…"

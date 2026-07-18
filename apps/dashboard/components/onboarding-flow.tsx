@@ -230,7 +230,7 @@ function OrgStep({ onCreated }: { onCreated: (org: ApiOrg) => void }) {
           />
         </Field>
         <ErrorNote message={error} />
-        <Button type="submit" size="lg" disabled={busy || name.trim().length === 0}>
+        <Button type="submit" size="lg" loading={busy} disabled={name.trim().length === 0}>
           {busy ? "Creating…" : "Create organization"}
         </Button>
       </form>
@@ -347,7 +347,8 @@ function PlanStep({
         <Button
           size="lg"
           className="w-full sm:w-auto"
-          disabled={!selectedTier || selecting !== null}
+          loading={selecting !== null}
+          disabled={!selectedTier}
           onClick={() => selectedTier && void choose(selectedTier.key)}
         >
           {selecting !== null
@@ -450,7 +451,7 @@ function ProjectStep({
           />
         </Field>
         <ErrorNote message={error} />
-        <Button type="submit" size="lg" disabled={busy || name.trim().length === 0}>
+        <Button type="submit" size="lg" loading={busy} disabled={name.trim().length === 0}>
           {busy ? "Creating…" : "Create project"}
         </Button>
       </form>
@@ -594,7 +595,7 @@ function Checklist({
               onChange={(event) => setFlagName(event.target.value)}
               placeholder="Name your first flag, e.g. New checkout flow"
             />
-            <Button type="submit" size="lg" disabled={busy || flagName.trim().length === 0}>
+            <Button type="submit" size="lg" loading={busy} disabled={flagName.trim().length === 0}>
               {busy ? "Shipping…" : "Ship it"}
             </Button>
           </form>

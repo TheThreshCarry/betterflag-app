@@ -1,0 +1,149 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * ShipOS design tokens (DESIGN.md): warm paper canvas, charcoal ink,
+ * color only via chips. Same palette as the dashboard app.
+ */
+@theme {
+  --color-canvas: #ffffff;
+  --color-surface: #f6f5f3;
+  --color-surface-alt: #f4f3f1;
+  --color-line: #e8e4de;
+  --color-line-strong: #c8c4be;
+  --color-ink: #171717;
+  --color-ink-muted: #737373;
+
+  --color-chip-blue: #0067f4;
+  --color-chip-pink: #ff2c5f;
+  --color-chip-green: #00bc72;
+  --color-chip-orange: #ff5a1a;
+  --color-chip-gray: #737373;
+
+  --radius-chip: 9999px;
+  --radius-button: 16px;
+  --radius-control: 12px;
+  --radius-card: 24px;
+  --radius-panel: 28px;
+  --radius-section: 32px;
+
+  --shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.04);
+  --shadow-mockup: 0 12px 48px rgba(0, 0, 0, 0.09), 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    @apply font-sans;
+  }
+
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-size: 15px;
+    @apply bg-background text-foreground;
+  }
+
+  ::selection {
+    background: rgba(255, 90, 26, 0.15);
+  }
+  * {
+    @apply border-border outline-ring/50;
+  }
+}
+
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  /* Chart hues map to the ShipOS chips: blue is the workhorse series color,
+     green/orange/pink appear only with visible labels beside them. */
+  --chart-1: #0067f4;
+  --chart-2: #00bc72;
+  --chart-3: #ff5a1a;
+  --chart-4: #ff2c5f;
+  --chart-5: #737373;
+  --radius: 0.625rem;
+}
+
+/*
+ * Data entrance: content that replaces a skeleton blurs + fades in
+ * (same motion language as the dashboard).
+ */
+@keyframes data-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+.data-in {
+  animation: data-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .data-in {
+    animation: none;
+  }
+}

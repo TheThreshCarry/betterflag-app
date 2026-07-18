@@ -161,6 +161,9 @@ Decided by `billingDecisionForOrg` (apps/dashboard/lib/billing-status.ts):
   and write APIs return 402; **flags keep serving from the edge**.
 - Org WITH a synced status: the July-2026 lifecycle policy (active,
   14-day past_due grace, then read-only `restricted`).
+- Super-admin freeze (`orgs.frozen_at`, set from the shipos-admin app):
+  every control-plane write (dashboard, REST, MCP) returns 403 with code
+  `org_frozen` until unfrozen; reads and edge serving are unaffected.
 - Onboarding is org → **pick plan** (PATCH /api/v1/orgs/:id, no card) →
   project → first flag. `orgs.plan === 'trial'` means the plan step was
   never completed.

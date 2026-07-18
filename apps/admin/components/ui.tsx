@@ -1,6 +1,6 @@
 "use client";
 
-/** Shared UI primitives per DESIGN.md. Color arrives only through chips. */
+/** Shared UI primitives per DESIGN.md, ported from the dashboard app. */
 
 import { useEffect, useState, type ReactNode } from "react";
 
@@ -38,49 +38,21 @@ export function Chip({
 type ButtonVariant = "primary" | "secondary" | "danger" | "ghost";
 
 const BUTTON_CLASSES: Record<ButtonVariant, string> = {
-  primary:
-    "bg-ink text-white hover:opacity-90 disabled:opacity-40 disabled:hover:opacity-40",
-  secondary:
-    "bg-transparent border border-line text-ink hover:bg-surface disabled:opacity-40",
-  danger:
-    "bg-chip-pink/10 text-chip-pink hover:bg-chip-pink/20 disabled:opacity-40",
+  primary: "bg-ink text-white hover:opacity-90 disabled:opacity-40 disabled:hover:opacity-40",
+  secondary: "bg-transparent border border-line text-ink hover:bg-surface disabled:opacity-40",
+  danger: "bg-chip-pink/10 text-chip-pink hover:bg-chip-pink/20 disabled:opacity-40",
   ghost: "bg-transparent text-ink-muted hover:bg-surface hover:text-ink disabled:opacity-40",
 };
-
-export function Spinner({ size = 16, className = "" }: { size?: number; className?: string }) {
-  return (
-    <svg
-      className={`animate-spin ${className}`}
-      width={size}
-      height={size}
-      viewBox="0 0 16 16"
-      fill="none"
-      aria-hidden
-    >
-      <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="2" strokeOpacity="0.25" />
-      <path
-        d="M14 8a6 6 0 0 1-6 6"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
 
 export function Button({
   variant = "primary",
   size = "md",
   className = "",
   type = "button",
-  loading = false,
-  disabled,
-  children,
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: ButtonVariant;
   size?: "sm" | "md" | "lg";
-  loading?: boolean;
 }) {
   const sizing =
     size === "lg"
@@ -91,14 +63,9 @@ export function Button({
   return (
     <button
       type={type}
-      disabled={disabled || loading}
-      aria-busy={loading || undefined}
-      className={`inline-flex items-center justify-center gap-2 rounded-2xl font-medium transition-colors ${sizing} ${BUTTON_CLASSES[variant]} ${loading ? "cursor-wait !opacity-100" : ""} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-2xl font-medium transition-colors ${sizing} ${BUTTON_CLASSES[variant]} ${className}`}
       {...props}
-    >
-      {loading ? <Spinner size={size === "sm" ? 14 : 16} /> : null}
-      {children}
-    </button>
+    />
   );
 }
 
@@ -116,9 +83,6 @@ export function Card({
 
 export const inputClass =
   "h-10 w-full rounded-xl border border-line bg-white px-3.5 text-[14px] text-ink placeholder:text-ink-muted/60 outline-none focus:border-line-strong";
-
-export const textareaClass =
-  "w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-[13px] font-mono text-ink placeholder:text-ink-muted/60 outline-none focus:border-line-strong";
 
 export function Field({
   label,
@@ -143,13 +107,11 @@ export function Dialog({
   onClose,
   title,
   children,
-  wide = false,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   children: ReactNode;
-  wide?: boolean;
 }) {
   useEffect(() => {
     if (!open) return;
@@ -168,9 +130,7 @@ export function Dialog({
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <div
-        className={`max-h-[85vh] w-full ${wide ? "max-w-2xl" : "max-w-md"} overflow-y-auto rounded-3xl border border-line bg-white p-6 shadow-[0_12px_48px_rgba(0,0,0,0.09)]`}
-      >
+      <div className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-3xl border border-line bg-white p-6 shadow-[0_12px_48px_rgba(0,0,0,0.09)]">
         <div className="mb-4 flex items-start justify-between">
           <h2 className="text-[20px] font-semibold tracking-[-0.01em]">{title}</h2>
           <button
@@ -180,7 +140,12 @@ export function Dialog({
             className="rounded-lg p-1 text-ink-muted hover:bg-surface hover:text-ink"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-              <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              <path
+                d="M4 4l8 8M12 4l-8 8"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
             </svg>
           </button>
         </div>
@@ -190,52 +155,11 @@ export function Dialog({
   );
 }
 
-export function Toggle({
-  checked,
-  onChange,
-  disabled = false,
-  label,
-}: {
-  checked: boolean;
-  onChange: (next: boolean) => void;
-  disabled?: boolean;
-  label?: string;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-label={label}
-      disabled={disabled}
-      onClick={() => onChange(!checked)}
-      className={`relative h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-40 ${
-        checked ? "bg-chip-green" : "bg-line-strong"
-      }`}
-    >
-      <span
-        className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${
-          checked ? "left-[22px]" : "left-0.5"
-        }`}
-      />
-    </button>
-  );
-}
-
-export function EmptyState({
-  title,
-  body,
-  action,
-}: {
-  title: string;
-  body?: string;
-  action?: ReactNode;
-}) {
+export function EmptyState({ title, body }: { title: string; body?: string }) {
   return (
     <Card className="flex flex-col items-center gap-3 px-8 py-14 text-center">
       <h3 className="text-[20px] font-semibold tracking-[-0.01em]">{title}</h3>
       {body ? <p className="max-w-sm text-[14px] text-ink-muted">{body}</p> : null}
-      {action ? <div className="mt-2">{action}</div> : null}
     </Card>
   );
 }
@@ -246,24 +170,6 @@ export function ErrorNote({ message }: { message: string | null }) {
     <div className="rounded-xl bg-chip-pink/10 px-4 py-2.5 text-[13px] font-medium text-chip-pink">
       {message}
     </div>
-  );
-}
-
-export function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <Button
-      variant="secondary"
-      size="sm"
-      onClick={() => {
-        void navigator.clipboard.writeText(text).then(() => {
-          setCopied(true);
-          setTimeout(() => setCopied(false), 1500);
-        });
-      }}
-    >
-      {copied ? "Copied" : label}
-    </Button>
   );
 }
 
@@ -279,7 +185,7 @@ export function formatRelative(iso: string): string {
   if (hours < 24) return `${hours}h ago`;
   const days = Math.round(hours / 24);
   if (days < 30) return `${days}d ago`;
-  return new Date(iso).toLocaleDateString();
+  return new Date(iso).toLocaleDateString("en-US");
 }
 
 export function RelativeTime({ iso }: { iso: string }) {
@@ -289,16 +195,8 @@ export function RelativeTime({ iso }: { iso: string }) {
     return () => clearInterval(timer);
   }, []);
   return (
-    <time dateTime={iso} title={new Date(iso).toLocaleString()} suppressHydrationWarning>
+    <time dateTime={iso} title={new Date(iso).toLocaleString("en-US")} suppressHydrationWarning>
       {formatRelative(iso)}
     </time>
-  );
-}
-
-export function JsonBlock({ value }: { value: unknown }) {
-  return (
-    <pre className="max-h-64 overflow-auto rounded-xl border border-line bg-white p-3 font-mono text-[12px] leading-relaxed text-ink">
-      {JSON.stringify(value, null, 2)}
-    </pre>
   );
 }

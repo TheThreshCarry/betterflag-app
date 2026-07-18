@@ -203,7 +203,7 @@ function CreateProjectDialog({ open, onClose }: { open: boolean; onClose: () => 
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button disabled={!canSubmit} onClick={() => void submit()}>
+          <Button loading={busy} disabled={!canSubmit} onClick={() => void submit()}>
             {busy ? "Creating…" : "Create project"}
           </Button>
         </div>

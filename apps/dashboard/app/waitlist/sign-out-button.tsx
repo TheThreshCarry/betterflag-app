@@ -15,7 +15,7 @@ export function SignOutButton() {
   }
 
   return (
-    <Button variant="secondary" disabled={busy} onClick={() => void signOut()}>
+    <Button variant="secondary" loading={busy} onClick={() => void signOut()}>
       {busy ? "Signing out…" : "Use a different account"}
     </Button>
   );

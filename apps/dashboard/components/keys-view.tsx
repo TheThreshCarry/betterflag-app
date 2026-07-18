@@ -181,7 +181,7 @@ export function KeysView({ initialKeys }: { initialKeys: ApiApiKey[] }) {
               </Button>
               <Button
                 variant="danger"
-                disabled={busy}
+                loading={busy}
                 onClick={() => {
                   setBusy(true);
                   void api(`/api/v1/keys/${revokeTarget.id}`, { method: "DELETE" })
@@ -363,8 +363,8 @@ function CreateKeyDialog({
               Cancel
             </Button>
             <Button
+              loading={busy}
               disabled={
-                busy ||
                 name.trim().length === 0 ||
                 (kind === "sdk" && (!projectId || !environmentId)) ||
                 atAgentLimit

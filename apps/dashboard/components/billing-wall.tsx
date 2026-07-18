@@ -139,6 +139,7 @@ export function BillingWall({ userEmail }: { userEmail: string | null }) {
                     size="sm"
                     variant={tier.key === org.plan || tier.popular ? "primary" : "secondary"}
                     className="mt-4 w-full"
+                    loading={checkingOut === tier.key}
                     disabled={checkingOut !== null}
                     onClick={() => void startCheckout(tier.key)}
                   >

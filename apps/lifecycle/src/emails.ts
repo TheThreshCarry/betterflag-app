@@ -3,9 +3,11 @@
  * voice per the ShipOS positioning: personal "I", no corporate polish, the
  * product speaks through concrete things you can do.
  *
- * Palette: white canvas, ink #1F1E1C, muted #6F6A63, hairline #e8e4de,
- * orange #FF5A1A used once per email (the CTA). No images, so nothing to
- * block and nothing to load.
+ * Design: mirrors the ShipOS dashboard system. Warm paper canvas (#f4f3f1),
+ * a white card panel (24px radius, #e8e4de hairline) as the protagonist,
+ * charcoal ink (#171717) / muted (#737373) type, and orange (#ff5a1a) used
+ * exactly once per email as the CTA. Table-based and inline-styled so it
+ * survives Gmail/Outlook; no external images, so nothing to block or load.
  */
 
 export interface EmailContent {
@@ -18,44 +20,164 @@ export const FROM_ADDRESS = { email: "hi@shipos.app", name: "Mehdi from ShipOS" 
 
 const APP_URL = "https://app.shipos.app";
 
-function layout(bodyHtml: string): string {
+// Design tokens (kept in sync with apps/dashboard/app/globals.css).
+const INK = "#171717";
+const MUTED = "#737373";
+const LINE = "#e8e4de";
+const CANVAS = "#f4f3f1";
+const SURFACE = "#f6f5f3";
+const ORANGE = "#ff5a1a";
+const BADGE_DARK = "#222222";
+const TERMINAL_BAR = "#21252b";
+const TERMINAL_BODY = "#16181d";
+const GREEN = "#00bc72";
+
+const FONT =
+  "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+const MONO = "ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace";
+
+/** Hidden inbox-preview text (preheader). */
+function preheader(text: string): string {
+  return `<div style="display:none;overflow:hidden;line-height:1px;max-height:0;max-width:0;opacity:0;">${text}&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;</div>`;
+}
+
+/** The dark monogram badge + wordmark, drawn without images. */
+function brandLockup(): string {
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+    <td width="34" valign="middle" align="center" height="34" bgcolor="${BADGE_DARK}" style="width:34px;height:34px;border-radius:9px;color:#ffffff;font-family:${FONT};font-size:15px;font-weight:700;line-height:34px;text-align:center;">S</td>
+    <td width="10" style="width:10px;">&nbsp;</td>
+    <td valign="middle" style="font-family:${FONT};font-size:16px;font-weight:600;letter-spacing:-0.01em;color:${INK};">ShipOS</td>
+  </tr></table>`;
+}
+
+/** Eyebrow: 12px uppercase, tracked, orange. */
+function eyebrow(label: string): string {
+  return `<p style="margin:0 0 12px;font-family:${FONT};font-size:12px;font-weight:600;letter-spacing:0.09em;text-transform:uppercase;color:${ORANGE};">${label}</p>`;
+}
+
+/** Display headline: weight 600, negative tracking. */
+function heading(text: string): string {
+  return `<h1 style="margin:0 0 20px;font-family:${FONT};font-size:24px;line-height:1.25;font-weight:600;letter-spacing:-0.02em;color:${INK};">${text}</h1>`;
+}
+
+function para(html: string): string {
+  return `<p style="margin:0 0 16px;font-family:${FONT};font-size:15px;line-height:1.65;color:${INK};">${html}</p>`;
+}
+
+function mutedPara(html: string): string {
+  return `<p style="margin:0 0 16px;font-family:${FONT};font-size:15px;line-height:1.65;color:${MUTED};">${html}</p>`;
+}
+
+/** Inline code chip. */
+function code(text: string): string {
+  return `<span style="font-family:${MONO};font-size:13px;background:${SURFACE};border:1px solid ${LINE};padding:2px 6px;border-radius:6px;color:${INK};">${text}</span>`;
+}
+
+/** Warm surface callout panel. */
+function panel(inner: string): string {
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;"><tr>
+    <td style="background:${SURFACE};border:1px solid ${LINE};border-radius:12px;padding:18px 20px;">${inner}</td>
+  </tr></table>`;
+}
+
+/** Dark terminal / config panel. */
+function terminal(title: string, lines: string): string {
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;"><tr>
+    <td style="background:${TERMINAL_BAR};border-radius:12px 12px 0 0;padding:10px 16px;font-family:${MONO};font-size:12px;color:#9aa4b2;letter-spacing:0.02em;">${title}</td>
+  </tr><tr>
+    <td style="background:${TERMINAL_BODY};border-radius:0 0 12px 12px;padding:16px 18px;font-family:${MONO};font-size:13px;line-height:1.7;color:#c9d1d9;">${lines}</td>
+  </tr></table>`;
+}
+
+/** Bulletproof orange CTA button. */
+function cta(href: string, label: string): string {
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 28px;"><tr>
+    <td align="center" bgcolor="${ORANGE}" style="border-radius:12px;">
+      <a href="${href}" style="display:inline-block;font-family:${FONT};font-size:15px;font-weight:600;line-height:1;color:#ffffff;text-decoration:none;padding:14px 26px;border-radius:12px;">${label} &rarr;</a>
+    </td>
+  </tr></table>`;
+}
+
+interface LayoutOpts {
+  preview: string;
+  eyebrow: string;
+  heading: string;
+  body: string;
+}
+
+function layout(opts: LayoutOpts): string {
   return `<!doctype html>
-<html>
-  <body style="margin:0;padding:0;background:#ffffff;">
-    <div style="max-width:560px;margin:0 auto;padding:40px 24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1F1E1C;font-size:15px;line-height:1.65;">
-      <p style="margin:0 0 28px;font-size:14px;font-weight:600;letter-spacing:-0.01em;">ShipOS</p>
-      ${bodyHtml}
-      <hr style="border:none;border-top:1px solid #e8e4de;margin:32px 0 16px;" />
-      <p style="margin:0;font-size:12px;color:#6F6A63;">
-        You're getting this because you created a ShipOS account.
-        This is a short 3-email onboarding series, then I'll leave your inbox alone.
-        Reply any time, it lands in my actual inbox.
-      </p>
-    </div>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <meta name="supported-color-schemes" content="light" />
+  </head>
+  <body style="margin:0;padding:0;background:${CANVAS};-webkit-font-smoothing:antialiased;">
+    ${preheader(opts.preview)}
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${CANVAS};">
+      <tr>
+        <td align="center" style="padding:32px 16px;">
+          <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;">
+            <tr>
+              <td style="padding:0 4px 20px;">${brandLockup()}</td>
+            </tr>
+            <tr>
+              <td style="background:#ffffff;border:1px solid ${LINE};border-radius:24px;padding:40px 36px;">
+                ${eyebrow(opts.eyebrow)}
+                ${heading(opts.heading)}
+                ${opts.body}
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:20px 24px 0;">
+                <p style="margin:0 0 6px;font-family:${FONT};font-size:12px;line-height:1.6;color:${MUTED};">
+                  You're getting this because you created a ShipOS account. It's a short 3-email onboarding series, then I'll leave your inbox alone. Reply any time, it lands in my actual inbox.
+                </p>
+                <p style="margin:0;font-family:${FONT};font-size:12px;line-height:1.6;color:#a3a3a3;">
+                  ShipOS &middot; Feature flags with no seat tax and no MAU bill.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
   </body>
 </html>`;
 }
 
-function cta(href: string, label: string): string {
-  return `<p style="margin:24px 0;"><a href="${href}" style="display:inline-block;background:#FF5A1A;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:11px 20px;border-radius:8px;">${label}</a></p>`;
-}
-
 const TEXT_FOOTER =
-  "\n\n---\nYou're getting this because you created a ShipOS account. This is a short 3-email onboarding series, then I'll leave your inbox alone. Reply any time, it lands in my actual inbox.";
+  "\n\n---\nYou're getting this because you created a ShipOS account. It's a short 3-email onboarding series, then I'll leave your inbox alone. Reply any time, it lands in my actual inbox.";
 
 /** Day 0 - welcome, sent right after org creation. */
 export function welcomeEmail(orgName: string): EmailContent {
   const subject = "Welcome to ShipOS: your first flag is 5 minutes away";
-  const html = layout(`
-      <p style="margin:0 0 16px;">Hey, Mehdi here. I built ShipOS.</p>
-      <p style="margin:0 0 16px;">Thanks for creating <strong>${escapeHtml(orgName)}</strong>. Here's the whole pitch in one line: unlimited flags, seats and environments, one meter (evaluations), served from the edge in under 100ms. No seat tax, no MAU bill.</p>
-      <p style="margin:0 0 16px;">The fastest way to feel it: create a flag, curl the edge, watch it flip. The onboarding checklist walks you through it in about 5 minutes.</p>
-      ${cta(`${APP_URL}/onboarding`, "Ship your first flag")}
-      <p style="margin:0 0 16px;">Your 14-day trial is running: every feature, no card. If anything feels off, hit reply and tell me. I read all of it.</p>
-      <p style="margin:0;">- Mehdi</p>`);
+  const body = `
+    ${para("Hey, Mehdi here. I built ShipOS.")}
+    ${para(`Thanks for creating <strong style="color:${INK};">${escapeHtml(orgName)}</strong>. Here's the whole pitch in one line:`)}
+    ${panel(
+      `<p style="margin:0 0 10px;font-family:${FONT};font-size:15px;line-height:1.55;font-weight:600;color:${INK};">Unlimited flags, seats and environments. One meter (evaluations). Served from the edge in under 50ms.</p>
+       <p style="margin:0;font-family:${FONT};font-size:14px;line-height:1.55;color:${MUTED};">No seat tax. No MAU bill.</p>`,
+    )}
+    ${para(
+      "The fastest way to feel it: create a flag, curl the edge, watch it flip. The onboarding checklist walks you through it in about 5 minutes.",
+    )}
+    ${cta(`${APP_URL}/onboarding`, "Ship your first flag")}
+    ${mutedPara(
+      "Your 14-day trial is running: every feature, no card. If anything feels off, hit reply and tell me. I read all of it.",
+    )}
+    ${para("- Mehdi")}`;
+  const html = layout({
+    preview: "Create a flag, curl the edge, watch it flip. About 5 minutes.",
+    eyebrow: "Welcome",
+    heading: "Your first flag is 5 minutes away",
+    body,
+  });
   const text = `Hey, Mehdi here. I built ShipOS.
 
-Thanks for creating ${orgName}. Here's the whole pitch in one line: unlimited flags, seats and environments, one meter (evaluations), served from the edge in under 100ms. No seat tax, no MAU bill.
+Thanks for creating ${orgName}. Here's the whole pitch in one line: unlimited flags, seats and environments, one meter (evaluations), served from the edge in under 50ms. No seat tax, no MAU bill.
 
 The fastest way to feel it: create a flag, curl the edge, watch it flip. The onboarding checklist walks you through it in about 5 minutes.
 
@@ -70,18 +192,49 @@ Your 14-day trial is running: every feature, no card. If anything feels off, hit
 /** Day 3 - the agentic angle: MCP server, agent keys, audit trail. */
 export function agenticEmail(): EmailContent {
   const subject = "Let your agent manage your flags (this is the good part)";
-  const html = layout(`
-      <p style="margin:0 0 16px;">The thing that makes ShipOS different: your coding agent can drive it.</p>
-      <p style="margin:0 0 16px;">Point Claude Code or Cursor at <code style="font-family:ui-monospace,Menlo,monospace;font-size:13px;background:#F6F5F3;padding:2px 6px;border-radius:4px;">mcp.shipos.app</code> with an agent key and it can create flags, set targeting, stage a 10% rollout, and kill a bad feature, all without you opening the dashboard. Every action lands in the audit log attributed to the agent, not mushed in with human changes.</p>
-      <p style="margin:0 0 16px;">Setup is one key and one config block:</p>
-      <ol style="margin:0 0 16px;padding-left:20px;">
-        <li style="margin-bottom:6px;">Mint an agent key on the <a href="${APP_URL}/keys" style="color:#1F1E1C;">Keys page</a></li>
-        <li style="margin-bottom:6px;">Add the MCP server to your agent's config</li>
-        <li>Ask it to "create a flag and roll it out to 10%"</li>
-      </ol>
-      ${cta(`${APP_URL}/keys`, "Mint an agent key")}
-      <p style="margin:0 0 16px;">ShipOS - Feature Flags made easy. Unlimited seats on every plan.</p>
-      <p style="margin:0;">- Mehdi</p>`);
+  const steps = [
+    `Mint an agent key on the <a href="${APP_URL}/keys" style="color:${INK};font-weight:600;text-decoration:underline;">Keys page</a>`,
+    "Add the MCP server to your agent's config",
+    `Ask it to "create a flag and roll it out to 10%"`,
+  ]
+    .map(
+      (step, i) =>
+        `<tr>
+          <td width="26" valign="top" style="padding:0 12px 12px 0;">
+            <span style="display:inline-block;width:22px;height:22px;background:${SURFACE};border:1px solid ${LINE};border-radius:9999px;font-family:${MONO};font-size:12px;font-weight:600;line-height:22px;text-align:center;color:${INK};">${i + 1}</span>
+          </td>
+          <td valign="top" style="padding:0 0 12px;font-family:${FONT};font-size:15px;line-height:1.5;color:${INK};">${step}</td>
+        </tr>`,
+    )
+    .join("");
+  const body = `
+    ${para("The thing that makes ShipOS different: your coding agent can drive it.")}
+    ${para(
+      `Point Claude Code or Cursor at ${code("mcp.shipos.app")} with an agent key and it can create flags, set targeting, stage a 10% rollout, and kill a bad feature, all without you opening the dashboard. Every action lands in the audit log attributed to the agent, not mushed in with human changes.`,
+    )}
+    ${terminal(
+      ".mcp.json",
+      `<span style="color:#8b949e;">{</span><br />
+&nbsp;&nbsp;<span style="color:#79c0ff;">"mcpServers"</span>: {<br />
+&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#79c0ff;">"shipos"</span>: {<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#79c0ff;">"type"</span>: <span style="color:${GREEN};">"http"</span>,<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#79c0ff;">"url"</span>: <span style="color:${GREEN};">"https://mcp.shipos.app/mcp"</span>,<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#79c0ff;">"headers"</span>: { <span style="color:#79c0ff;">"Authorization"</span>: <span style="color:${GREEN};">"Bearer sos_agt_..."</span> }<br />
+&nbsp;&nbsp;&nbsp;&nbsp;}<br />
+&nbsp;&nbsp;}<br />
+<span style="color:#8b949e;">}</span>`,
+    )}
+    ${para(`<strong style="color:${INK};">Setup is one key and one config block:</strong>`)}
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 8px;">${steps}</table>
+    ${cta(`${APP_URL}/keys`, "Mint an agent key")}
+    ${mutedPara("Feature flags made easy, with unlimited seats on every plan.")}
+    ${para("- Mehdi")}`;
+  const html = layout({
+    preview: "Point Claude Code or Cursor at mcp.shipos.app and let it ship.",
+    eyebrow: "Agentic",
+    heading: "Let your agent manage your flags",
+    body,
+  });
   const text = `The thing that makes ShipOS different: your coding agent can drive it.
 
 Point Claude Code or Cursor at mcp.shipos.app with an agent key and it can create flags, set targeting, stage a 10% rollout, and kill a bad feature, all without you opening the dashboard. Every action lands in the audit log attributed to the agent, not mushed in with human changes.
@@ -92,7 +245,7 @@ Setup is one key and one config block:
 2. Add the MCP server to your agent's config
 3. Ask it to "create a flag and roll it out to 10%"
 
-ShipOS - Feature Flags made easy. Unlimited seats on every plan.
+Feature flags made easy, with unlimited seats on every plan.
 
 - Mehdi${TEXT_FOOTER}`;
   return { subject, html, text };
@@ -103,18 +256,39 @@ export function trialEndingEmail(daysLeft: number): EmailContent {
   const days = Math.max(daysLeft, 0);
   const when = days === 0 ? "today" : days === 1 ? "tomorrow" : `in ${days} days`;
   const subject = `Your ShipOS trial ends ${when}`;
-  const html = layout(`
-      <p style="margin:0 0 16px;">Quick heads-up: your trial ends <strong>${when}</strong>.</p>
-      <p style="margin:0 0 16px;">Here's what happens if you do nothing: your flags <em>keep serving from the edge</em> (I will never break your production over billing), but the dashboard and API go read-only until you pick a plan.</p>
-      <p style="margin:0 0 16px;">Plans start at $9.99/mo for 1M evaluations, and every tier has unlimited flags, seats and environments. Public pricing, no "contact sales".</p>
-      ${cta(`${APP_URL}/settings`, "Pick a plan")}
-      <p style="margin:0 0 16px;">Not convinced? Reply and tell me why: worst case you help me fix something, best case I change your mind.</p>
-      <p style="margin:0;">- Mehdi</p>`);
+  const body = `
+    ${para(`Quick heads-up: your trial ends <strong style="color:${INK};">${when}</strong>.`)}
+    ${panel(
+      `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td valign="top" width="18" style="padding:0 10px 8px 0;font-family:${FONT};font-size:14px;color:${GREEN};">&#10003;</td>
+          <td valign="top" style="padding:0 0 8px;font-family:${FONT};font-size:14px;line-height:1.5;color:${INK};">Your flags <strong>keep serving from the edge</strong>. I will never break your production over billing.</td>
+        </tr>
+        <tr>
+          <td valign="top" width="18" style="padding:0 10px 0 0;font-family:${FONT};font-size:14px;color:${MUTED};">&middot;</td>
+          <td valign="top" style="font-family:${FONT};font-size:14px;line-height:1.5;color:${MUTED};">The dashboard and API go read-only until you pick a plan.</td>
+        </tr>
+      </table>`,
+    )}
+    ${para(
+      "Plans start at $9.99/mo for 2M evaluations, and every tier has unlimited flags, seats and environments. Public pricing, no \"contact sales\".",
+    )}
+    ${cta(`${APP_URL}/settings`, "Pick a plan")}
+    ${mutedPara(
+      "Not convinced? Reply and tell me why: worst case you help me fix something, best case I change your mind.",
+    )}
+    ${para("- Mehdi")}`;
+  const html = layout({
+    preview: `Your ShipOS trial ends ${when}. Your flags keep serving either way.`,
+    eyebrow: "Trial",
+    heading: `Your trial ends ${when}`,
+    body,
+  });
   const text = `Quick heads-up: your trial ends ${when}.
 
 Here's what happens if you do nothing: your flags keep serving from the edge (I will never break your production over billing), but the dashboard and API go read-only until you pick a plan.
 
-Plans start at $9.99/mo for 1M evaluations, and every tier has unlimited flags, seats and environments. Public pricing, no "contact sales".
+Plans start at $9.99/mo for 2M evaluations, and every tier has unlimited flags, seats and environments. Public pricing, no "contact sales".
 
 Pick a plan: ${APP_URL}/settings
 

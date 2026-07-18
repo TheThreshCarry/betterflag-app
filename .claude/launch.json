@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "admin",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "--cwd", "apps/admin", "dev"],
+      "port": 3100
+    },
+    {
+      "name": "dashboard",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "--cwd", "apps/dashboard", "dev"],
+      "port": 3000
+    }
+  ]
+}

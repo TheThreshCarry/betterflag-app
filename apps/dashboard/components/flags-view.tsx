@@ -294,7 +294,7 @@ function CreateProjectButton() {
             <Button variant="secondary" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={busy || !name}>
+            <Button type="submit" loading={busy} disabled={!name}>
               {busy ? "Creating…" : "Create project"}
             </Button>
           </div>
@@ -434,7 +434,7 @@ function NewFlagDialog({
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" disabled={busy || !name || !(key || slugifyFlagKey(name))}>
+          <Button type="submit" loading={busy} disabled={!name || !(key || slugifyFlagKey(name))}>
             {busy ? "Creating…" : "Create flag"}
           </Button>
         </div>
