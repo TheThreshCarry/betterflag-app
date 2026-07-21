@@ -23,14 +23,26 @@
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
 import { formatRelease, readObservability } from "@shipos/observability";
 
-import { agenticEmail, trialEndingEmail, welcomeEmail, FROM_ADDRESS, type EmailContent } from "./emails";
 import {
+  agenticEmail,
+  trialEndingEmail,
+  trialEndingUpsellEmail,
+  welcomeEmail,
+  FROM_ADDRESS,
+  type EmailContent,
+} from "./emails";
+import {
+  fetchTemplate,
   hasActiveSubscription,
   instanceIdFor,
   isAuthorized,
   readOrgState,
   trialDaysLeft,
+  trialEndsWhen,
+  trialUpsellRecommendation,
   welcomeParamsSchema,
+  type ClickhouseEnv,
+  type SupabaseEnv,
   type WelcomeParams,
 } from "./sequence";
 import { VERSION } from "./version.gen";
@@ -49,6 +61,12 @@ export interface LifecycleEnv {
   SUPABASE_URL: string;
   /** Secret, `wrangler secret put SUPABASE_SERVICE_ROLE_KEY`. */
   SUPABASE_SERVICE_ROLE_KEY: string;
+  /** ClickHouse usage meter (read-only) for the day-10 tier upsell. Optional:
+   *  when unset the day-10 email falls back to the generic trial-ending copy. */
+  CLICKHOUSE_URL?: string;
+  CLICKHOUSE_USER?: string;
+  /** Secret, `wrangler secret put CLICKHOUSE_PASSWORD`. */
+  CLICKHOUSE_PASSWORD?: string;
   BETTER_STACK_SOURCE_TOKEN?: string;
   BETTER_STACK_LOGS_ENDPOINT?: string;
   OTEL_EXPORTER_OTLP_ENDPOINT?: string;
@@ -61,6 +79,26 @@ export interface LifecycleEnv {
 // ---------------------------------------------------------------------------
 // The workflow
 // ---------------------------------------------------------------------------
+
+/**
+ * Prefer the admin-edited template from the DB; fall back to the built-in
+ * default if it's missing or the lookup fails, so email always goes out even
+ * if the email_templates row was deleted or Supabase hiccups.
+ */
+async function resolveEmail(
+  env: SupabaseEnv,
+  key: string,
+  vars: Record<string, string | number | null | undefined>,
+  fallback: EmailContent,
+): Promise<EmailContent> {
+  try {
+    const fromDb = await fetchTemplate(env, key, vars);
+    if (fromDb) return fromDb;
+  } catch (error) {
+    console.error(`lifecycle: template "${key}" lookup failed, using default`, error);
+  }
+  return fallback;
+}
 
 async function send(email: SendEmail, to: string, content: EmailContent): Promise<string> {
   const result = await email.send({
@@ -84,7 +122,13 @@ export class WelcomeSequence extends WorkflowEntrypoint<LifecycleEnv, WelcomePar
 
     // Day 0 - welcome.
     await step.do("send welcome email", async () => {
-      return await send(this.env.EMAIL, params.email, welcomeEmail(params.orgName));
+      const content = await resolveEmail(
+        this.env,
+        "welcome",
+        { orgName: params.orgName },
+        welcomeEmail(params.orgName),
+      );
+      return await send(this.env.EMAIL, params.email, content);
     });
 
     await step.sleep("wait until day 3", "3 days");
@@ -95,7 +139,8 @@ export class WelcomeSequence extends WorkflowEntrypoint<LifecycleEnv, WelcomePar
     });
     if (!day3.exists) return;
     await step.do("send agentic setup email", async () => {
-      return await send(this.env.EMAIL, params.email, agenticEmail());
+      const content = await resolveEmail(this.env, "agentic", {}, agenticEmail());
+      return await send(this.env.EMAIL, params.email, content);
     });
 
     await step.sleep("wait until day 10", "7 days");
@@ -105,9 +150,30 @@ export class WelcomeSequence extends WorkflowEntrypoint<LifecycleEnv, WelcomePar
       return await readOrgState(this.env, params.orgId);
     });
     if (!day10.exists || hasActiveSubscription(day10)) return;
+
+    // If trial usage pro-rates past the Starter tier, offer the tier that
+    // actually fits (Launch/Scale/volume) instead of the generic copy. A null
+    // recommendation (no ClickHouse, no usage, or Starter still fits) falls
+    // back to the standard trial-ending email.
+    const upsell = await step.do("read trial usage (day 10)", async () => {
+      return await trialUpsellRecommendation(this.env, params.orgId, day10.trialEndsAt);
+    });
+
     await step.do("send trial-ending email", async () => {
       const daysLeft = trialDaysLeft(day10.trialEndsAt);
-      return await send(this.env.EMAIL, params.email, trialEndingEmail(daysLeft));
+      // The upsell variant's copy branches on usage (named tier vs. "past
+      // Scale"), which a static admin merge-template can't express, so it's
+      // code-managed and sent directly. The generic path stays admin-editable.
+      if (upsell) {
+        return await send(this.env.EMAIL, params.email, trialEndingUpsellEmail(daysLeft, upsell));
+      }
+      const content = await resolveEmail(
+        this.env,
+        "trial-ending",
+        { when: trialEndsWhen(daysLeft) },
+        trialEndingEmail(daysLeft),
+      );
+      return await send(this.env.EMAIL, params.email, content);
     });
   }
 }

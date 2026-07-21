@@ -135,12 +135,16 @@ export function AnalyticsView() {
       </div>
 
       {error ? <ErrorNote message={error} /> : null}
-      {!error && !data ? <AnalyticsSkeleton /> : null}
-      {!error && data ? (
-        <div className="data-in">
-          <AnalyticsContent data={data} />
-        </div>
-      ) : null}
+      {/* Stable min-height so the page doesn't reflow as the view moves between
+          skeleton, empty and loaded states (each has a different height). */}
+      <div className="min-h-[460px]">
+        {!error && !data ? <AnalyticsSkeleton /> : null}
+        {!error && data ? (
+          <div className="data-in">
+            <AnalyticsContent data={data} />
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }

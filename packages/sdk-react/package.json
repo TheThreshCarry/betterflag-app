@@ -1,6 +1,6 @@
 {
-  "name": "@shiposapp/react",
-  "version": "0.1.0",
+  "name": "shipos-react",
+  "version": "0.1.1",
   "description": "React hooks and provider for ShipOS feature flags",
   "license": "MIT",
   "type": "module",
@@ -28,7 +28,7 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@shiposapp/sdk": "workspace:*"
+    "shipos": "workspace:*"
   },
   "peerDependencies": {
     "react": ">=18"

@@ -10,6 +10,11 @@
  * survives Gmail/Outlook; no external images, so nothing to block or load.
  */
 
+import { formatEvals, UPSELL_TIERS, type TierRecommendation } from "./sequence";
+
+/** Included evaluations on the entry (Starter) tier, from the live catalog. */
+const STARTER_EVALS = UPSELL_TIERS[0].includedEvalsPerMonth;
+
 export interface EmailContent {
   subject: string;
   html: string;
@@ -293,6 +298,71 @@ Plans start at $9.99/mo for 2M evaluations, and every tier has unlimited flags, 
 Pick a plan: ${APP_URL}/settings
 
 Not convinced? Reply and tell me why: worst case you help me fix something, best case I change your mind.
+
+- Mehdi${TEXT_FOOTER}`;
+  return { subject, html, text };
+}
+
+/**
+ * Day 10 - trial ending, usage-aware variant. Sent instead of the generic
+ * trial-ending email when the org's trial usage pro-rates past the Starter
+ * tier: it names the projected monthly usage and offers the tier that fits
+ * (Launch, Scale, or a volume conversation past Scale). Only sent for orgs
+ * with no active subscription, same gate as `trialEndingEmail`.
+ */
+export function trialEndingUpsellEmail(daysLeft: number, rec: TierRecommendation): EmailContent {
+  const days = Math.max(daysLeft, 0);
+  const when = days === 0 ? "today" : days === 1 ? "tomorrow" : `in ${days} days`;
+  const projected = formatEvals(rec.projectedMonthlyEvals);
+  const subject = rec.exceedsTopTier
+    ? `You're running ${projected} evaluations a month, let's talk`
+    : `Your usage is past Starter, ${rec.tier.name} is the fit`;
+
+  const recRow = rec.exceedsTopTier
+    ? `<p style="margin:0 0 6px;font-family:${FONT};font-size:15px;line-height:1.55;font-weight:600;color:${INK};">You're past even Scale's ${formatEvals(rec.tier.includedEvalsPerMonth)}/mo.</p>
+       <p style="margin:0;font-family:${FONT};font-size:14px;line-height:1.55;color:${MUTED};">Reply to this email and I'll set you up with volume pricing that fits.</p>`
+    : `<p style="margin:0 0 6px;font-family:${FONT};font-size:15px;line-height:1.55;font-weight:600;color:${INK};">${rec.tier.name} covers ${formatEvals(rec.tier.includedEvalsPerMonth)} evaluations / mo at ${rec.tier.price}/mo.</p>
+       <p style="margin:0;font-family:${FONT};font-size:14px;line-height:1.55;color:${MUTED};">Unlimited flags, seats and environments, same as every plan. You only move up the one meter.</p>`;
+
+  const ctaBlock = rec.exceedsTopTier
+    ? cta(`${APP_URL}/settings`, "See your plans")
+    : cta(`${APP_URL}/settings`, `Pick ${rec.tier.name}`);
+
+  const body = `
+    ${para(`Quick heads-up: your trial ends <strong style="color:${INK};">${when}</strong>, and you've been busy.`)}
+    ${para(
+      `At your current pace you're on track for about <strong style="color:${INK};">${projected} evaluations a month</strong>. That's past the Starter tier (${formatEvals(STARTER_EVALS)}/mo), so Starter would run into overage on day one.`,
+    )}
+    ${panel(recRow)}
+    ${para(
+      "Nothing breaks in the meantime: your flags keep serving from the edge, I will never take down your production over billing. The dashboard and API just go read-only until you pick a plan.",
+    )}
+    ${ctaBlock}
+    ${mutedPara(
+      "Numbers look off, or you expected a spike that won't repeat? Reply and tell me, I'll help you land on the right plan.",
+    )}
+    ${para("- Mehdi")}`;
+  const html = layout({
+    preview: `You're on track for ~${projected} evaluations a month. Here's the plan that fits.`,
+    eyebrow: "Trial",
+    heading: rec.exceedsTopTier ? `You've outgrown self-serve` : `You've outgrown Starter`,
+    body,
+  });
+
+  const textRec = rec.exceedsTopTier
+    ? `You're past even Scale's ${formatEvals(rec.tier.includedEvalsPerMonth)}/mo. Reply to this email and I'll set you up with volume pricing that fits.`
+    : `${rec.tier.name} covers ${formatEvals(rec.tier.includedEvalsPerMonth)} evaluations/mo at ${rec.tier.price}/mo, with unlimited flags, seats and environments like every plan.`;
+  const text = `Quick heads-up: your trial ends ${when}, and you've been busy.
+
+At your current pace you're on track for about ${projected} evaluations a month. That's past the Starter tier (${formatEvals(STARTER_EVALS)}/mo), so Starter would run into overage on day one.
+
+${textRec}
+
+Nothing breaks in the meantime: your flags keep serving from the edge (I will never take down your production over billing). The dashboard and API just go read-only until you pick a plan.
+
+Pick a plan: ${APP_URL}/settings
+
+Numbers look off, or you expected a spike that won't repeat? Reply and tell me, I'll help you land on the right plan.
 
 - Mehdi${TEXT_FOOTER}`;
   return { subject, html, text };

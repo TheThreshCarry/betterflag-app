@@ -30,8 +30,8 @@ const DOCS: Record<DocTopic, { title: string; body: string }> = {
 Call read_docs with one of these topics:
 
 - quickstart: ship your first flag in 5 minutes (key, install, evaluate)
-- sdk-js: @shiposapp/sdk for Node and the browser (API + config reference)
-- sdk-react: @shiposapp/react hooks, Next.js App Router patterns, SSR
+- sdk-js: shipos for Node and the browser (API + config reference)
+- sdk-react: shipos-react hooks, Next.js App Router patterns, SSR
 - mcp-setup: connect this MCP server (OAuth or agent key, .mcp.json)
 - targeting: targeting rule format and operators for set_targeting
 - concepts: environments, rollouts, kill switch, key types, audit log
@@ -50,11 +50,11 @@ Full web documentation: https://docs.shipos.app`,
 2. Install and evaluate:
 
 \`\`\`bash
-npm i @shiposapp/sdk
+npm i shipos
 \`\`\`
 
 \`\`\`ts
-import { createClient } from "@shiposapp/sdk";
+import { createClient } from "shipos";
 
 const shipos = createClient({ key: "sos_sdk_your_key_here" });
 
@@ -74,18 +74,18 @@ topic "sdk-js" or https://docs.shipos.app`,
   },
 
   "sdk-js": {
-    title: "@shiposapp/sdk: Node & browser SDK",
-    body: `# @shiposapp/sdk
+    title: "shipos: Node & browser SDK",
+    body: `# shipos
 
 Feature flags for Node and the browser. Zero dependencies. Never throws.
 Works offline.
 
 \`\`\`bash
-npm i @shiposapp/sdk
+npm i shipos
 \`\`\`
 
 \`\`\`ts
-import { createClient } from "@shiposapp/sdk";
+import { createClient } from "shipos";
 
 const shipos = createClient({ key: "sos_sdk_..." });
 const enabled = await shipos.flag("new-checkout", { userId: "u_42", default: false });
@@ -167,18 +167,18 @@ shipos.on("update", async () => {
   },
 
   "sdk-react": {
-    title: "@shiposapp/react: hooks & Next.js",
-    body: `# @shiposapp/react
+    title: "shipos-react: hooks & Next.js",
+    body: `# shipos-react
 
 React hooks for ShipOS flags. SSR-safe (useSyncExternalStore), live-updating,
-built on @shiposapp/sdk. Hooks never throw; they fall back to your defaults.
+built on shipos. Hooks never throw; they fall back to your defaults.
 
 \`\`\`bash
-npm i @shiposapp/react
+npm i shipos-react
 \`\`\`
 
 \`\`\`tsx
-import { ShipOSProvider, useFlag } from "@shiposapp/react";
+import { ShipOSProvider, useFlag } from "shipos-react";
 
 function App() {
   return (
@@ -205,7 +205,7 @@ The provider owns a browser-side client, so it lives in a client component:
 \`\`\`tsx
 // app/providers.tsx
 "use client";
-import { ShipOSProvider } from "@shiposapp/react";
+import { ShipOSProvider } from "shipos-react";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -231,10 +231,10 @@ Leave the provider's user prop unset when driving identity this way.
 
 ## Server side (RSC, route handlers, middleware)
 
-Hooks are client-only; use @shiposapp/sdk directly:
+Hooks are client-only; use shipos directly:
 
 \`\`\`tsx
-import { createClient } from "@shiposapp/sdk";
+import { createClient } from "shipos";
 const shipos = createClient({ key: process.env.SHIPOS_SDK_KEY! });
 const enabled = await shipos.flag("new-hero", { default: false });
 \`\`\`
@@ -395,7 +395,7 @@ clearKill) before re-enabling.
 ## Key types
 
 - sos_sdk_* - SDK keys: publishable, evaluation-only, safe in browsers.
-  Used by @shiposapp/sdk against edge.shipos.app.
+  Used by shipos against edge.shipos.app.
 - sos_agt_* - agent keys: management access for MCP/REST, scoped and
   audited by key prefix. What agents should use.
 - sos_adm_* - admin keys: management access for humans/CI.

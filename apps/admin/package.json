@@ -9,8 +9,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@react-email/editor": "^1.6.10",
     "@shipos/core": "workspace:*",
     "@shipos/db": "workspace:*",
+    "@shipos/emails": "workspace:*",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.110.0",
     "clsx": "^2.1.1",

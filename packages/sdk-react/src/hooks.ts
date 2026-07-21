@@ -3,7 +3,7 @@ import {
   type EvaluationContext,
   type JsonValue,
   type ShipOSClient,
-} from "@shiposapp/sdk";
+} from "shipos";
 import { useContext, useMemo, useSyncExternalStore } from "react";
 import { ShipOSContext, type ShipOSContextValue } from "./context";
 import { createFlagStore, type FlagState } from "./store";

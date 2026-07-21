@@ -103,6 +103,26 @@ function SettingsContent({ org }: { org: ApiOrg }) {
 
   const [checkingOut, setCheckingOut] = useState<string | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [openingPortal, setOpeningPortal] = useState(false);
+
+  // A Polar customer exists once the org has subscribed; the portal only makes
+  // sense in those states. Pure trial / expired orgs use the checkout flow.
+  const hasBillingAccount =
+    org.billingState === "active" ||
+    org.billingState === "grace" ||
+    org.billingState === "restricted";
+
+  async function openBillingPortal() {
+    setCheckoutError(null);
+    setOpeningPortal(true);
+    try {
+      const { url } = await api<{ url: string }>("/api/v1/portal", { method: "POST" });
+      window.location.href = url;
+    } catch (err) {
+      setCheckoutError(err instanceof Error ? err.message : "Could not open billing portal");
+      setOpeningPortal(false);
+    }
+  }
 
   async function startCheckout(plan: string) {
     setCheckoutError(null);
@@ -143,10 +163,23 @@ function SettingsContent({ org }: { org: ApiOrg }) {
               </span>
             ) : null}
           </div>
-          <Chip color={org.billingState === "trialing" ? "orange" : "green"}>
-            {org.plan}
-            {org.billingState === "trialing" ? " (trial)" : ""}
-          </Chip>
+          <div className="flex items-center gap-3">
+            {hasBillingAccount ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                loading={openingPortal}
+                disabled={openingPortal}
+                onClick={() => void openBillingPortal()}
+              >
+                Manage billing
+              </Button>
+            ) : null}
+            <Chip color={org.billingState === "trialing" ? "orange" : "green"}>
+              {org.plan}
+              {org.billingState === "trialing" ? " (trial)" : ""}
+            </Chip>
+          </div>
         </div>
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
           <div className="rounded-2xl border border-line bg-white p-4">

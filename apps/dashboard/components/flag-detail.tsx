@@ -198,7 +198,7 @@ export function FlagDetail({ flagId }: { flagId: string }) {
           <Button variant="secondary" size="sm" onClick={() => setEditOpen(true)}>
             Edit
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => setArchiveOpen(true)}>
+          <Button variant="primary" size="sm" onClick={() => setArchiveOpen(true)}>
             Archive
           </Button>
         </div>

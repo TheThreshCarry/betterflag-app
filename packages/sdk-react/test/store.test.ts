@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { EvaluationResult, JsonValue } from "@shiposapp/sdk";
+import type { EvaluationResult, JsonValue } from "shipos";
 import { createFlagStore, type FlagClient } from "../src/store";
 
 function detail(

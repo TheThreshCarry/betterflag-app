@@ -63,3 +63,28 @@ export async function createCheckoutForPlan(input: {
   );
   return { url: checkout.url };
 }
+
+/**
+ * Open the Polar customer portal for an org's subscription so the user can
+ * update their card, see invoices, or cancel. The org is linked to the Polar
+ * customer via `external_id = orgId` (set at checkout), so we create a session
+ * by external customer id. Throws 404-ish if the org has no Polar customer yet
+ * (never subscribed), which the route surfaces as a friendly message.
+ */
+export async function createBillingPortal(input: {
+  orgId: string;
+}): Promise<{ url: string }> {
+  const polar = getPolar();
+  try {
+    const session = await polar.customerSessions.create({
+      externalCustomerId: input.orgId,
+    });
+    return { url: session.customerPortalUrl };
+  } catch {
+    throw new HttpError(
+      400,
+      "no_billing_account",
+      "No billing account yet. Choose a plan first to set up billing.",
+    );
+  }
+}

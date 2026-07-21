@@ -1,4 +1,4 @@
-# @shiposapp/sdk
+# shipos
 
 Feature flags for Node and the browser, by [ShipOS](https://shipos.app).
 Zero dependencies. Never throws. Works offline.
@@ -6,11 +6,11 @@ Zero dependencies. Never throws. Works offline.
 ## Quickstart
 
 ```bash
-npm i @shiposapp/sdk
+npm i shipos
 ```
 
 ```ts
-import { createClient } from "@shiposapp/sdk";
+import { createClient } from "shipos";
 
 const shipos = createClient({ key: "sos_sdk_your_key_here" });
 
@@ -66,7 +66,7 @@ and it clears the evaluation cache so flags re-evaluate for the new user.
 ## Node example
 
 ```ts
-import { createClient } from "@shiposapp/sdk";
+import { createClient } from "shipos";
 
 const shipos = createClient({
   key: process.env.SHIPOS_SDK_KEY!,
@@ -89,7 +89,7 @@ process open. No `close()` needed before exit (it exists if you want it).
 ## Browser example
 
 ```ts
-import { createClient } from "@shiposapp/sdk";
+import { createClient } from "shipos";
 
 const shipos = createClient({
   key: "sos_sdk_...", // publishable
@@ -102,7 +102,7 @@ shipos.on("update", async () => {
 });
 ```
 
-Building with React? Use [`@shiposapp/react`](https://www.npmjs.com/package/@shiposapp/react)
+Building with React? Use [`shipos-react`](https://www.npmjs.com/package/shipos-react)
 instead, hooks, SSR safety, and live updates wired up for you.
 
 ## How it works

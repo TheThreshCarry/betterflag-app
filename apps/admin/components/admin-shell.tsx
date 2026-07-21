@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2, ChartLine, LogOut, Users } from "lucide-react";
+import { Building2, ChartLine, LogOut, Mail, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
@@ -11,6 +11,7 @@ const NAV = [
   { href: "/", label: "Overview", icon: ChartLine },
   { href: "/orgs", label: "Organizations", icon: Building2 },
   { href: "/users", label: "Users", icon: Users },
+  { href: "/emails", label: "Emails", icon: Mail },
 ];
 
 export function AdminShell({ userEmail, children }: { userEmail: string; children: ReactNode }) {

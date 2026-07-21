@@ -32,6 +32,12 @@
   //   echo <random 32+ chars>          | wrangler secret put LIFECYCLE_SECRET
   //   echo <supabase service role key> | wrangler secret put SUPABASE_SERVICE_ROLE_KEY
   //   echo <better stack token>        | wrangler secret put BETTER_STACK_SOURCE_TOKEN
+  // ClickHouse (read-only) powers the day-10 tier upsell. Same creds as the
+  // ingest worker; all three are secrets. When they are absent the day-10
+  // email just falls back to the generic trial-ending copy:
+  //   echo <clickhouse https url>      | wrangler secret put CLICKHOUSE_URL
+  //   echo <clickhouse user>           | wrangler secret put CLICKHOUSE_USER
+  //   echo <clickhouse password>       | wrangler secret put CLICKHOUSE_PASSWORD
   "vars": {
     "SUPABASE_URL": "https://tnlbktwyrctrxmpoafwb.supabase.co",
     "SHIPOS_ENV": "production",

@@ -1,5 +1,5 @@
 {
-  "name": "shipos",
+  "name": "shipos-monorepo",
   "private": true,
   "packageManager": "bun@1.2.4",
   "engines": {

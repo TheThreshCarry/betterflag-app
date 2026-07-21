@@ -14,11 +14,35 @@ interface ClickHouseConfig {
   password: string;
 }
 
+/**
+ * ClickHouse Cloud serves only over https and 301-redirects http → https.
+ * `fetch` drops the Authorization header across that (cross-scheme) redirect,
+ * so an http:// URL makes every read fail auth and return []. Upgrade the
+ * scheme for any non-local host so a stray http:// in the env can't silently
+ * blank out analytics.
+ */
+function normalizeClickhouseUrl(raw: string): string {
+  try {
+    const url = new URL(raw);
+    const isLocal =
+      url.hostname === "localhost" ||
+      url.hostname === "127.0.0.1" ||
+      url.hostname.endsWith(".localhost");
+    if (url.protocol === "http:" && !isLocal) {
+      url.protocol = "https:";
+      return url.toString().replace(/\/$/, "");
+    }
+    return raw;
+  } catch {
+    return raw;
+  }
+}
+
 function clickhouseConfig(): ClickHouseConfig | null {
   const url = optionalEnv("CLICKHOUSE_URL");
   if (!url) return null;
   return {
-    url,
+    url: normalizeClickhouseUrl(url),
     user: optionalEnv("CLICKHOUSE_USER") ?? "default",
     password: optionalEnv("CLICKHOUSE_PASSWORD") ?? "",
   };

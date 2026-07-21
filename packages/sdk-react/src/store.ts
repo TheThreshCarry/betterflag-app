@@ -3,7 +3,7 @@ import type {
   EvaluationReason,
   JsonValue,
   ShipOSClient,
-} from "@shiposapp/sdk";
+} from "shipos";
 
 /**
  * The slice of ShipOSClient the flag store needs. Kept minimal so tests can

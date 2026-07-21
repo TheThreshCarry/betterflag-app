@@ -10,6 +10,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@shipos/db": "workspace:*",
+    "@shipos/emails": "workspace:*",
     "@shipos/observability": "workspace:*",
     "@supabase/supabase-js": "^2.110.0",
     "zod": "^4.4.3"

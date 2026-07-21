@@ -1,6 +1,6 @@
 {
-  "name": "@shiposapp/sdk",
-  "version": "0.1.0",
+  "name": "shipos",
+  "version": "0.1.1",
   "description": "ShipOS feature flags SDK for Node and the browser",
   "license": "MIT",
   "type": "module",
@@ -21,7 +21,11 @@
       }
     }
   },
-  "files": ["dist", "README.md", "LICENSE"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts --clean",
     "test": "vitest run",

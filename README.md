@@ -18,8 +18,8 @@ interface; the dashboard is the observation layer.
 | [apps/lifecycle](apps/lifecycle) | Cloudflare Worker, welcome email sequence on Workflows + Email Service (day 0 / 3 / 10) |
 | [packages/core](packages/core) | Pure evaluation engine (murmur3 bucketing, targeting rules) shared by edge + SDKs, never forked |
 | [packages/db](packages/db) | Supabase migrations, RLS, audit function, atomic RPCs, row types |
-| [packages/sdk-js](packages/sdk-js) | `@shiposapp/sdk`, Node + browser SDK (MIT) |
-| [packages/sdk-react](packages/sdk-react) | `@shiposapp/react`, provider + `useFlag` (MIT) |
+| [packages/sdk-js](packages/sdk-js) | `shipos`, Node + browser SDK (MIT) |
+| [packages/sdk-react](packages/sdk-react) | `shipos-react`, provider + `useFlag` (MIT) |
 
 ## Architecture
 

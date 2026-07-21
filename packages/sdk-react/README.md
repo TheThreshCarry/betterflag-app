@@ -1,18 +1,18 @@
-# @shiposapp/react
+# shipos-react
 
 React hooks for [ShipOS](https://shipos.app) feature flags. SSR-safe,
 `useSyncExternalStore`-based, live-updating. Built on
-[`@shiposapp/sdk`](https://www.npmjs.com/package/@shiposapp/sdk), same guarantee:
+[`shipos`](https://www.npmjs.com/package/shipos), same guarantee:
 hooks never throw on network failure, they fall back to your defaults.
 
 ```bash
-npm i @shiposapp/react
+npm i shipos-react
 ```
 
 ## Quickstart
 
 ```tsx
-import { ShipOSProvider, useFlag } from "@shiposapp/react";
+import { ShipOSProvider, useFlag } from "shipos-react";
 
 function App() {
   return (
@@ -40,7 +40,7 @@ The provider owns a browser-side client, so it lives in a client component:
 // app/providers.tsx
 "use client";
 
-import { ShipOSProvider } from "@shiposapp/react";
+import { ShipOSProvider } from "shipos-react";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -73,7 +73,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 // app/checkout/banner.tsx
 "use client";
 
-import { useFlag } from "@shiposapp/react";
+import { useFlag } from "shipos-react";
 
 export function PromoBanner() {
   const promo = useFlag("summer-promo", false);
@@ -92,7 +92,7 @@ re-evaluates for the new user automatically:
 "use client";
 
 import { useEffect } from "react";
-import { useShipOS } from "@shiposapp/react";
+import { useShipOS } from "shipos-react";
 
 export function useSyncShipOSIdentity(user: { id: string; plan: string } | null) {
   const shipos = useShipOS();
@@ -109,11 +109,11 @@ per-hook `overrides` argument still wins over the signed-in user.
 ### Server-side usage (RSC, route handlers, middleware)
 
 Hooks are client-only. In React Server Components, route handlers, and
-server actions, use `@shiposapp/sdk` directly:
+server actions, use `shipos` directly:
 
 ```tsx
 // app/page.tsx (server component)
-import { createClient } from "@shiposapp/sdk";
+import { createClient } from "shipos";
 
 const shipos = createClient({ key: process.env.SHIPOS_SDK_KEY! });
 
@@ -138,7 +138,7 @@ shows real values instead of defaults, still hydration-safe.
 | `createFlagStore` | `(client, key, default, context?, bootstrap?)` | The pure subscription store behind the hooks (advanced/testing). |
 
 `createClient`, `ShipOSClient`, and the wire types are re-exported from
-`@shiposapp/sdk` for convenience.
+`shipos` for convenience.
 
 ## Docs
 
