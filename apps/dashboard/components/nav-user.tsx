@@ -3,6 +3,7 @@
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -14,7 +15,10 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { ChevronsUpDownIcon, LogOutIcon } from "lucide-react";
+import { ChevronsUpDownIcon, LogOutIcon, SettingsIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
+
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export function NavUser({
   userEmail,
@@ -28,6 +32,7 @@ export function NavUser({
   onSignOut: () => void;
 }) {
   const { isMobile } = useSidebar();
+  const router = useRouter();
   const initials = (userEmail ?? "U").slice(0, 2).toUpperCase();
 
   return (
@@ -52,22 +57,30 @@ export function NavUser({
             align="end"
             sideOffset={4}
           >
-            <DropdownMenuLabel className="p-0 font-normal">
-              <div className="flex items-center gap-2 px-2 py-2 text-left text-sm">
-                <div className="flex size-8 items-center justify-center rounded-lg bg-sidebar-accent text-xs font-semibold">
-                  {initials}
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="p-0 font-normal">
+                <div className="flex items-center gap-2 px-2 py-2 text-left text-sm">
+                  <div className="flex size-8 items-center justify-center rounded-lg bg-sidebar-accent text-xs font-semibold">
+                    {initials}
+                  </div>
+                  <div className="grid flex-1 text-left leading-tight">
+                    <span className="truncate font-medium">{userEmail ?? "Signed in"}</span>
+                    <span className="truncate text-xs text-muted-foreground">{orgName}</span>
+                  </div>
                 </div>
-                <div className="grid flex-1 text-left leading-tight">
-                  <span className="truncate font-medium">{userEmail ?? "Signed in"}</span>
-                  <span className="truncate text-xs text-muted-foreground">{orgName}</span>
-                </div>
-              </div>
-            </DropdownMenuLabel>
+              </DropdownMenuLabel>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => router.push("/settings/account")}>
+              <SettingsIcon />
+              Account settings
+            </DropdownMenuItem>
+            <ThemeToggle />
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              variant="destructive"
               disabled={signingOut}
               onClick={onSignOut}
+              className="text-chip-pink focus:text-chip-pink"
             >
               <LogOutIcon />
               {signingOut ? "Signing out…" : "Sign out"}

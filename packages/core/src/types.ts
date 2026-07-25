@@ -109,7 +109,17 @@ export interface EvaluationEvent {
   user_hash: string;
   /**
    * ISO 3166-1 alpha-2 of the calling client, from Cloudflare's `request.cf`
-   * at the edge ("unknown" when unavailable). Country only, never finer.
+   * at the edge ("unknown" when unavailable).
    */
   country: string;
+  /**
+   * City name from Cloudflare `request.cf.city`. Null when unavailable.
+   */
+  city: string | null;
+  /**
+   * Approximate client coordinates from `request.cf`, rounded at the edge
+   * (~1 km). Null when Cloudflare does not provide them.
+   */
+  lat: number | null;
+  lng: number | null;
 }

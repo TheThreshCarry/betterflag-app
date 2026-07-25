@@ -1,6 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@appica/ui-react/table";
 
 import {
   Button,
@@ -10,9 +19,17 @@ import {
   JsonBlock,
   RelativeTime,
 } from "@/components/ui";
+import {
+  DataTableSkeleton,
+  useSkeletonPhase,
+  type Column,
+} from "@/components/data-table";
 import { AuditListSkeleton } from "@/components/skeletons";
+import { Stagger } from "@/components/stagger";
 import type { ApiAuditEntry } from "@/lib/api-types";
 import { api } from "@/lib/client-api";
+import { staggerStyle } from "@/lib/stagger";
+import { cn } from "@/lib/utils";
 
 type Filter = "all" | "user" | "agent";
 
@@ -23,6 +40,19 @@ const FILTERS: { value: Filter; label: string }[] = [
 ];
 
 const PAGE_SIZE = 50;
+
+const AUDIT_COLUMNS: readonly Column[] = [
+  { key: "actor", label: "Actor", colWidth: "w-[16%]", skeletonWidth: "w-20" },
+  { key: "action", label: "Action", colWidth: "w-[24%]", skeletonWidth: "w-32" },
+  { key: "subject", label: "Subject", colWidth: "w-[44%]", skeletonWidth: "w-48" },
+  {
+    key: "when",
+    label: "When",
+    colWidth: "w-[16%]",
+    skeletonWidth: "w-16",
+    align: "right",
+  },
+];
 
 export function AuditView() {
   const [filter, setFilter] = useState<Filter>("all");
@@ -79,8 +109,10 @@ export function AuditView() {
     }
   }
 
+  const skeletonPhase = useSkeletonPhase(!entries);
+
   return (
-    <div>
+    <Stagger>
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-[28px] font-semibold tracking-[-0.01em]">Audit log</h1>
@@ -106,74 +138,33 @@ export function AuditView() {
 
       <ErrorNote message={error} />
 
-      {!entries ? (
-        <AuditListSkeleton />
-      ) : entries.length === 0 ? (
-        <div className="data-in">
-          <EmptyState
-            title="Nothing here yet"
-            body={
-              filter === "agent"
-                ? "No agent activity yet. Create an agent key and let your agents ship."
-                : "Mutations will show up here as they happen."
-            }
-          />
-        </div>
-      ) : (
-        <div className="data-in overflow-hidden rounded-3xl border border-line">
-          {entries.map((entry) => {
-            const expanded = expandedId === entry.id;
-            return (
-              <div key={entry.id} className="border-b border-line last:border-b-0">
-                <button
-                  type="button"
-                  className="flex w-full items-center gap-4 px-5 py-3.5 text-left transition-colors hover:bg-surface/60"
-                  onClick={() => setExpandedId(expanded ? null : entry.id)}
-                >
-                  {entry.actorType === "agent" ? (
-                    <Chip color="green" className="!px-2 !py-0.5 font-mono text-[11px]">
-                      agent · {entry.actorKeyPrefix ?? "?"}
-                    </Chip>
-                  ) : (
-                    <Chip color="gray" className="!px-2 !py-0.5 text-[11px]">
-                      human
-                    </Chip>
-                  )}
-                  <span className="w-44 shrink-0 text-[13px] font-medium">{entry.action}</span>
-                  <span className="flex-1 truncate font-mono text-[12px] text-ink-muted">
-                    {entry.subject}
-                  </span>
-                  <span className="shrink-0 text-[12px] text-ink-muted">
-                    <RelativeTime iso={entry.createdAt} />
-                  </span>
-                </button>
-                {expanded ? (
-                  <div className="grid gap-3 bg-surface/60 px-5 py-4 lg:grid-cols-2">
-                    <div>
-                      <p className="mb-1.5 text-[11px] font-medium text-ink-muted">Before</p>
-                      {entry.before !== null ? (
-                        <JsonBlock value={entry.before} />
-                      ) : (
-                        <p className="text-[12px] text-ink-muted">-</p>
-                      )}
-                    </div>
-                    <div>
-                      <p className="mb-1.5 text-[11px] font-medium text-ink-muted">After</p>
-                      {entry.after !== null ? (
-                        <JsonBlock value={entry.after} />
-                      ) : (
-                        <p className="text-[12px] text-ink-muted">-</p>
-                      )}
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            );
-          })}
-        </div>
-      )}
+      {skeletonPhase !== "done" ? (
+        <DataTableSkeleton
+          columns={AUDIT_COLUMNS}
+          rows={5}
+          exiting={skeletonPhase === "out"}
+          staggerSelf
+        />
+      ) : entries && entries.length === 0 ? (
+        <EmptyState
+          title="Nothing here yet"
+          body={
+            filter === "agent"
+              ? "No agent activity yet. Create an agent key and let your agents ship."
+              : "Mutations will show up here as they happen."
+          }
+        />
+      ) : entries ? (
+        <AuditTable
+          staggerSelf
+          entries={entries}
+          expandedId={expandedId}
+          exhausted={exhausted}
+          onToggle={(id) => setExpandedId((prev) => (prev === id ? null : id))}
+        />
+      ) : null}
 
-      {entries && entries.length > 0 && !exhausted ? (
+      {skeletonPhase === "done" && entries && entries.length > 0 && !exhausted ? (
         <div className="mt-4 flex flex-col items-center gap-3">
           {loadingMore ? <AuditListSkeleton rows={3} /> : null}
           <Button variant="secondary" size="sm" disabled={loadingMore} onClick={() => void loadMore()}>
@@ -181,6 +172,111 @@ export function AuditView() {
           </Button>
         </div>
       ) : null}
-    </div>
+    </Stagger>
+  );
+}
+
+function AuditTable({
+  entries,
+  expandedId,
+  exhausted,
+  onToggle,
+  staggerFrom = 0,
+  staggerSelf: _staggerSelf,
+}: {
+  entries: ApiAuditEntry[];
+  expandedId: number | null;
+  exhausted: boolean;
+  onToggle: (id: number) => void;
+  staggerFrom?: number;
+  staggerSelf?: boolean;
+}) {
+  return (
+    <Table
+      size="md"
+      borderStyle="solid"
+      className="[&>tbody>tr:hover>td]:bg-background-subtle [&>tbody>tr:hover>td]:transition-colors"
+    >
+      <TableHeader>
+        <TableRow>
+          <TableHead>Actor</TableHead>
+          <TableHead>Action</TableHead>
+          <TableHead>Subject</TableHead>
+          <TableHead className="text-end">When</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {entries.map((entry, index) => {
+          const expanded = expandedId === entry.id;
+          return (
+            <Fragment key={entry.id}>
+              <TableRow
+                highlighted={expanded}
+                className={cn("stagger-in cursor-pointer")}
+                style={staggerStyle(staggerFrom + index)}
+                onClick={() => onToggle(entry.id)}
+              >
+                <TableCell className="whitespace-nowrap">
+                  {entry.actorType === "agent" ? (
+                    <Chip color="green" className="px-2! py-0.5! font-mono text-[11px]">
+                      agent · {entry.actorKeyPrefix ?? "?"}
+                    </Chip>
+                  ) : (
+                    <Chip color="gray" className="px-2! py-0.5! text-[11px]">
+                      human
+                    </Chip>
+                  )}
+                </TableCell>
+                <TableCell className="text-foreground-strong font-medium whitespace-nowrap">
+                  {entry.action}
+                </TableCell>
+                <TableCell className="max-w-70 truncate font-mono text-[12px] text-foreground-muted">
+                  {entry.subject}
+                </TableCell>
+                <TableCell className="text-end whitespace-nowrap text-foreground-muted tabular-nums">
+                  <RelativeTime iso={entry.createdAt} />
+                </TableCell>
+              </TableRow>
+              {expanded ? (
+                <TableRow className="hover:bg-transparent!">
+                  <TableCell colSpan={4} className="bg-background-subtle">
+                    <div className="grid gap-3 py-1 lg:grid-cols-2">
+                      <div>
+                        <p className="mb-1.5 text-[11px] font-medium text-foreground-muted">
+                          Before
+                        </p>
+                        {entry.before !== null ? (
+                          <JsonBlock value={entry.before} />
+                        ) : (
+                          <p className="text-[12px] text-foreground-muted">-</p>
+                        )}
+                      </div>
+                      <div>
+                        <p className="mb-1.5 text-[11px] font-medium text-foreground-muted">
+                          After
+                        </p>
+                        {entry.after !== null ? (
+                          <JsonBlock value={entry.after} />
+                        ) : (
+                          <p className="text-[12px] text-foreground-muted">-</p>
+                        )}
+                      </div>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : null}
+            </Fragment>
+          );
+        })}
+      </TableBody>
+      <TableCaption
+        position="bottom"
+        className="stagger-in"
+        style={staggerStyle(staggerFrom + entries.length)}
+      >
+        {entries.length} event{entries.length === 1 ? "" : "s"}
+        {exhausted ? "" : " · load more below"}
+      </TableCaption>
+    </Table>
   );
 }

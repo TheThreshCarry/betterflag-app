@@ -7,6 +7,7 @@ import { Button, Dialog, ErrorNote, Field, inputClass } from "@/components/ui";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -80,24 +81,26 @@ export function ProjectSwitcher() {
                 side={isMobile ? "bottom" : "right"}
                 sideOffset={4}
               >
-                <DropdownMenuLabel className="text-xs text-muted-foreground">
-                  Projects
-                </DropdownMenuLabel>
-                {projects.map((project) => (
-                  <DropdownMenuItem
-                    key={project.id}
-                    onClick={() => setActiveProjectId(project.id)}
-                    className="gap-2 p-2"
-                  >
-                    <div className="flex size-6 items-center justify-center rounded-md border">
-                      <FolderKanbanIcon className="size-3.5 shrink-0" />
-                    </div>
-                    <div className="grid flex-1 text-left leading-tight">
-                      <span className="truncate text-sm font-medium">{project.name}</span>
-                      <span className="truncate text-xs text-muted-foreground">{project.slug}</span>
-                    </div>
-                  </DropdownMenuItem>
-                ))}
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel className="text-xs text-muted-foreground">
+                    Projects
+                  </DropdownMenuLabel>
+                  {projects.map((project) => (
+                    <DropdownMenuItem
+                      key={project.id}
+                      onClick={() => setActiveProjectId(project.id)}
+                      className="gap-2 p-2"
+                    >
+                      <div className="flex size-6 items-center justify-center rounded-md border">
+                        <FolderKanbanIcon className="size-3.5 shrink-0" />
+                      </div>
+                      <div className="grid flex-1 text-left leading-tight">
+                        <span className="truncate text-sm font-medium">{project.name}</span>
+                        <span className="truncate text-xs text-muted-foreground">{project.slug}</span>
+                      </div>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem className="gap-2 p-2" onClick={() => setCreateOpen(true)}>
                   <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">

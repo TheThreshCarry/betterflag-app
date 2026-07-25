@@ -17,7 +17,13 @@ import {
   textareaClass,
   type ChipColor,
 } from "@/components/ui";
-import { DataTable, DataTableSkeleton, type Column } from "@/components/data-table";
+import {
+  DataTable,
+  TableCell,
+  TableRow,
+  type Column,
+} from "@/components/data-table";
+import { Stagger } from "@/components/stagger";
 import type { ApiFlag, ApiFlagConfig } from "@/lib/api-types";
 import { api } from "@/lib/client-api";
 
@@ -110,105 +116,107 @@ export function FlagsView() {
   }
 
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-[28px] font-semibold tracking-[-0.01em]">Flags</h1>
-          <p className="mt-0.5 text-[14px] text-ink-muted">
-            {activeProject.name}
-            {activeEnv ? ` · ${activeEnv.name}` : null}
-            {visibleFlags
-              ? `, ${visibleFlags.length} flag${visibleFlags.length === 1 ? "" : "s"}`
-              : null}
-            {!visibleFlags ? (
-              <>
-                {", "}
-                <span className="inline-block h-3.5 w-12 translate-y-0.5 animate-pulse rounded-md bg-muted align-middle" />
-              </>
-            ) : null}
-          </p>
+    <>
+      <Stagger>
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-[28px] font-semibold tracking-[-0.01em]">Flags</h1>
+            <p className="mt-0.5 text-[14px] text-ink-muted">
+              {activeProject.name}
+              {activeEnv ? ` · ${activeEnv.name}` : null}
+              {visibleFlags
+                ? `, ${visibleFlags.length} flag${visibleFlags.length === 1 ? "" : "s"}`
+                : null}
+              {!visibleFlags ? (
+                <>
+                  {", "}
+                  <span className="inline-block h-3.5 w-12 translate-y-0.5 animate-pulse rounded-md bg-muted align-middle" />
+                </>
+              ) : null}
+            </p>
+          </div>
+          <Button onClick={() => setDialogOpen(true)}>New flag</Button>
         </div>
-        <Button onClick={() => setDialogOpen(true)}>New flag</Button>
-      </div>
 
-      <ErrorNote message={error} />
+        <ErrorNote message={error} />
 
-      {!flags || !visibleFlags ? (
-        <DataTableSkeleton columns={FLAG_COLUMNS} />
-      ) : flags.length === 0 ? (
-        <div className="data-in">
-          <EmptyState
-            title="Ship your first flag"
-            body="Flags are created with configs in every environment, disabled by default."
-            action={<Button onClick={() => setDialogOpen(true)}>New flag</Button>}
-          />
-        </div>
-      ) : (
-        <div className="data-in">
-        <DataTable columns={FLAG_COLUMNS}>
-          {visibleFlags.map((flag) => {
-                const lastUpdated = flag.configs.reduce<string | null>(
-                  (latest, config) =>
-                    !latest || config.updatedAt > latest ? config.updatedAt : latest,
-                  null,
-                );
-                return (
-                  <tr
-                    key={flag.id}
-                    className="cursor-pointer border-t border-line transition-colors hover:bg-surface/60"
-                    onClick={() => router.push(`/flags/${flag.id}`)}
+        <DataTable
+          columns={FLAG_COLUMNS}
+          hoverableRows
+          staggerSelf
+          loading={!flags || !visibleFlags}
+          empty={
+            flags && flags.length === 0 ? (
+              <EmptyState
+                title="Ship your first flag"
+                body="Flags are created with configs in every environment, disabled by default."
+                action={<Button onClick={() => setDialogOpen(true)}>New flag</Button>}
+              />
+            ) : undefined
+          }
+        >
+          {(visibleFlags ?? []).map((flag) => {
+            const lastUpdated = flag.configs.reduce<string | null>(
+              (latest, config) =>
+                !latest || config.updatedAt > latest ? config.updatedAt : latest,
+              null,
+            );
+            return (
+              <TableRow
+                key={flag.id}
+                className="cursor-pointer"
+                onClick={() => router.push(`/flags/${flag.id}`)}
+              >
+                <TableCell className="truncate">
+                  <Link
+                    href={`/flags/${flag.id}`}
+                    className="font-mono text-[13px] font-medium"
+                    onClick={(event) => event.stopPropagation()}
                   >
-                    <td className="px-5 py-3.5">
-                      <Link
-                        href={`/flags/${flag.id}`}
-                        className="font-mono text-[13px] font-medium"
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        {flag.key}
-                      </Link>
-                    </td>
-                    <td className="px-5 py-3.5">{flag.name}</td>
-                    <td className="px-5 py-3.5">
-                      <Chip color={KIND_COLORS[flag.kind]} className="!px-2.5 !py-0.5 text-[12px]">
-                        {flag.kind}
-                      </Chip>
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-2">
-                        {environments.map((env) => {
-                          const config = flag.configs.find((c) => c.environmentId === env.id);
-                          const dotColor = config?.killed
-                            ? "bg-chip-pink"
-                            : config?.enabled
-                              ? "bg-chip-green"
-                              : "bg-line-strong";
-                          const state = config?.killed
-                            ? "killed"
-                            : config?.enabled
-                              ? `on · ${config.rolloutPct}%`
-                              : "off";
-                          return (
-                            <span
-                              key={env.id}
-                              title={`${env.slug}: ${state}`}
-                              className="flex items-center gap-1 text-[11px] text-ink-muted"
-                            >
-                              <span className={`h-2 w-2 rounded-full ${dotColor}`} />
-                              {env.slug}
-                            </span>
-                          );
-                        })}
-                      </div>
-                    </td>
-                    <td className="px-5 py-3.5 text-[13px] text-ink-muted">
-                      {lastUpdated ? <RelativeTime iso={lastUpdated} /> : "-"}
-                    </td>
-                  </tr>
-                );
-              })}
+                    {flag.key}
+                  </Link>
+                </TableCell>
+                <TableCell className="truncate text-foreground-strong">{flag.name}</TableCell>
+                <TableCell className="whitespace-nowrap">
+                  <Chip color={KIND_COLORS[flag.kind]} className="!px-2.5 !py-0.5 text-[12px]">
+                    {flag.kind}
+                  </Chip>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    {environments.map((env) => {
+                      const config = flag.configs.find((c) => c.environmentId === env.id);
+                      const dotColor = config?.killed
+                        ? "bg-chip-pink"
+                        : config?.enabled
+                          ? "bg-chip-green"
+                          : "bg-line-strong";
+                      const state = config?.killed
+                        ? "killed"
+                        : config?.enabled
+                          ? `on · ${config.rolloutPct}%`
+                          : "off";
+                      return (
+                        <span
+                          key={env.id}
+                          title={`${env.slug}: ${state}`}
+                          className="flex items-center gap-1 text-[11px] text-foreground-muted"
+                        >
+                          <span className={`h-2 w-2 rounded-full ${dotColor}`} />
+                          {env.slug}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </TableCell>
+                <TableCell className="whitespace-nowrap text-foreground-muted">
+                  {lastUpdated ? <RelativeTime iso={lastUpdated} /> : "-"}
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </DataTable>
-        </div>
-      )}
+      </Stagger>
 
       <NewFlagDialog
         open={dialogOpen}
@@ -219,7 +227,7 @@ export function FlagsView() {
           router.push(`/flags/${flag.id}`);
         }}
       />
-    </div>
+    </>
   );
 }
 

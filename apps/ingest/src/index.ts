@@ -96,8 +96,11 @@ export const evaluationEventSchema = z.object({
   actor_kind: z.enum(["sdk", "agent", "api"]),
   sdk: z.string(),
   user_hash: z.string().regex(/^\d+$/, "user_hash must be a decimal string"),
-  // `.catch` keeps in-flight messages from pre-country edge deploys valid.
+  // `.catch` keeps in-flight messages from pre-country / pre-geo edge deploys valid.
   country: z.string().min(1).catch("unknown"),
+  city: z.string().nullable().catch(null),
+  lat: z.number().nullable().catch(null),
+  lng: z.number().nullable().catch(null),
 }) satisfies z.ZodType<EvaluationEvent>;
 
 /** One JSONEachRow line for the `evaluations` table (see clickhouse/schema.sql). */
@@ -116,6 +119,10 @@ export interface ClickHouseEvaluationRow {
   user_hash: string;
   /** ISO 3166-1 alpha-2 or "unknown". */
   country: string;
+  /** City from cf.city; empty string when unavailable. */
+  city: string;
+  lat: number | null;
+  lng: number | null;
 }
 
 /** ISO 8601 → ClickHouse DateTime64(3) string, always UTC. */
@@ -139,6 +146,9 @@ export function eventToRow(event: EvaluationEvent): ClickHouseEvaluationRow {
     sdk: event.sdk,
     user_hash: event.user_hash,
     country: event.country,
+    city: event.city?.trim() ?? "",
+    lat: event.lat,
+    lng: event.lng,
   };
 }
 

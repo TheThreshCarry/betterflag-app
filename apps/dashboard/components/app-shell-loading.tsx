@@ -77,7 +77,7 @@ export function AppShellLoading() {
             <Skeleton className="h-4 w-40" />
           </header>
         </div>
-        <main className="mx-auto max-w-5xl flex-1 px-8 py-8">
+        <main className="mx-auto w-full max-w-[1400px] flex-1 px-8 py-8">
           <div className="space-y-6">
             <div className="space-y-2">
               <Skeleton className="h-8 w-40" />

@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@shipos/core", "@shipos/db"],
+  // MapLibre 6's dynamic worker `new URL(…, import.meta.url)` breaks Turbopack
+  // analysis. Keep the package external to the bundler where possible.
+  serverExternalPackages: ["maplibre-gl"],
   typedRoutes: false,
   // PostHog reverse proxy (EU cloud): first-party path so analytics survive
   // ad-blockers. Deliberately NOT "/ingest", which is PostHog's documented

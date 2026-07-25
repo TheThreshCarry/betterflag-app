@@ -131,7 +131,12 @@ export function evaluateRequest(input: {
   body?: unknown;
   sdkHeader?: string;
   /** Simulates Cloudflare's request.cf metadata (e.g. { country: "FR" }). */
-  cf?: { country?: string };
+  cf?: {
+    country?: string;
+    city?: string;
+    latitude?: string;
+    longitude?: string;
+  };
 }): Request {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (input.token !== undefined) headers["Authorization"] = `Bearer ${input.token}`;

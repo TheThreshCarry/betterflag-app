@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { ThemeProvider } from "@appica/ui-react/providers/theme-provider";
 
+import { PreferencesProvider } from "@/components/preferences-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import {
+  DISABLE_ANIMATIONS_SCRIPT,
+  THEME_STORAGE_KEY,
+} from "@/lib/preferences";
 
 import "./globals.css";
 
@@ -48,9 +54,24 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html
+      lang="en"
+      className={`${geistSans.variable} ${geistMono.variable}`}
+      suppressHydrationWarning
+    >
       <body className="min-h-screen bg-canvas font-sans text-ink antialiased">
-        <TooltipProvider>{children}</TooltipProvider>
+        <script
+          dangerouslySetInnerHTML={{ __html: DISABLE_ANIMATIONS_SCRIPT }}
+        />
+        <ThemeProvider
+          defaultTheme="system"
+          enableSystem
+          storageKey={THEME_STORAGE_KEY}
+        >
+          <PreferencesProvider>
+            <TooltipProvider>{children}</TooltipProvider>
+          </PreferencesProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

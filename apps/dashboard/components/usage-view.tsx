@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { Button, Card, Chip, ErrorNote } from "@/components/ui";
 import { UsageSkeleton } from "@/components/skeletons";
+import { Stagger } from "@/components/stagger";
 import type { ApiUsage } from "@/lib/api-types";
 import { api } from "@/lib/client-api";
 
@@ -43,7 +44,7 @@ export function UsageView() {
   if (error) return <ErrorNote message={error} />;
 
   return (
-    <div>
+    <Stagger>
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-[28px] font-semibold tracking-[-0.01em]">Usage</h1>
@@ -63,20 +64,22 @@ export function UsageView() {
       {!usage || !chart ? (
         <UsageSkeleton />
       ) : (
-        <div className="data-in">
-          <UsageContent usage={usage} chart={chart} />
-        </div>
+        <UsageContent usage={usage} chart={chart} staggerSelf />
       )}
-    </div>
+    </Stagger>
   );
 }
 
 function UsageContent({
   usage,
   chart,
+  staggerFrom = 0,
+  staggerSelf: _staggerSelf,
 }: {
   usage: ApiUsage;
   chart: { days: { day: string; evaluations: number }[]; max: number };
+  staggerFrom?: number;
+  staggerSelf?: boolean;
 }) {
   const pctUsed = Math.min(100, (usage.used / usage.includedEvalsPerMonth) * 100);
   const trialDaysLeft = Math.max(
@@ -86,9 +89,9 @@ function UsageContent({
   const barWidth = 100 / 30;
 
   return (
-    <>
+    <Stagger from={staggerFrom} className="space-y-6">
       {usage.billingState === "trialing" ? (
-        <div className="mb-6 flex items-center justify-between rounded-3xl border border-line bg-surface px-6 py-4">
+        <div className="flex items-center justify-between rounded-3xl border border-line bg-surface px-6 py-4">
           <div>
             <p className="text-[14px] font-medium">
               Trial -{" "}
@@ -107,74 +110,72 @@ function UsageContent({
         </div>
       ) : null}
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="p-6 lg:col-span-2">
-          <div className="mb-4 flex items-baseline justify-between">
-            <h2 className="text-[16px] font-semibold">Evaluations per day</h2>
-            <span className="text-[12px] text-ink-muted">last 30 days</span>
+      <Card className="p-6">
+        <div className="mb-4 flex items-baseline justify-between">
+          <h2 className="text-[16px] font-semibold">Evaluations per day</h2>
+          <span className="text-[12px] text-ink-muted">last 30 days</span>
+        </div>
+        <svg viewBox="0 0 100 40" className="h-44 w-full" preserveAspectRatio="none" role="img" aria-label="Evaluations per day bar chart">
+          {chart.days.map((point, i) => {
+            const height = (point.evaluations / chart.max) * 36;
+            return (
+              <rect
+                key={point.day}
+                x={i * barWidth + barWidth * 0.15}
+                y={40 - height}
+                width={barWidth * 0.7}
+                height={Math.max(height, point.evaluations > 0 ? 0.5 : 0)}
+                rx={0.6}
+                fill="#0067F4"
+                opacity={0.85}
+              >
+                <title>
+                  {point.day}: {point.evaluations.toLocaleString()} evaluations
+                </title>
+              </rect>
+            );
+          })}
+          <line x1="0" y1="40" x2="100" y2="40" stroke="#e8e4de" strokeWidth="0.4" />
+        </svg>
+        <div className="mt-2 flex justify-between text-[11px] text-ink-muted">
+          <span>{chart.days[0]?.day}</span>
+          <span>{chart.days[chart.days.length - 1]?.day}</span>
+        </div>
+      </Card>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="p-6">
+          <h2 className="text-[16px] font-semibold">This period</h2>
+          <p className="mt-3 font-mono text-[32px] font-semibold tracking-tight">
+            {formatCount(usage.used)}
+          </p>
+          <p className="text-[13px] text-ink-muted">
+            of {formatCount(usage.includedEvalsPerMonth)} included evaluations
+          </p>
+          <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-line">
+            <div
+              className={`h-full rounded-full ${pctUsed > 90 ? "bg-chip-pink" : "bg-chip-green"}`}
+              style={{ width: `${Math.max(pctUsed, usage.used > 0 ? 2 : 0)}%` }}
+            />
           </div>
-          <svg viewBox="0 0 100 40" className="h-44 w-full" preserveAspectRatio="none" role="img" aria-label="Evaluations per day bar chart">
-            {chart.days.map((point, i) => {
-              const height = (point.evaluations / chart.max) * 36;
-              return (
-                <rect
-                  key={point.day}
-                  x={i * barWidth + barWidth * 0.15}
-                  y={40 - height}
-                  width={barWidth * 0.7}
-                  height={Math.max(height, point.evaluations > 0 ? 0.5 : 0)}
-                  rx={0.6}
-                  fill="#0067F4"
-                  opacity={0.85}
-                >
-                  <title>
-                    {point.day}: {point.evaluations.toLocaleString()} evaluations
-                  </title>
-                </rect>
-              );
-            })}
-            <line x1="0" y1="40" x2="100" y2="40" stroke="#e8e4de" strokeWidth="0.4" />
-          </svg>
-          <div className="mt-2 flex justify-between text-[11px] text-ink-muted">
-            <span>{chart.days[0]?.day}</span>
-            <span>{chart.days[chart.days.length - 1]?.day}</span>
-          </div>
+          <p className="mt-2 text-[12px] text-ink-muted">
+            {pctUsed.toFixed(pctUsed < 10 ? 1 : 0)}% used. Evaluations are metered, never blocked
+            mid-cycle.
+          </p>
         </Card>
 
-        <div className="space-y-6">
-          <Card className="p-6">
-            <h2 className="text-[16px] font-semibold">This period</h2>
-            <p className="mt-3 font-mono text-[32px] font-semibold tracking-tight">
-              {formatCount(usage.used)}
-            </p>
-            <p className="text-[13px] text-ink-muted">
-              of {formatCount(usage.includedEvalsPerMonth)} included evaluations
-            </p>
-            <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-line">
-              <div
-                className={`h-full rounded-full ${pctUsed > 90 ? "bg-chip-pink" : "bg-chip-green"}`}
-                style={{ width: `${Math.max(pctUsed, usage.used > 0 ? 2 : 0)}%` }}
-              />
-            </div>
-            <p className="mt-2 text-[12px] text-ink-muted">
-              {pctUsed.toFixed(pctUsed < 10 ? 1 : 0)}% used. Evaluations are metered, never blocked
-              mid-cycle.
-            </p>
-          </Card>
-
-          <Card className="p-6">
-            <h2 className="text-[16px] font-semibold">Need more headroom?</h2>
-            <p className="mt-1.5 text-[13px] text-ink-muted">
-              Upgrade for more projects, agent keys and included evaluations.
-            </p>
-            <Link href="/settings" className="mt-4 block">
-              <Button variant="secondary" size="sm" className="w-full">
-                View plans
-              </Button>
-            </Link>
-          </Card>
-        </div>
+        <Card className="p-6">
+          <h2 className="text-[16px] font-semibold">Need more headroom?</h2>
+          <p className="mt-1.5 text-[13px] text-ink-muted">
+            Upgrade for more projects, agent keys and included evaluations.
+          </p>
+          <Link href="/settings" className="mt-4 block">
+            <Button variant="secondary" size="sm" className="w-full">
+              View plans
+            </Button>
+          </Link>
+        </Card>
       </div>
-    </>
+    </Stagger>
   );
 }

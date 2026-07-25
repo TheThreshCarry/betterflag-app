@@ -92,6 +92,9 @@ const EVENT: EvaluationEvent = {
   sdk: "js/0.1.0",
   user_hash: "12345678901234567890",
   country: "FR",
+  city: "Paris",
+  lat: 48.86,
+  lng: 2.35,
 };
 
 const UUID_A = "11111111-1111-4111-8111-111111111111";
@@ -145,7 +148,14 @@ describe("eventToRow", () => {
       sdk: "js/0.1.0",
       user_hash: "12345678901234567890",
       country: "FR",
+      city: "Paris",
+      lat: 48.86,
+      lng: 2.35,
     });
+  });
+
+  it("maps null city to empty string for ClickHouse", () => {
+    expect(eventToRow({ ...EVENT, city: null }).city).toBe("");
   });
 });
 
@@ -159,6 +169,17 @@ describe("evaluationEventSchema", () => {
     const parsed = evaluationEventSchema.safeParse(legacy);
     expect(parsed.success).toBe(true);
     if (parsed.success) expect(parsed.data.country).toBe("unknown");
+  });
+
+  it("defaults missing city/lat/lng to null (pre-geo in-flight messages)", () => {
+    const { city: _c, lat: _a, lng: _b, ...legacy } = EVENT;
+    const parsed = evaluationEventSchema.safeParse(legacy);
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.city).toBeNull();
+      expect(parsed.data.lat).toBeNull();
+      expect(parsed.data.lng).toBeNull();
+    }
   });
 
   it.each([

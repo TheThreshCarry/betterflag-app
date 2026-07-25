@@ -27,7 +27,7 @@ export function buildCheckoutRequest(input: CheckoutRequestInput) {
   return {
     products: [input.productId],
     // {CHECKOUT_ID} is substituted by Polar on redirect.
-    successUrl: `${input.origin}/settings?checkout=success&checkout_id={CHECKOUT_ID}`,
+    successUrl: `${input.origin}/settings/billing?checkout=success&checkout_id={CHECKOUT_ID}`,
     externalCustomerId: input.orgId,
     metadata: { org_id: input.orgId, plan: input.planKey },
     ...(input.customerEmail ? { customerEmail: input.customerEmail } : {}),

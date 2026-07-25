@@ -1,18 +1,19 @@
-import { cn } from "@/lib/utils"
+"use client";
 
-function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
+import {
+  Skeleton as AppicaSkeleton,
+  type SkeletonProps,
+} from "@appica/ui-react/skeleton";
+
+import { cn } from "@/lib/utils";
+
+export function Skeleton({ className, ...props }: SkeletonProps) {
   return (
-    <div
-      data-slot="skeleton"
-      className={cn(
-        // `shrink-0` keeps fixed-width bars from being compressed by flex
-        // siblings on first paint (the resize-on-load flicker).
-        "animate-pulse shrink-0 rounded-md bg-muted",
-        className,
-      )}
+    <AppicaSkeleton
+      className={cn("bg-line-strong/45 text-ink-muted", className)}
       {...props}
     />
-  )
+  );
 }
 
-export { Skeleton }
+export type { SkeletonProps };

@@ -166,6 +166,8 @@ export interface AnalyticsFilter {
   envSlug?: string;
   /** Set to scope everything to one flag (flag detail page). */
   flagKey?: string;
+  /** ISO 3166-1 alpha-2 — scope series/flags/envs to one country. */
+  country?: string;
 }
 
 interface FilterSql {
@@ -173,8 +175,15 @@ interface FilterSql {
   params: Record<string, string | number>;
 }
 
-function analyticsFilterSql(filter: AnalyticsFilter, hours: number): FilterSql {
-  const clauses = ["org_id = {orgId:String}", "hour >= now() - INTERVAL {hours:UInt32} HOUR"];
+function analyticsFilterSql(
+  filter: AnalyticsFilter,
+  hours: number,
+  timeColumn: "hour" | "ts" = "hour",
+): FilterSql {
+  const clauses = [
+    "org_id = {orgId:String}",
+    `${timeColumn} >= now() - INTERVAL {hours:UInt32} HOUR`,
+  ];
   const params: Record<string, string | number> = { orgId: filter.orgId, hours };
   if (filter.projectId !== undefined) {
     clauses.push("project_id = {projectId:String}");
@@ -187,6 +196,10 @@ function analyticsFilterSql(filter: AnalyticsFilter, hours: number): FilterSql {
   if (filter.flagKey !== undefined) {
     clauses.push("flag_key = {flagKey:String}");
     params.flagKey = filter.flagKey;
+  }
+  if (filter.country !== undefined) {
+    clauses.push("country = {country:String}");
+    params.country = filter.country;
   }
   return { where: clauses.join(" AND "), params };
 }
@@ -284,4 +297,51 @@ export async function analyticsByEnv(
     params,
   );
   return rows.map((row) => ({ env: row.env, evaluations: Number(row.evaluations) }));
+}
+
+export interface AnalyticsCityRow {
+  city: string;
+  lat: number;
+  lng: number;
+  evaluations: number;
+}
+
+/**
+ * City rollup for a country-scoped analytics view.
+ * Reads hot raw `evaluations` (7-day TTL); city + coords from Cloudflare cf.*.
+ */
+export async function analyticsByCity(
+  filter: AnalyticsFilter,
+  period: AnalyticsPeriod,
+  limit = 500,
+): Promise<AnalyticsCityRow[]> {
+  if (filter.country === undefined) return [];
+  const { where, params } = analyticsFilterSql(filter, PERIOD_HOURS[period], "ts");
+  const rows = await chQuery<{
+    city: string;
+    lat: string | number;
+    lng: string | number;
+    evaluations: string | number;
+  }>(
+    `SELECT
+       city,
+       avg(lat) AS lat,
+       avg(lng) AS lng,
+       count() AS evaluations
+     FROM evaluations
+     WHERE ${where}
+       AND city != ''
+       AND lat IS NOT NULL
+       AND lng IS NOT NULL
+     GROUP BY city
+     ORDER BY evaluations DESC
+     LIMIT {limit:UInt32}`,
+    { ...params, limit },
+  );
+  return rows.map((row) => ({
+    city: row.city,
+    lat: Number(row.lat),
+    lng: Number(row.lng),
+    evaluations: Number(row.evaluations),
+  }));
 }

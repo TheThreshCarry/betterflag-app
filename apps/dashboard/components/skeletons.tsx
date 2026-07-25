@@ -45,7 +45,7 @@ export function SettingsSkeleton() {
         </div>
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="rounded-2xl border border-line bg-white p-4">
+            <div key={i} className="rounded-2xl border border-line bg-canvas p-4">
               <Skeleton className="h-7 w-12" />
               <Skeleton className="mt-2 h-4 w-20" />
             </div>
@@ -54,7 +54,7 @@ export function SettingsSkeleton() {
       </div>
       <div className="rounded-3xl border border-line bg-surface p-6">
         <Skeleton className="h-5 w-24" />
-        <div className="mt-4 overflow-hidden rounded-2xl border border-line bg-white">
+        <div className="mt-4 overflow-hidden rounded-2xl border border-line bg-canvas">
           {Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}

@@ -234,16 +234,67 @@ export function chunk<T>(items: readonly T[], size: number): T[][] {
   return chunks;
 }
 
+/** Client geo from Cloudflare `request.cf` (country + city + optional coords). */
+export type ClientGeo = {
+  country: string;
+  /** City name from `cf.city`; null when Cloudflare omits it. */
+  city: string | null;
+  /** Rounded to ~1 km; null when Cloudflare omits coordinates. */
+  lat: number | null;
+  lng: number | null;
+};
+
+/** Round cf coordinates to 2 decimal places (~1.1 km) before enqueue. */
+export function roundCoord(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
 /**
- * Country of the calling client from Cloudflare's request metadata.
- * Country-level only (ISO 3166-1 alpha-2), "unknown" when Cloudflare does not
- * populate it (e.g. `wrangler dev`, tests). Never anything finer than country.
+ * Country, city, and approximate coordinates of the calling client from
+ * Cloudflare request metadata. Country is ISO 3166-1 alpha-2 ("unknown"
+ * when missing). City/lat/lng are null when Cloudflare does not populate them.
  */
+export function clientGeoOf(request: Request): ClientGeo {
+  const cf = (
+    request as {
+      cf?: {
+        country?: unknown;
+        city?: unknown;
+        latitude?: unknown;
+        longitude?: unknown;
+      };
+    }
+  ).cf;
+  const rawCountry = cf?.country;
+  const country =
+    typeof rawCountry === "string" && rawCountry.length > 0
+      ? rawCountry.toUpperCase()
+      : "unknown";
+
+  const rawCity = cf?.city;
+  const city =
+    typeof rawCity === "string" && rawCity.trim().length > 0
+      ? rawCity.trim()
+      : null;
+
+  const latRaw = typeof cf?.latitude === "string" ? Number(cf.latitude) : NaN;
+  const lngRaw = typeof cf?.longitude === "string" ? Number(cf.longitude) : NaN;
+  if (
+    Number.isFinite(latRaw) &&
+    Number.isFinite(lngRaw) &&
+    latRaw >= -90 &&
+    latRaw <= 90 &&
+    lngRaw >= -180 &&
+    lngRaw <= 180
+  ) {
+    return { country, city, lat: roundCoord(latRaw), lng: roundCoord(lngRaw) };
+  }
+  return { country, city, lat: null, lng: null };
+}
+
+/** @deprecated Prefer `clientGeoOf`; kept for call sites that only need country. */
 export function countryOf(request: Request): string {
-  const cf = (request as { cf?: { country?: unknown } }).cf;
-  const country = cf?.country;
-  if (typeof country !== "string" || country.length === 0) return "unknown";
-  return country.toUpperCase();
+  return clientGeoOf(request).country;
 }
 
 /**
@@ -267,8 +318,12 @@ export function buildEvents(
   results: readonly EvaluationResult[],
   context: EvaluationContext,
   sdk: string,
-  country: string,
+  geo: ClientGeo | string,
 ): EvaluationEvent[] {
+  const resolved: ClientGeo =
+    typeof geo === "string"
+      ? { country: geo, city: null, lat: null, lng: null }
+      : geo;
   const ts = new Date().toISOString();
   const user_hash = context.userId !== undefined ? hashUserId(context.userId) : "0";
   return results.map((result) => ({
@@ -282,7 +337,10 @@ export function buildEvents(
     actor_kind: "sdk" as const,
     sdk,
     user_hash,
-    country,
+    country: resolved.country,
+    city: resolved.city,
+    lat: resolved.lat,
+    lng: resolved.lng,
   }));
 }
 
@@ -449,7 +507,7 @@ export async function handleEvaluate(
   // Events must never block or fail the response.
   try {
     const sdk = request.headers.get("X-ShipOS-SDK") ?? "unknown";
-    const events = buildEvents(entry, results, context, sdk, countryOf(request));
+    const events = buildEvents(entry, results, context, sdk, clientGeoOf(request));
     if (events.length > 0) {
       // ITR-62 dual-write: Analytics Engine alongside the Queues path.
       // writeDataPoint is synchronous fire-and-forget; its own try so an AE

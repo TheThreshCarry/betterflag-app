@@ -4,6 +4,7 @@ import { useApp } from "@/components/app-shell";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
@@ -56,23 +57,25 @@ export function EnvSwitcher() {
           <ChevronDownIcon className="ml-auto size-3 shrink-0 opacity-50" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-48">
-          <DropdownMenuLabel className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
-            Environment
-          </DropdownMenuLabel>
-          {environments.map((env) => {
-            const active = activeEnv?.slug === env.slug;
-            return (
-              <DropdownMenuItem
-                key={env.id}
-                onClick={() => setActiveEnvSlug(env.slug)}
-                className="gap-2 text-[13px]"
-              >
-                <EnvDot slug={env.slug} />
-                <span className="truncate">{env.name}</span>
-                {active && <CheckIcon className="ml-auto size-3.5" />}
-              </DropdownMenuItem>
-            );
-          })}
+          <DropdownMenuGroup>
+            <DropdownMenuLabel className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+              Environment
+            </DropdownMenuLabel>
+            {environments.map((env) => {
+              const active = activeEnv?.slug === env.slug;
+              return (
+                <DropdownMenuItem
+                  key={env.id}
+                  onClick={() => setActiveEnvSlug(env.slug)}
+                  className="gap-2 text-[13px]"
+                >
+                  <EnvDot slug={env.slug} />
+                  <span className="truncate">{env.name}</span>
+                  {active && <CheckIcon className="ml-auto size-3.5" />}
+                </DropdownMenuItem>
+              );
+            })}
+          </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

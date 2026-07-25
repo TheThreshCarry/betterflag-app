@@ -1,129 +1,94 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Dialog as SheetPrimitive } from "@base-ui/react/dialog"
+import * as React from "react";
+import {
+  Drawer,
+  DrawerBody,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@appica/ui-react/drawer";
 
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { XIcon } from "lucide-react"
+import { cn } from "@/lib/utils";
 
-function Sheet({ ...props }: SheetPrimitive.Root.Props) {
-  return <SheetPrimitive.Root data-slot="sheet" {...props} />
-}
+type DrawerSide = "top" | "bottom" | "left" | "right";
 
-function SheetTrigger({ ...props }: SheetPrimitive.Trigger.Props) {
-  return <SheetPrimitive.Trigger data-slot="sheet-trigger" {...props} />
-}
+const SheetSideContext = React.createContext<DrawerSide>("left");
 
-function SheetClose({ ...props }: SheetPrimitive.Close.Props) {
-  return <SheetPrimitive.Close data-slot="sheet-close" {...props} />
-}
-
-function SheetPortal({ ...props }: SheetPrimitive.Portal.Props) {
-  return <SheetPrimitive.Portal data-slot="sheet-portal" {...props} />
-}
-
-function SheetOverlay({ className, ...props }: SheetPrimitive.Backdrop.Props) {
+/** Sheet API shim over Appica Drawer for sidebar mobile chrome. */
+function Sheet({
+  side = "left",
+  children,
+  ...props
+}: React.ComponentProps<typeof Drawer> & { side?: DrawerSide }) {
   return (
-    <SheetPrimitive.Backdrop
-      data-slot="sheet-overlay"
-      className={cn(
-        "fixed inset-0 z-50 bg-black/10 transition-opacity duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0 supports-backdrop-filter:backdrop-blur-xs",
-        className
-      )}
-      {...props}
-    />
-  )
+    <SheetSideContext.Provider value={side}>
+      <Drawer side={side} {...props}>
+        {children}
+      </Drawer>
+    </SheetSideContext.Provider>
+  );
+}
+
+function SheetTrigger(props: React.ComponentProps<typeof DrawerTrigger>) {
+  return <DrawerTrigger {...props} />;
+}
+
+function SheetClose(props: React.ComponentProps<typeof DrawerClose>) {
+  return <DrawerClose {...props} />;
 }
 
 function SheetContent({
   className,
+  side: sideProp,
   children,
-  side = "right",
-  showCloseButton = true,
   ...props
-}: SheetPrimitive.Popup.Props & {
-  side?: "top" | "right" | "bottom" | "left"
-  showCloseButton?: boolean
+}: Omit<React.ComponentProps<typeof DrawerContent>, "side"> & {
+  side?: DrawerSide;
 }) {
-  return (
-    <SheetPortal>
-      <SheetOverlay />
-      <SheetPrimitive.Popup
-        data-slot="sheet-content"
-        data-side={side}
-        className={cn(
-          "fixed z-50 flex flex-col gap-4 bg-popover bg-clip-padding text-sm text-popover-foreground shadow-lg transition duration-200 ease-in-out data-ending-style:opacity-0 data-starting-style:opacity-0 data-[side=bottom]:inset-x-0 data-[side=bottom]:bottom-0 data-[side=bottom]:h-auto data-[side=bottom]:border-t data-[side=bottom]:data-ending-style:translate-y-[2.5rem] data-[side=bottom]:data-starting-style:translate-y-[2.5rem] data-[side=left]:inset-y-0 data-[side=left]:left-0 data-[side=left]:h-full data-[side=left]:w-3/4 data-[side=left]:border-r data-[side=left]:data-ending-style:translate-x-[-2.5rem] data-[side=left]:data-starting-style:translate-x-[-2.5rem] data-[side=right]:inset-y-0 data-[side=right]:right-0 data-[side=right]:h-full data-[side=right]:w-3/4 data-[side=right]:border-l data-[side=right]:data-ending-style:translate-x-[2.5rem] data-[side=right]:data-starting-style:translate-x-[2.5rem] data-[side=top]:inset-x-0 data-[side=top]:top-0 data-[side=top]:h-auto data-[side=top]:border-b data-[side=top]:data-ending-style:translate-y-[-2.5rem] data-[side=top]:data-starting-style:translate-y-[-2.5rem] data-[side=left]:sm:max-w-sm data-[side=right]:sm:max-w-sm",
-          className
-        )}
-        {...props}
-      >
-        {children}
-        {showCloseButton && (
-          <SheetPrimitive.Close
-            data-slot="sheet-close"
-            render={
-              <Button
-                variant="ghost"
-                className="absolute top-3 right-3"
-                size="icon-sm"
-              />
-            }
-          >
-            <XIcon
-            />
-            <span className="sr-only">Close</span>
-          </SheetPrimitive.Close>
-        )}
-      </SheetPrimitive.Popup>
-    </SheetPortal>
-  )
-}
+  const contextSide = React.useContext(SheetSideContext);
+  const side = sideProp ?? contextSide;
 
-function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
-    <div
-      data-slot="sheet-header"
-      className={cn("flex flex-col gap-0.5 p-4", className)}
-      {...props}
-    />
-  )
-}
-
-function SheetFooter({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="sheet-footer"
-      className={cn("mt-auto flex flex-col gap-2 p-4", className)}
-      {...props}
-    />
-  )
-}
-
-function SheetTitle({ className, ...props }: SheetPrimitive.Title.Props) {
-  return (
-    <SheetPrimitive.Title
-      data-slot="sheet-title"
+    <DrawerContent
+      closeButton={false}
       className={cn(
-        "font-heading text-base font-medium text-foreground",
-        className
+        "max-w-none rounded-none p-0",
+        side === "left" && "inset-y-0 left-0 h-full",
+        side === "right" && "inset-y-0 right-0 h-full",
+        side === "top" && "inset-x-0 top-0 w-full",
+        side === "bottom" && "inset-x-0 bottom-0 w-full",
+        className,
       )}
       {...props}
-    />
-  )
+    >
+      {children}
+    </DrawerContent>
+  );
 }
 
-function SheetDescription({
-  className,
-  ...props
-}: SheetPrimitive.Description.Props) {
-  return (
-    <SheetPrimitive.Description
-      data-slot="sheet-description"
-      className={cn("text-sm text-muted-foreground", className)}
-      {...props}
-    />
-  )
+function SheetHeader(props: React.ComponentProps<typeof DrawerHeader>) {
+  return <DrawerHeader {...props} />;
+}
+
+function SheetFooter(props: React.ComponentProps<typeof DrawerFooter>) {
+  return <DrawerFooter {...props} />;
+}
+
+function SheetTitle(props: React.ComponentProps<typeof DrawerTitle>) {
+  return <DrawerTitle {...props} />;
+}
+
+function SheetDescription(props: React.ComponentProps<typeof DrawerDescription>) {
+  return <DrawerDescription {...props} />;
+}
+
+function SheetBody(props: React.ComponentProps<typeof DrawerBody>) {
+  return <DrawerBody {...props} />;
 }
 
 export {
@@ -135,4 +100,5 @@ export {
   SheetFooter,
   SheetTitle,
   SheetDescription,
-}
+  SheetBody,
+};
