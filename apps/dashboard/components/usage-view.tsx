@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
+import { DailyAreaChart } from "@/components/charts";
 import { Button, Card, Chip, ErrorNote } from "@/components/ui";
 import { UsageSkeleton } from "@/components/skeletons";
 import { Stagger } from "@/components/stagger";
@@ -30,15 +31,14 @@ export function UsageView() {
   const chart = useMemo(() => {
     if (!usage) return null;
     const byDay = new Map(usage.series.map((point) => [point.day.slice(0, 10), point.evaluations]));
-    const days: { day: string; evaluations: number }[] = [];
+    const days: { day: string; value: number }[] = [];
     for (let i = 29; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
       const key = date.toISOString().slice(0, 10);
-      days.push({ day: key, evaluations: byDay.get(key) ?? 0 });
+      days.push({ day: key, value: byDay.get(key) ?? 0 });
     }
-    const max = Math.max(...days.map((d) => d.evaluations), 1);
-    return { days, max };
+    return { days };
   }, [usage]);
 
   if (error) return <ErrorNote message={error} />;
@@ -77,7 +77,7 @@ function UsageContent({
   staggerSelf: _staggerSelf,
 }: {
   usage: ApiUsage;
-  chart: { days: { day: string; evaluations: number }[]; max: number };
+  chart: { days: { day: string; value: number }[] };
   staggerFrom?: number;
   staggerSelf?: boolean;
 }) {
@@ -86,7 +86,6 @@ function UsageContent({
     0,
     Math.ceil((new Date(usage.trialEndsAt).getTime() - Date.now()) / 86_400_000),
   );
-  const barWidth = 100 / 30;
 
   return (
     <Stagger from={staggerFrom} className="space-y-6">
@@ -115,32 +114,11 @@ function UsageContent({
           <h2 className="text-[16px] font-semibold">Evaluations per day</h2>
           <span className="text-[12px] text-ink-muted">last 30 days</span>
         </div>
-        <svg viewBox="0 0 100 40" className="h-44 w-full" preserveAspectRatio="none" role="img" aria-label="Evaluations per day bar chart">
-          {chart.days.map((point, i) => {
-            const height = (point.evaluations / chart.max) * 36;
-            return (
-              <rect
-                key={point.day}
-                x={i * barWidth + barWidth * 0.15}
-                y={40 - height}
-                width={barWidth * 0.7}
-                height={Math.max(height, point.evaluations > 0 ? 0.5 : 0)}
-                rx={0.6}
-                fill="#0067F4"
-                opacity={0.85}
-              >
-                <title>
-                  {point.day}: {point.evaluations.toLocaleString()} evaluations
-                </title>
-              </rect>
-            );
-          })}
-          <line x1="0" y1="40" x2="100" y2="40" stroke="#e8e4de" strokeWidth="0.4" />
-        </svg>
-        <div className="mt-2 flex justify-between text-[11px] text-ink-muted">
-          <span>{chart.days[0]?.day}</span>
-          <span>{chart.days[chart.days.length - 1]?.day}</span>
-        </div>
+        <DailyAreaChart
+          data={chart.days}
+          label="Evaluations"
+          className="aspect-auto h-44 w-full"
+        />
       </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">

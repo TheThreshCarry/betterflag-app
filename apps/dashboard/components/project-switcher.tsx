@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import type { ApiProject } from "@/lib/api-types";
 import { api } from "@/lib/client-api";
+import { toast } from "@/lib/toast";
 import { ChevronsUpDownIcon, FolderKanbanIcon, PlusIcon } from "lucide-react";
 
 const SLUG_RE = /^[a-z0-9][a-z0-9-]{0,62}$/;
@@ -153,6 +154,7 @@ function CreateProjectDialog({ open, onClose }: { open: boolean; onClose: () => 
       });
       await refreshProjects();
       setActiveProjectId(project.id);
+      toast.success({ title: "Project created", description: project.name });
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create project");

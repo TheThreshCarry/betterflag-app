@@ -167,6 +167,13 @@ export interface AnalyticsSeriesPoint {
   evaluations: number;
 }
 
+export interface AnalyticsRegionPoint {
+  region: string;
+  lat: number;
+  lng: number;
+  evaluations: number;
+}
+
 export interface AnalyticsCityPoint {
   city: string;
   lat: number;
@@ -180,12 +187,16 @@ export interface ApiAnalytics {
   availablePeriods: AnalyticsPeriod[];
   /** Present when the request was scoped with `?country=XX`. */
   country?: string | null;
+  /** Present when the request was scoped with `?region=…`. */
+  region?: string | null;
   total: number;
   series: AnalyticsSeriesPoint[];
   countries: CountryPoint[];
   flags: { flagKey: string; evaluations: number }[];
   environments: { env: string; evaluations: number }[];
-  /** City rollup with average coords (country-scoped requests only). */
+  /** Region/state rollup (country-scoped, not region-scoped). */
+  regions?: AnalyticsRegionPoint[];
+  /** City rollup (country + region scoped). */
   cities?: AnalyticsCityPoint[];
 }
 

@@ -11,6 +11,8 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useApp } from "@/components/app-shell";
+import { CountryTable } from "@/components/analytics-view";
+import { SparklineArea, StackedAreaChart } from "@/components/charts";
 import { KIND_COLORS } from "@/components/flags-view";
 import { Slider } from "@appica/ui-react/slider";
 
@@ -28,7 +30,6 @@ import {
 import { FlagDetailSkeleton } from "@/components/skeletons";
 import { Stagger } from "@/components/stagger";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CountryTable } from "@/components/analytics-view";
 import type {
   AnalyticsPeriod,
   ApiFlag,
@@ -37,6 +38,7 @@ import type {
   StatsPoint,
 } from "@/lib/api-types";
 import { api, ApiClientError } from "@/lib/client-api";
+import { toast } from "@/lib/toast";
 
 interface FlagDetailResponse {
   flag: ApiFlag;
@@ -223,6 +225,7 @@ export function FlagDetail({ flagId }: { flagId: string }) {
         flag={flag}
         onSaved={() => {
           setEditOpen(false);
+          toast.success({ title: "Flag saved" });
           void load();
         }}
       />
@@ -241,9 +244,10 @@ export function FlagDetail({ flagId }: { flagId: string }) {
           <Button
             variant="danger"
             onClick={() => {
-              void api(`/api/v1/flags/${flag.id}`, { method: "DELETE" }).then(() =>
-                router.push("/flags"),
-              );
+              void api(`/api/v1/flags/${flag.id}`, { method: "DELETE" }).then(() => {
+                toast.success({ title: "Flag archived", description: flag.key });
+                router.push("/flags");
+              });
             }}
           >
             Archive flag
@@ -381,6 +385,7 @@ function EnvConfigCard({
         body: JSON.stringify(body),
       });
       await onRefresh();
+      toast.success({ title: "Changes saved", description: `${flag.key} · ${envSlug}` });
     } catch (err) {
       if (err instanceof ApiClientError && err.status === 409) {
         setConflict(true);
@@ -401,6 +406,7 @@ function EnvConfigCard({
         body: JSON.stringify({ clearKill: true, expectedVersion: config.version }),
       });
       await onRefresh();
+      toast.success({ title: "Kill switch cleared", description: `${flag.key} · ${envSlug}` });
     } catch (err) {
       if (err instanceof ApiClientError && err.status === 409) {
         setConflict(true);
@@ -584,6 +590,10 @@ function EnvConfigCard({
                 .then(async () => {
                   setKillOpen(false);
                   await onRefresh();
+                  toast.success({
+                    title: "Kill switch activated",
+                    description: `${flag.key} · ${envSlug}`,
+                  });
                 })
                 .catch((err: unknown) =>
                   setError(err instanceof Error ? err.message : "Failed to kill"),
@@ -852,22 +862,18 @@ function EnvSparkline({ flagId, envSlug }: { flagId: string; envSlug: string }) 
     };
   }, [flagId, envSlug]);
 
-  const { path, total } = useMemo(() => {
-    if (!series || series.length === 0) return { path: "", total: 0 };
+  const { points, total } = useMemo(() => {
+    if (!series || series.length === 0) return { points: [] as { value: number }[], total: 0 };
     const byHour = new Map<string, number>();
     for (const point of series) {
       byHour.set(point.hour, (byHour.get(point.hour) ?? 0) + point.evaluations);
     }
     const hours = [...byHour.entries()].sort((a, b) => a[0].localeCompare(b[0]));
     const sum = hours.reduce((acc, [, count]) => acc + count, 0);
-    const max = Math.max(...hours.map(([, count]) => count), 1);
-    const width = 96;
-    const height = 24;
-    const step = hours.length > 1 ? width / (hours.length - 1) : width;
-    const points = hours
-      .map(([, count], i) => `${(i * step).toFixed(1)},${(height - (count / max) * height + 2).toFixed(1)}`)
-      .join(" ");
-    return { path: points, total: sum };
+    return {
+      points: hours.map(([, count]) => ({ value: count })),
+      total: sum,
+    };
   }, [series]);
 
   if (series === null) return <Skeleton className="h-6 w-28" />;
@@ -877,9 +883,7 @@ function EnvSparkline({ flagId, envSlug }: { flagId: string; envSlug: string }) 
 
   return (
     <span className="data-in flex items-center gap-2" title={`${total.toLocaleString()} evaluations in the last 24h`}>
-      <svg width="96" height="28" viewBox="0 0 96 28" fill="none" aria-hidden>
-        <polyline points={path} stroke="#0067F4" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
+      <SparklineArea data={points} className="aspect-auto h-7 w-24" />
       <span className="font-mono text-[11px]">{total.toLocaleString()}</span>
     </span>
   );
@@ -888,9 +892,9 @@ function EnvSparkline({ flagId, envSlug }: { flagId: string; envSlug: string }) 
 // ── Per-flag analytics (series per variation + country breakdown) ───────────
 
 const VARIATION_COLORS: Record<string, string> = {
-  on: "#0067F4",
-  off: "#B7B2AA",
-  default: "#FF5A1A",
+  on: "var(--chart-1)",
+  off: "var(--chart-5)",
+  default: "var(--chart-3)",
 };
 
 const FLAG_PERIODS: { value: AnalyticsPeriod; label: string; days: number }[] = [
@@ -933,9 +937,26 @@ function FlagAnalytics({ flagId, envSlug }: { flagId: string; envSlug: string })
       byHour.set(point.hour, hour);
     }
     const hours = [...byHour.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-    const max = Math.max(...hours.map(([, counts]) => [...counts.values()].reduce((a, b) => a + b, 0)), 1);
+    const data = hours.map(([hour, counts]) => {
+      const row: Record<string, string | number> = {
+        label: hour.slice(5, 16).replace("T", " "),
+      };
+      for (const variation of variations) {
+        row[variation] = counts.get(variation) ?? 0;
+      }
+      return row;
+    });
     const total = stats.series.reduce((sum, point) => sum + point.evaluations, 0);
-    return { variations, hours, max, total };
+    return {
+      variations,
+      data,
+      total,
+      series: variations.map((key) => ({
+        key,
+        label: key,
+        color: VARIATION_COLORS[key] ?? "var(--chart-1)",
+      })),
+    };
   }, [stats]);
 
   const retentionDays = stats?.retentionDays ?? 365;
@@ -990,53 +1011,11 @@ function FlagAnalytics({ flagId, envSlug }: { flagId: string; envSlug: string })
           </p>
         ) : (
           <div className="data-in grid gap-6 lg:grid-cols-2">
-            <div>
-              <svg
-                viewBox="0 0 100 40"
-                className="h-40 w-full"
-                preserveAspectRatio="none"
-                role="img"
-                aria-label="Evaluations per variation over time"
-              >
-                {chart.hours.map(([hour, counts], i) => {
-                  const barWidth = 100 / chart.hours.length;
-                  let yOffset = 40;
-                  return chart.variations.map((variation) => {
-                    const count = counts.get(variation) ?? 0;
-                    const height = (count / chart.max) * 36;
-                    yOffset -= height;
-                    return (
-                      <rect
-                        key={`${hour}:${variation}`}
-                        x={i * barWidth + barWidth * 0.15}
-                        y={yOffset}
-                        width={barWidth * 0.7}
-                        height={height}
-                        fill={VARIATION_COLORS[variation] ?? "#0067F4"}
-                        opacity={0.9}
-                      >
-                        <title>
-                          {hour} · {variation}: {count.toLocaleString()}
-                        </title>
-                      </rect>
-                    );
-                  });
-                })}
-                <line x1="0" y1="40" x2="100" y2="40" stroke="#e8e4de" strokeWidth="0.4" />
-              </svg>
-              <div className="mt-2 flex items-center gap-4">
-                {chart.variations.map((variation) => (
-                  <span key={variation} className="flex items-center gap-1.5 text-[12px] text-ink-muted">
-                    <span
-                      aria-hidden
-                      className="inline-block h-2 w-2 rounded-full"
-                      style={{ backgroundColor: VARIATION_COLORS[variation] ?? "#0067F4" }}
-                    />
-                    {variation}
-                  </span>
-                ))}
-              </div>
-            </div>
+            <StackedAreaChart
+              data={chart.data}
+              series={chart.series}
+              className="aspect-auto h-40 w-full"
+            />
             <div>
               <p className="mb-3 text-[13px] font-medium">By country</p>
               <CountryTable countries={stats.countries} total={chart.total} />

@@ -98,6 +98,7 @@ export const evaluationEventSchema = z.object({
   user_hash: z.string().regex(/^\d+$/, "user_hash must be a decimal string"),
   // `.catch` keeps in-flight messages from pre-country / pre-geo edge deploys valid.
   country: z.string().min(1).catch("unknown"),
+  region: z.string().nullable().catch(null),
   city: z.string().nullable().catch(null),
   lat: z.number().nullable().catch(null),
   lng: z.number().nullable().catch(null),
@@ -119,6 +120,8 @@ export interface ClickHouseEvaluationRow {
   user_hash: string;
   /** ISO 3166-1 alpha-2 or "unknown". */
   country: string;
+  /** Region/state from cf.region; empty string when unavailable. */
+  region: string;
   /** City from cf.city; empty string when unavailable. */
   city: string;
   lat: number | null;
@@ -146,6 +149,7 @@ export function eventToRow(event: EvaluationEvent): ClickHouseEvaluationRow {
     sdk: event.sdk,
     user_hash: event.user_hash,
     country: event.country,
+    region: event.region?.trim() ?? "",
     city: event.city?.trim() ?? "",
     lat: event.lat,
     lng: event.lng,

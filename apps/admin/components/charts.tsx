@@ -114,7 +114,7 @@ export function DailyAreaChart({
         />
         <Area
           dataKey="value"
-          type="monotone"
+          type="natural"
           stroke="var(--color-value)"
           strokeWidth={2}
           fill="url(#fill-value)"

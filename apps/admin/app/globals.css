@@ -39,6 +39,8 @@
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
     @apply font-sans;
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-line-strong) transparent;
   }
 
   body {
@@ -48,11 +50,45 @@
     @apply bg-background text-foreground;
   }
 
+  /* Scrollbars — ShipOS line / line-strong (light + dark). */
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: var(--color-line-strong);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-ink-muted);
+  }
+
+  *::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
   ::selection {
     background: rgba(255, 90, 26, 0.15);
   }
   * {
     @apply border-border outline-ring/50;
+  }
+}
+
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
   }
 }
 

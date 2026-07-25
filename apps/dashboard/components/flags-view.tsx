@@ -26,6 +26,7 @@ import {
 import { Stagger } from "@/components/stagger";
 import type { ApiFlag, ApiFlagConfig } from "@/lib/api-types";
 import { api } from "@/lib/client-api";
+import { toast } from "@/lib/toast";
 
 type FlagWithConfigs = ApiFlag & { configs: ApiFlagConfig[] };
 
@@ -250,6 +251,7 @@ function CreateProjectButton() {
         body: JSON.stringify({ name, slug: slug || slugifyProjectSlug(name) }),
       });
       await refreshProjects();
+      toast.success({ title: "Project created", description: name });
       setOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create project");
@@ -357,6 +359,7 @@ function NewFlagDialog({
       setKeyTouched(false);
       setDescription("");
       setDefaultValueText("");
+      toast.success({ title: "Flag created", description: flag.key });
       onCreated(flag);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create flag");

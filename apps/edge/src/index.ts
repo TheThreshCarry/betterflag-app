@@ -234,9 +234,11 @@ export function chunk<T>(items: readonly T[], size: number): T[][] {
   return chunks;
 }
 
-/** Client geo from Cloudflare `request.cf` (country + city + optional coords). */
+/** Client geo from Cloudflare `request.cf` (country + region + city + coords). */
 export type ClientGeo = {
   country: string;
+  /** Region/state from `cf.region`; null when Cloudflare omits it. */
+  region: string | null;
   /** City name from `cf.city`; null when Cloudflare omits it. */
   city: string | null;
   /** Rounded to ~1 km; null when Cloudflare omits coordinates. */
@@ -249,16 +251,21 @@ export function roundCoord(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
+function trimCfString(value: unknown): string | null {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+}
+
 /**
- * Country, city, and approximate coordinates of the calling client from
- * Cloudflare request metadata. Country is ISO 3166-1 alpha-2 ("unknown"
- * when missing). City/lat/lng are null when Cloudflare does not populate them.
+ * Country, region, city, and approximate coordinates of the calling client
+ * from Cloudflare request metadata. Country is ISO 3166-1 alpha-2 ("unknown"
+ * when missing). Region/city/lat/lng are null when Cloudflare omits them.
  */
 export function clientGeoOf(request: Request): ClientGeo {
   const cf = (
     request as {
       cf?: {
         country?: unknown;
+        region?: unknown;
         city?: unknown;
         latitude?: unknown;
         longitude?: unknown;
@@ -271,11 +278,8 @@ export function clientGeoOf(request: Request): ClientGeo {
       ? rawCountry.toUpperCase()
       : "unknown";
 
-  const rawCity = cf?.city;
-  const city =
-    typeof rawCity === "string" && rawCity.trim().length > 0
-      ? rawCity.trim()
-      : null;
+  const region = trimCfString(cf?.region);
+  const city = trimCfString(cf?.city);
 
   const latRaw = typeof cf?.latitude === "string" ? Number(cf.latitude) : NaN;
   const lngRaw = typeof cf?.longitude === "string" ? Number(cf.longitude) : NaN;
@@ -287,9 +291,9 @@ export function clientGeoOf(request: Request): ClientGeo {
     lngRaw >= -180 &&
     lngRaw <= 180
   ) {
-    return { country, city, lat: roundCoord(latRaw), lng: roundCoord(lngRaw) };
+    return { country, region, city, lat: roundCoord(latRaw), lng: roundCoord(lngRaw) };
   }
-  return { country, city, lat: null, lng: null };
+  return { country, region, city, lat: null, lng: null };
 }
 
 /** @deprecated Prefer `clientGeoOf`; kept for call sites that only need country. */
@@ -322,7 +326,7 @@ export function buildEvents(
 ): EvaluationEvent[] {
   const resolved: ClientGeo =
     typeof geo === "string"
-      ? { country: geo, city: null, lat: null, lng: null }
+      ? { country: geo, region: null, city: null, lat: null, lng: null }
       : geo;
   const ts = new Date().toISOString();
   const user_hash = context.userId !== undefined ? hashUserId(context.userId) : "0";
@@ -338,6 +342,7 @@ export function buildEvents(
     sdk,
     user_hash,
     country: resolved.country,
+    region: resolved.region,
     city: resolved.city,
     lat: resolved.lat,
     lng: resolved.lng,

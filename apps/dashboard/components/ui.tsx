@@ -22,6 +22,7 @@ import {
 import { Spinner as AppicaSpinner } from "@appica/ui-react/spinner";
 import { Switch } from "@appica/ui-react/switch";
 
+import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
 export type ChipColor = "blue" | "pink" | "green" | "orange" | "gray";
@@ -254,6 +255,7 @@ export function CopyButton({ text, label = "Copy" }: { text: string; label?: str
       copiedLabel="Copied"
       variant="outline"
       size="sm"
+      onCopy={() => toast.copied()}
     />
   );
 }

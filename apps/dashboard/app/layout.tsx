@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@appica/ui-react/providers/theme-provider";
 
+import { AppToaster } from "@/components/app-toaster";
 import { PreferencesProvider } from "@/components/preferences-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import {
@@ -69,7 +70,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           storageKey={THEME_STORAGE_KEY}
         >
           <PreferencesProvider>
-            <TooltipProvider>{children}</TooltipProvider>
+            <AppToaster>
+              <TooltipProvider>{children}</TooltipProvider>
+            </AppToaster>
           </PreferencesProvider>
         </ThemeProvider>
       </body>
