@@ -20,6 +20,7 @@ import type {
   OrgPlan,
   OrgRole,
   OrgRow,
+  ProfileRow,
   ProjectRow,
 } from "@shipos/db";
 
@@ -106,6 +107,13 @@ export interface ApiOrgMember {
   role: OrgRole;
   email: string | null;
   createdAt: string;
+}
+
+export interface ApiProfile {
+  id: string;
+  avatarUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ApiOrg {
@@ -290,6 +298,15 @@ export function toApiAuditEntry(row: AuditLogRow): ApiAuditEntry {
     before: row.before,
     after: row.after,
     createdAt: row.created_at,
+  };
+}
+
+export function toApiProfile(row: ProfileRow): ApiProfile {
+  return {
+    id: row.id,
+    avatarUrl: row.avatar_url,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   };
 }
 

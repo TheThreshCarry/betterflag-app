@@ -44,6 +44,14 @@ export interface AlphaAllowlistRow {
   created_at: string;
 }
 
+/** 1:1 with auth.users (migration 20260725190000). */
+export interface ProfileRow {
+  id: string;
+  avatar_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface OrgMemberRow {
   org_id: string;
   user_id: string;

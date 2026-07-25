@@ -24,14 +24,14 @@ export const NAV_ITEMS = [
 export function AppSidebar({
   userEmail,
   orgName,
-  orgLogoUrl,
+  avatarUrl,
   signingOut,
   onSignOut,
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
   userEmail: string | null;
   orgName: string;
-  orgLogoUrl: string | null;
+  avatarUrl: string | null;
   signingOut: boolean;
   onSignOut: () => void;
 }) {
@@ -56,7 +56,7 @@ export function AppSidebar({
         <NavUser
           userEmail={userEmail}
           orgName={orgName}
-          orgLogoUrl={orgLogoUrl}
+          avatarUrl={avatarUrl}
           signingOut={signingOut}
           onSignOut={onSignOut}
         />

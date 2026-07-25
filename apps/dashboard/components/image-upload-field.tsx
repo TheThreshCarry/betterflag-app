@@ -1,13 +1,15 @@
 "use client";
 
 import { ImageIcon, Trash2Icon, UploadIcon } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { Button, ErrorNote } from "@/components/ui";
+import { Button, ErrorNote, Spinner } from "@/components/ui";
 import { ApiClientError } from "@/lib/client-api";
 import { cn } from "@/lib/utils";
 
 const ACCEPT = "image/png,image/jpeg,image/webp,image/svg+xml";
+
+type PendingAction = "upload" | "remove" | null;
 
 export function ImageUploadField({
   label,
@@ -30,15 +32,36 @@ export function ImageUploadField({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
-  const [localBusy, setLocalBusy] = useState(false);
-  const working = busy || localBusy;
+  const [pending, setPending] = useState<PendingAction>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const working = busy || pending !== null;
 
-  async function run(action: () => Promise<void>) {
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  // Drop local preview once parent gets a new remote URL (successful upload).
+  const prevImageUrl = useRef(imageUrl);
+  useEffect(() => {
+    if (prevImageUrl.current === imageUrl) return;
+    prevImageUrl.current = imageUrl;
+    if (!previewUrl) return;
+    URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(null);
+  }, [imageUrl, previewUrl]);
+
+  async function run(action: PendingAction, fn: () => Promise<void>) {
     setError(null);
-    setLocalBusy(true);
+    setPending(action);
     try {
-      await action();
+      await fn();
     } catch (err) {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        setPreviewUrl(null);
+      }
       setError(
         err instanceof ApiClientError
           ? err.message
@@ -47,24 +70,43 @@ export function ImageUploadField({
             : "Upload failed",
       );
     } finally {
-      setLocalBusy(false);
+      setPending(null);
     }
   }
 
+  const displayUrl = previewUrl ?? imageUrl;
+  const uploading = pending === "upload";
+  const removing = pending === "remove";
+
   return (
-    <div className={cn("flex items-start gap-4", className)}>
+    <div className={cn("flex items-start gap-4", className)} aria-busy={working || undefined}>
       <div
         className={cn(
-          "flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-line bg-canvas",
-          !imageUrl && "text-ink-muted",
+          "relative flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-line bg-canvas",
+          !displayUrl && "text-ink-muted",
         )}
       >
-        {imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element -- external media CDN URL
-          <img src={imageUrl} alt="" className="size-full object-cover" />
+        {displayUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- external media CDN / object URL
+          <img
+            src={displayUrl}
+            alt=""
+            className={cn(
+              "size-full object-cover transition-opacity duration-200",
+              working && "opacity-40",
+            )}
+          />
         ) : (
-          <ImageIcon className="size-5" aria-hidden />
+          <ImageIcon
+            className={cn("size-5 transition-opacity duration-200", working && "opacity-40")}
+            aria-hidden
+          />
         )}
+        {working ? (
+          <div className="absolute inset-0 flex items-center justify-center bg-canvas/40">
+            <Spinner size={18} className="text-ink" />
+          </div>
+        ) : null}
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-[14px] font-medium">{label}</p>
@@ -83,29 +125,39 @@ export function ImageUploadField({
                 const file = event.target.files?.[0];
                 event.target.value = "";
                 if (!file) return;
-                void run(() => onUpload(file));
+                if (previewUrl) URL.revokeObjectURL(previewUrl);
+                setPreviewUrl(URL.createObjectURL(file));
+                void run("upload", () => onUpload(file));
               }}
             />
             <Button
               type="button"
               variant="secondary"
               size="sm"
+              loading={uploading}
               disabled={working}
               onClick={() => inputRef.current?.click()}
             >
               <UploadIcon className="size-3.5" aria-hidden />
-              {imageUrl ? "Replace" : "Upload"}
+              {uploading ? "Uploading…" : imageUrl || previewUrl ? "Replace" : "Upload"}
             </Button>
-            {imageUrl ? (
+            {imageUrl || previewUrl ? (
               <Button
                 type="button"
                 variant="secondary"
                 size="sm"
+                loading={removing}
                 disabled={working}
-                onClick={() => void run(() => onRemove())}
+                onClick={() => {
+                  if (previewUrl) {
+                    URL.revokeObjectURL(previewUrl);
+                    setPreviewUrl(null);
+                  }
+                  void run("remove", () => onRemove());
+                }}
               >
                 <Trash2Icon className="size-3.5" aria-hidden />
-                Remove
+                {removing ? "Removing…" : "Remove"}
               </Button>
             ) : null}
           </div>

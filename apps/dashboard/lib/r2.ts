@@ -124,3 +124,7 @@ export function orgLogoKey(orgId: string, ext: string): string {
 export function projectPictureKey(projectId: string, ext: string): string {
   return `projects/${projectId}/picture.${ext}`;
 }
+
+export function profileAvatarKey(userId: string, ext: string): string {
+  return `users/${userId}/avatar.${ext}`;
+}

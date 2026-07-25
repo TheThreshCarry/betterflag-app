@@ -9,12 +9,33 @@ import type {
   FlagConfigRow,
   FlagRow,
   OrgRow,
+  ProfileRow,
   ProjectRow,
 } from "@shipos/db";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { AuditActorFields } from "./auth";
 import { HttpError, unwrap } from "./errors";
+
+/** Ensure a profiles row exists (covers users created before the migration trigger). */
+export async function getOrCreateProfile(
+  service: SupabaseClient,
+  userId: string,
+): Promise<ProfileRow> {
+  const existing = unwrap(
+    await service.from("profiles").select("*").eq("id", userId).maybeSingle(),
+  ) as ProfileRow | null;
+  if (existing) return existing;
+
+  const created = unwrap(
+    await service
+      .from("profiles")
+      .upsert({ id: userId }, { onConflict: "id" })
+      .select("*")
+      .single(),
+  ) as ProfileRow;
+  return created;
+}
 
 export async function getOrg(service: SupabaseClient, orgId: string): Promise<OrgRow> {
   const { data, error } = await service.from("orgs").select("*").eq("id", orgId).maybeSingle();

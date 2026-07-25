@@ -20,7 +20,7 @@ import { ImageUploadField } from "@/components/image-upload-field";
 import { Stagger } from "@/components/stagger";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button, Card, Chip, CopyButton, ErrorNote, type ChipColor } from "@/components/ui";
-import type { ApiOrg, ApiProject } from "@/lib/api-types";
+import type { ApiOrg, ApiProfile, ApiProject } from "@/lib/api-types";
 import { api } from "@/lib/client-api";
 import { cn } from "@/lib/utils";
 import { tierForPlan, usePricingTiers } from "@/lib/use-pricing";
@@ -597,8 +597,7 @@ function AccountSettings({
   staggerFrom?: number;
   staggerSelf?: boolean;
 }) {
-  const { userEmail } = useApp();
-  const initials = (userEmail ?? "U").slice(0, 2).toUpperCase();
+  const { userEmail, avatarUrl, patchProfile } = useApp();
 
   return (
     <SettingsPanel
@@ -606,16 +605,33 @@ function AccountSettings({
       description="Personal details and appearance preferences."
       staggerFrom={staggerFrom}
     >
-      <Card className="overflow-hidden">
-        <div className="flex items-center gap-4 border-b border-line px-5 py-5">
-          <div className="flex size-11 items-center justify-center rounded-full border border-line bg-canvas text-[13px] font-semibold">
-            {initials}
-          </div>
-          <div className="min-w-0">
-            <p className="truncate text-[14px] font-medium">{userEmail ?? "Signed in"}</p>
-            <p className="text-[12px] text-ink-muted">Authenticated account</p>
-          </div>
-        </div>
+      <Card className="overflow-hidden px-5 py-5">
+        <ImageUploadField
+          label="Profile picture"
+          description="Shown in the sidebar. PNG, JPEG, WebP, or SVG · max 1MB."
+          imageUrl={avatarUrl}
+          canEdit
+          onUpload={async (file) => {
+            const body = new FormData();
+            body.set("file", file);
+            const { profile } = await api<{ profile: ApiProfile }>("/api/v1/me/avatar", {
+              method: "POST",
+              body,
+            });
+            patchProfile(profile);
+            toast.success({ title: "Profile picture updated" });
+          }}
+          onRemove={async () => {
+            const { profile } = await api<{ profile: ApiProfile }>("/api/v1/me/avatar", {
+              method: "DELETE",
+            });
+            patchProfile(profile);
+            toast.success({ title: "Profile picture removed" });
+          }}
+        />
+      </Card>
+
+      <Card className="mt-4 overflow-hidden">
         <DefinitionRow label="Email" value={userEmail ?? "Unavailable"} />
         <DefinitionRow
           label="Organization access"

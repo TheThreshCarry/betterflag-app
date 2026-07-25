@@ -20,23 +20,21 @@ import { useRouter } from "next/navigation";
 
 import { ThemeToggle } from "@/components/theme-toggle";
 
-function OrgAvatar({
-  orgName,
-  orgLogoUrl,
+function UserAvatar({
+  avatarUrl,
   fallback,
   className,
 }: {
-  orgName: string;
-  orgLogoUrl: string | null;
+  avatarUrl: string | null;
   fallback: string;
   className?: string;
 }) {
-  if (orgLogoUrl) {
+  if (avatarUrl) {
     return (
       // eslint-disable-next-line @next/next/no-img-element -- external media CDN URL
       <img
-        src={orgLogoUrl}
-        alt={orgName}
+        src={avatarUrl}
+        alt=""
         className={className ?? "aspect-square size-8 rounded-lg object-cover"}
       />
     );
@@ -56,13 +54,13 @@ function OrgAvatar({
 export function NavUser({
   userEmail,
   orgName,
-  orgLogoUrl,
+  avatarUrl,
   signingOut,
   onSignOut,
 }: {
   userEmail: string | null;
   orgName: string;
-  orgLogoUrl: string | null;
+  avatarUrl: string | null;
   signingOut: boolean;
   onSignOut: () => void;
 }) {
@@ -77,7 +75,7 @@ export function NavUser({
           <DropdownMenuTrigger
             render={<SidebarMenuButton size="lg" className="aria-expanded:bg-muted" />}
           >
-            <OrgAvatar orgName={orgName} orgLogoUrl={orgLogoUrl} fallback={initials} />
+            <UserAvatar avatarUrl={avatarUrl} fallback={initials} />
             <div className="grid flex-1 text-left text-sm leading-tight">
               <span className="truncate font-medium">{userEmail ?? "Signed in"}</span>
               <span className="truncate text-xs text-muted-foreground">{orgName}</span>
@@ -93,12 +91,11 @@ export function NavUser({
             <DropdownMenuGroup>
               <DropdownMenuLabel className="p-0 font-normal">
                 <div className="flex items-center gap-2 px-2 py-2 text-left text-sm">
-                  <OrgAvatar
-                    orgName={orgName}
-                    orgLogoUrl={orgLogoUrl}
+                  <UserAvatar
+                    avatarUrl={avatarUrl}
                     fallback={initials}
                     className={
-                      orgLogoUrl
+                      avatarUrl
                         ? "size-8 rounded-lg object-cover"
                         : "flex size-8 items-center justify-center rounded-lg bg-sidebar-accent text-xs font-semibold"
                     }

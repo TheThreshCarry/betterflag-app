@@ -5,6 +5,7 @@ import {
   isMediaContentType,
   keyFromPublicUrl,
   orgLogoKey,
+  profileAvatarKey,
   projectPictureKey,
   publicMediaUrl,
 } from "@/lib/r2";
@@ -36,9 +37,10 @@ describe("publicMediaUrl", () => {
 });
 
 describe("object keys", () => {
-  it("builds org logo and project picture keys", () => {
+  it("builds org logo, project picture, and profile avatar keys", () => {
     expect(orgLogoKey("org-1", "png")).toBe("orgs/org-1/logo.png");
     expect(projectPictureKey("proj-1", "webp")).toBe("projects/proj-1/picture.webp");
+    expect(profileAvatarKey("user-1", "jpg")).toBe("users/user-1/avatar.jpg");
   });
 });
 

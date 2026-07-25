@@ -14,7 +14,7 @@ import {
 import { AppSidebar } from "@/components/app-sidebar";
 import { AppShellLoading } from "@/components/app-shell-loading";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import type { ApiOrg, ApiProject } from "@/lib/api-types";
+import type { ApiOrg, ApiProfile, ApiProject } from "@/lib/api-types";
 import { api, ApiClientError } from "@/lib/client-api";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 
@@ -22,6 +22,8 @@ type ApiEnvironment = ApiProject["environments"][number];
 
 interface AppContextValue {
   userEmail: string | null;
+  /** Current user's profile avatar URL (media CDN), or null. */
+  avatarUrl: string | null;
   org: ApiOrg;
   orgs: ApiOrg[];
   projects: ApiProject[];
@@ -33,6 +35,8 @@ interface AppContextValue {
   patchProject: (project: ApiProject) => void;
   /** Patch the active org in local state (e.g. after logo upload). */
   patchOrg: (org: ApiOrg) => void;
+  /** Patch the current user's profile in local state. */
+  patchProfile: (profile: ApiProfile) => void;
   environments: ApiEnvironment[];
   activeEnv: ApiEnvironment | null;
   setActiveEnvSlug: (slug: string) => void;
@@ -64,6 +68,7 @@ export function AppShell({
 
   const [orgs, setOrgs] = useState<ApiOrg[] | null>(null);
   const [projects, setProjects] = useState<ApiProject[]>([]);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [activeProjectId, setActiveProjectIdState] = useState<string | null>(null);
   const [activeEnvSlug, setActiveEnvSlugState] = useState<string>(DEFAULT_ENV_SLUG);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -101,11 +106,18 @@ export function AppShell({
     });
   }, []);
 
+  const patchProfile = useCallback((profile: ApiProfile) => {
+    setAvatarUrl(profile.avatarUrl);
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
-        const { orgs: loadedOrgs } = await api<{ orgs: ApiOrg[] }>("/api/v1/orgs");
+        const [{ orgs: loadedOrgs }, me] = await Promise.all([
+          api<{ orgs: ApiOrg[] }>("/api/v1/orgs"),
+          api<{ profile: ApiProfile }>("/api/v1/me").catch(() => null),
+        ]);
         if (cancelled) return;
         if (loadedOrgs.length === 0) {
           router.replace("/onboarding");
@@ -118,6 +130,7 @@ export function AppShell({
           return;
         }
         setOrgs(loadedOrgs);
+        if (me) setAvatarUrl(me.profile.avatarUrl);
 
         let loadedProjects: ApiProject[] = [];
         try {
@@ -206,6 +219,7 @@ export function AppShell({
     if (!org) return null;
     return {
       userEmail,
+      avatarUrl,
       org,
       orgs: orgs ?? [],
       projects,
@@ -215,6 +229,7 @@ export function AppShell({
       refreshProjects,
       patchProject,
       patchOrg,
+      patchProfile,
       environments,
       activeEnv,
       setActiveEnvSlug,
@@ -222,6 +237,7 @@ export function AppShell({
   }, [
     org,
     userEmail,
+    avatarUrl,
     orgs,
     projects,
     activeProject,
@@ -230,6 +246,7 @@ export function AppShell({
     refreshProjects,
     patchProject,
     patchOrg,
+    patchProfile,
     environments,
     activeEnv,
     setActiveEnvSlug,
@@ -301,7 +318,7 @@ export function AppShell({
           <AppSidebar
             userEmail={userEmail}
             orgName={contextValue.org.name}
-            orgLogoUrl={contextValue.org.logoUrl}
+            avatarUrl={contextValue.avatarUrl}
             signingOut={signingOut}
             onSignOut={() => void signOut()}
           />
