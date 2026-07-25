@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@appica/ui-react/providers/theme-provider";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 
 import { AppToaster } from "@/components/app-toaster";
 import { PreferencesProvider } from "@/components/preferences-provider";
@@ -64,17 +65,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script
           dangerouslySetInnerHTML={{ __html: DISABLE_ANIMATIONS_SCRIPT }}
         />
-        <ThemeProvider
-          defaultTheme="system"
-          enableSystem
-          storageKey={THEME_STORAGE_KEY}
-        >
-          <PreferencesProvider>
-            <AppToaster>
-              <TooltipProvider>{children}</TooltipProvider>
-            </AppToaster>
-          </PreferencesProvider>
-        </ThemeProvider>
+        <NuqsAdapter>
+          <ThemeProvider
+            defaultTheme="system"
+            enableSystem
+            storageKey={THEME_STORAGE_KEY}
+          >
+            <PreferencesProvider>
+              <AppToaster>
+                <TooltipProvider>{children}</TooltipProvider>
+              </AppToaster>
+            </PreferencesProvider>
+          </ThemeProvider>
+        </NuqsAdapter>
       </body>
     </html>
   );

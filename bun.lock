@@ -40,7 +40,7 @@
     },
     "apps/dashboard": {
       "name": "@shipos/dashboard",
-      "version": "0.10.0",
+      "version": "0.13.0",
       "dependencies": {
         "@appica/country-flags-react": "^1.0.0",
         "@appica/ui-react": "^1.0.0",
@@ -57,6 +57,7 @@
         "lucide-react": "^1.23.0",
         "maplibre-gl": "5.24.0",
         "next": "^16.2.10",
+        "nuqs": "^2.9.2",
         "posthog-js": "^1.364.0",
         "posthog-node": "^5.4.0",
         "react": "^19.2.7",
@@ -79,7 +80,7 @@
     },
     "apps/edge": {
       "name": "@shipos/edge",
-      "version": "0.4.2",
+      "version": "0.6.0",
       "dependencies": {
         "@shipos/core": "workspace:*",
         "@shipos/observability": "workspace:*",
@@ -96,7 +97,7 @@
     },
     "apps/ingest": {
       "name": "@shipos/ingest",
-      "version": "0.2.1",
+      "version": "0.4.0",
       "dependencies": {
         "@shipos/core": "workspace:*",
         "@shipos/db": "workspace:*",
@@ -130,7 +131,7 @@
     },
     "apps/mcp": {
       "name": "@shipos/mcp",
-      "version": "0.4.1",
+      "version": "0.6.0",
       "dependencies": {
         "@cloudflare/workers-oauth-provider": "^0.8.1",
         "@modelcontextprotocol/sdk": "^1.29.0",
@@ -1539,6 +1540,8 @@
     "normalize-path": ["normalize-path@3.0.0", "", {}, "sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA=="],
 
     "npm-run-path": ["npm-run-path@6.0.0", "", { "dependencies": { "path-key": "^4.0.0", "unicorn-magic": "^0.3.0" } }, "sha512-9qny7Z9DsQU8Ou39ERsPU4OZQlSTP47ShQzuKZ6PRXpYLtIFgl/DEBYEXKlvcEa+9tHVcK8CF81Y2V72qaZhWA=="],
+
+    "nuqs": ["nuqs@2.9.2", "", { "dependencies": { "@standard-schema/spec": "1.1.0" }, "peerDependencies": { "@remix-run/react": ">=2", "@tanstack/react-router": "^1", "next": ">=14.2.0", "react": ">=18.2.0 || ^19.0.0-0", "react-router": "^5 || ^6 || ^7 || ^8", "react-router-dom": "^5 || ^6 || ^7" }, "optionalPeers": ["@remix-run/react", "@tanstack/react-router", "next", "react-router", "react-router-dom"] }, "sha512-SUrBU5PfLckv2SAquHkYs76s603vbjl2OLEc+jlL3sITwvJDbE/fg3vN7l9Rdp4WIUs6E0QD+m3DfH9QUQfLkg=="],
 
     "nypm": ["nypm@0.6.6", "", { "dependencies": { "citty": "^0.2.2", "pathe": "^2.0.3", "tinyexec": "^1.1.1" }, "bin": { "nypm": "dist/cli.mjs" } }, "sha512-vRyr0r4cbBapw07Xw8xrj9Teq3o7MUD35rSaTcanDbW+aK2XHDgJFiU6ZTj2GBw7Q12ysdsyFss+Vdz4hQ0Y6Q=="],
 

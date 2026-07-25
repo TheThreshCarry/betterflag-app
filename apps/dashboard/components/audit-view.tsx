@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useState, type MouseEvent } from "react";
-import { useSearchParams } from "next/navigation";
+import { useQueryStates } from "nuqs";
 import {
   Table,
   TableBody,
@@ -30,6 +30,10 @@ import { AuditListSkeleton } from "@/components/skeletons";
 import { Stagger } from "@/components/stagger";
 import type { ApiAuditEntry } from "@/lib/api-types";
 import { api } from "@/lib/client-api";
+import {
+  auditSearchParams,
+  type AuditActorFilter,
+} from "@/lib/search-params";
 import { staggerStyle } from "@/lib/stagger";
 import { cn } from "@/lib/utils";
 
@@ -40,9 +44,7 @@ const DETAIL_MODES: { value: DetailMode; label: string }[] = [
   { value: "diff", label: "Diff" },
 ];
 
-type Filter = "all" | "user" | "agent";
-
-const FILTERS: { value: Filter; label: string }[] = [
+const FILTERS: { value: AuditActorFilter; label: string }[] = [
   { value: "all", label: "All" },
   { value: "user", label: "Humans" },
   { value: "agent", label: "Agents" },
@@ -64,9 +66,10 @@ const AUDIT_COLUMNS: readonly Column[] = [
 ];
 
 export function AuditView() {
-  const searchParams = useSearchParams();
-  const subjectFilter = searchParams.get("subject");
-  const [filter, setFilter] = useState<Filter>("all");
+  const [{ actor: filter, subject: subjectFilter }, setFilters] = useQueryStates(
+    auditSearchParams,
+    { history: "push" },
+  );
   const [entries, setEntries] = useState<ApiAuditEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -139,7 +142,7 @@ export function AuditView() {
             <button
               key={option.value}
               type="button"
-              onClick={() => setFilter(option.value)}
+              onClick={() => void setFilters({ actor: option.value })}
               className={`rounded-xl px-4 py-1.5 text-[13px] font-medium transition-colors ${
                 filter === option.value ? "bg-ink text-canvas" : "text-ink-muted hover:text-ink"
               }`}

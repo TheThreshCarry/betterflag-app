@@ -72,23 +72,51 @@ export const GET = withErrors<{ id: string; env: string }>(
         .limit(100),
     ) as AuditLogRow[];
 
-    const versions = rows
+    const matched = rows
       .map((row) => {
         const before = asSnapshot(row.before);
         const after = asSnapshot(row.after);
         if (!after || after.environment_id !== environment.id) return null;
         if (typeof after.version !== "number") return null;
-        return {
-          version: after.version,
-          action: row.action,
-          summary: summarizeChange(row.action, before, after),
-          actorType: row.actor_type,
-          actorKeyPrefix: row.actor_key_prefix,
-          createdAt: row.created_at,
-        };
+        return { row, before, after };
       })
-      .filter((row): row is NonNullable<typeof row> => row !== null)
+      .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
       .slice(0, limit);
+
+    // Resolve human emails once per distinct actor_id (service-role admin API).
+    const userIds = [
+      ...new Set(
+        matched
+          .map(({ row }) =>
+            row.actor_type === "user" && row.actor_id ? row.actor_id : null,
+          )
+          .filter((id): id is string => id !== null),
+      ),
+    ];
+    const emailByUserId = new Map<string, string | null>();
+    await Promise.all(
+      userIds.map(async (userId) => {
+        try {
+          const { data } = await service.auth.admin.getUserById(userId);
+          emailByUserId.set(userId, data.user?.email ?? null);
+        } catch {
+          emailByUserId.set(userId, null);
+        }
+      }),
+    );
+
+    const versions = matched.map(({ row, before, after }) => ({
+      version: after.version as number,
+      action: row.action,
+      summary: summarizeChange(row.action, before, after),
+      actorType: row.actor_type,
+      actorKeyPrefix: row.actor_key_prefix,
+      actorEmail:
+        row.actor_type === "user" && row.actor_id
+          ? (emailByUserId.get(row.actor_id) ?? null)
+          : null,
+      createdAt: row.created_at,
+    }));
 
     return NextResponse.json({
       flagKey: flag.key,

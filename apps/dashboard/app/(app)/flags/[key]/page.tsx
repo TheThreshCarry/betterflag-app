@@ -1,4 +1,7 @@
+import { Suspense } from "react";
+
 import { FlagDetail } from "@/components/flag-detail";
+import { FlagDetailSkeleton } from "@/components/skeletons";
 
 export default async function FlagDetailPage({
   params,
@@ -6,5 +9,9 @@ export default async function FlagDetailPage({
   params: Promise<{ key: string }>;
 }) {
   const { key } = await params;
-  return <FlagDetail flagKey={key} />;
+  return (
+    <Suspense fallback={<FlagDetailSkeleton />}>
+      <FlagDetail flagKey={key} />
+    </Suspense>
+  );
 }

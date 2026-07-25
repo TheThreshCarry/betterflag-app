@@ -19,7 +19,15 @@ interface FlagVersionEntry {
   summary: string;
   actorType: "user" | "agent";
   actorKeyPrefix: string | null;
+  /** Present when actorType is user — resolved from auth.users. */
+  actorEmail?: string | null;
   createdAt: string;
+}
+
+function actorLabel(entry: FlagVersionEntry): string | null {
+  if (entry.actorKeyPrefix) return entry.actorKeyPrefix;
+  if (entry.actorType === "user") return entry.actorEmail?.trim() || "human";
+  return null;
 }
 
 interface FlagVersionsResponse {
@@ -103,6 +111,7 @@ export function VersionHistoryBadge({
             <ul className="space-y-0.5">
               {versions.map((entry) => {
                 const current = entry.version === version;
+                const who = actorLabel(entry);
                 return (
                   <li
                     key={`${entry.version}-${entry.createdAt}`}
@@ -122,16 +131,20 @@ export function VersionHistoryBadge({
                       </div>
                       <p className="truncate text-[11px] text-ink-muted">{entry.summary}</p>
                     </div>
-                    <div className="shrink-0 text-right">
+                    <div className="min-w-0 shrink-0 text-right">
                       <p className="text-[11px] text-ink-muted">
                         <RelativeTime iso={entry.createdAt} />
                       </p>
-                      {entry.actorKeyPrefix ? (
-                        <p className="font-mono text-[10px] text-ink-muted/80">
-                          {entry.actorKeyPrefix}
+                      {who ? (
+                        <p
+                          className={cn(
+                            "max-w-[9rem] truncate text-[10px] text-ink-muted/80",
+                            entry.actorKeyPrefix && "font-mono",
+                          )}
+                          title={who}
+                        >
+                          {who}
                         </p>
-                      ) : entry.actorType === "user" ? (
-                        <p className="text-[10px] text-ink-muted/80">human</p>
                       ) : null}
                     </div>
                   </li>

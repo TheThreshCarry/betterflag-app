@@ -8,7 +8,8 @@ import {
 } from "@shipos/core";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useQueryStates } from "nuqs";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useApp } from "@/components/app-shell";
 import {
@@ -44,6 +45,7 @@ import type {
   StatsPoint,
 } from "@/lib/api-types";
 import { api, ApiClientError } from "@/lib/client-api";
+import { analyticsSearchParams } from "@/lib/search-params";
 import { flagEnvDescription, toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
@@ -959,13 +961,12 @@ function FlagAnalytics({
   projectId: string;
   envSlug: string;
 }) {
-  const [period, setPeriod] = useState<AnalyticsPeriod>("7d");
+  const [{ period, country: selectedCountry, region: selectedRegion }, setFilters] =
+    useQueryStates(analyticsSearchParams, { history: "push" });
   const [stats, setStats] = useState<ApiStats | null>(null);
   const [geo, setGeo] = useState<ApiAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [statsError, setStatsError] = useState<string | null>(null);
-  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
-  const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [countryDetail, setCountryDetail] = useState<ApiAnalytics | null>(null);
   const [countryLoading, setCountryLoading] = useState(false);
   const [countryError, setCountryError] = useState<string | null>(null);
@@ -973,17 +974,28 @@ function FlagAnalytics({
   const [regionLoading, setRegionLoading] = useState(false);
   const [regionError, setRegionError] = useState<string | null>(null);
 
+  const scopeKey = `${flagId}:${projectId}:${envSlug}`;
+  const prevScopeKey = useRef(scopeKey);
+
   const selectCountry = (code: string | null) => {
-    setSelectedCountry(code);
-    setSelectedRegion(null);
+    void setFilters({ country: code, region: null });
   };
+
+  const selectRegion = (region: string | null) => {
+    void setFilters({ region });
+  };
+
+  // Drop geo drill-down when flag/project/env changes (stale URL filters).
+  useEffect(() => {
+    if (prevScopeKey.current === scopeKey) return;
+    prevScopeKey.current = scopeKey;
+    void setFilters({ country: null, region: null });
+  }, [scopeKey, setFilters]);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setStatsError(null);
-    setSelectedCountry(null);
-    setSelectedRegion(null);
 
     const geoQuery = new URLSearchParams({
       period,
@@ -1158,7 +1170,7 @@ function FlagAnalytics({
                     ? `Beyond your plan's ${retentionDays}-day analytics retention`
                     : undefined
                 }
-                onClick={() => setPeriod(value)}
+                onClick={() => void setFilters({ period: value })}
                 className={cn(
                   "h-7 rounded-lg border px-2.5 text-[12px] font-medium transition-colors",
                   period === value
@@ -1193,7 +1205,7 @@ function FlagAnalytics({
             selectedCountry={selectedCountry}
             onSelectCountry={selectCountry}
             selectedRegion={selectedRegion}
-            onSelectRegion={setSelectedRegion}
+            onSelectRegion={selectRegion}
             countryDetail={countryDetail}
             countryLoading={countryLoading}
             countryError={countryError}

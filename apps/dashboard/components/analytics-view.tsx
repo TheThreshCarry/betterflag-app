@@ -4,6 +4,7 @@ import { CountryFlagRounded } from "@appica/country-flags-react";
 import { useTheme } from "@appica/ui-react/hooks/use-theme";
 import { ANALYTICS_RETENTION_DAYS } from "@shipos/db";
 import { ArrowLeft, ChevronDown } from "lucide-react";
+import { useQueryStates } from "nuqs";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { useApp } from "@/components/app-shell";
@@ -27,6 +28,7 @@ import type {
 } from "@/lib/api-types";
 import { api } from "@/lib/client-api";
 import { countryCentroid } from "@/lib/country-centroids";
+import { analyticsSearchParams } from "@/lib/search-params";
 import { staggerStyle } from "@/lib/stagger";
 import { cn } from "@/lib/utils";
 
@@ -243,12 +245,11 @@ export function SoftRefresh({
 
 export function AnalyticsView() {
   const { org, activeProject, activeEnv } = useApp();
-  const [period, setPeriod] = useState<AnalyticsPeriod>("7d");
+  const [{ period, country: selectedCountry, region: selectedRegion }, setFilters] =
+    useQueryStates(analyticsSearchParams, { history: "push" });
   const [data, setData] = useState<ApiAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
-  const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [countryDetail, setCountryDetail] = useState<ApiAnalytics | null>(null);
   const [countryLoading, setCountryLoading] = useState(false);
   const [countryError, setCountryError] = useState<string | null>(null);
@@ -258,19 +259,29 @@ export function AnalyticsView() {
 
   const retentionDays = ANALYTICS_RETENTION_DAYS[org.plan];
   const envSlug = activeEnv?.slug ?? null;
+  const projectEnvKey = `${activeProject?.id ?? ""}:${envSlug ?? ""}`;
+  const prevProjectEnvKey = useRef(projectEnvKey);
 
   const selectCountry = (code: string | null) => {
-    setSelectedCountry(code);
-    setSelectedRegion(null);
+    void setFilters({ country: code, region: null });
   };
+
+  const selectRegion = (region: string | null) => {
+    void setFilters({ region });
+  };
+
+  // Drop geo drill-down when project/env changes (stale URL filters).
+  useEffect(() => {
+    if (prevProjectEnvKey.current === projectEnvKey) return;
+    prevProjectEnvKey.current = projectEnvKey;
+    void setFilters({ country: null, region: null });
+  }, [projectEnvKey, setFilters]);
 
   useEffect(() => {
     if (!activeProject) return;
     let cancelled = false;
     setLoading(true);
     setError(null);
-    setSelectedCountry(null);
-    setSelectedRegion(null);
     const query = new URLSearchParams({ period, projectId: activeProject.id });
     if (envSlug) query.set("env", envSlug);
     void api<ApiAnalytics>(`/api/v1/analytics?${query.toString()}`)
@@ -403,7 +414,7 @@ export function AnalyticsView() {
                   ? `Beyond your plan's ${retentionDays}-day analytics retention`
                   : undefined
               }
-              onClick={() => setPeriod(value)}
+              onClick={() => void setFilters({ period: value })}
             >
               {label}
             </FilterButton>
@@ -426,7 +437,7 @@ export function AnalyticsView() {
           selectedCountry={selectedCountry}
           onSelectCountry={selectCountry}
           selectedRegion={selectedRegion}
-          onSelectRegion={setSelectedRegion}
+          onSelectRegion={selectRegion}
           countryDetail={countryDetail}
           countryLoading={countryLoading}
           countryError={countryError}
