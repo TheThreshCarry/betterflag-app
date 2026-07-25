@@ -78,7 +78,12 @@ describe("hasActiveSubscription", () => {
     [null, false],
   ] as const)("status %s → %s", (status, expected) => {
     expect(
-      hasActiveSubscription({ exists: true, subscriptionStatus: status, trialEndsAt: null }),
+      hasActiveSubscription({
+        exists: true,
+        subscriptionStatus: status,
+        trialEndsAt: null,
+        logoUrl: null,
+      }),
     ).toBe(expected);
   });
 });

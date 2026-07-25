@@ -40,6 +40,31 @@ export interface EmailTemplateSeed {
   variables: EmailVariable[];
 }
 
+/** Layout chrome merge tags (present in every compiled email). */
+export const ORG_LOGO_VARS: EmailVariable[] = [
+  {
+    name: "orgLogoUrl",
+    label: "Organization logo URL",
+    sample: "https://media.shipos.app/orgs/example/logo.png",
+  },
+  {
+    name: "orgLogoDisplay",
+    label: "Logo CSS display (none or inline-block)",
+    sample: "inline-block",
+  },
+];
+
+/** Values for layout logo slot when an org has (or lacks) a logo. */
+export function orgLogoMergeVars(logoUrl: string | null | undefined): {
+  orgLogoUrl: string;
+  orgLogoDisplay: "none" | "inline-block";
+} {
+  if (logoUrl && logoUrl.length > 0) {
+    return { orgLogoUrl: logoUrl, orgLogoDisplay: "inline-block" };
+  }
+  return { orgLogoUrl: "", orgLogoDisplay: "none" };
+}
+
 const TEXT_FOOTER =
   "\n\n---\nYou're getting this because you created a ShipOS account. It's a short 3-email onboarding series, then I'll leave your inbox alone. Reply any time, it lands in my actual inbox.";
 
@@ -77,7 +102,10 @@ Ship your first flag: ${APP_URL}/onboarding
 Your 14-day trial is running: every feature, no card. If anything feels off, hit reply and tell me. I read all of it.
 
 - Mehdi${TEXT_FOOTER}`,
-  variables: [{ name: "orgName", label: "Organization name", sample: "Acme Inc" }],
+  variables: [
+    { name: "orgName", label: "Organization name", sample: "Acme Inc" },
+    ...ORG_LOGO_VARS,
+  ],
 };
 
 const agentic: EmailTemplateSeed = {
@@ -120,7 +148,7 @@ Setup is one key and one config block:
 Feature flags made easy, with unlimited seats on every plan.
 
 - Mehdi${TEXT_FOOTER}`,
-  variables: [],
+  variables: [...ORG_LOGO_VARS],
 };
 
 const trialEnding: EmailTemplateSeed = {
@@ -156,7 +184,10 @@ Pick a plan: ${APP_URL}/settings
 Not convinced? Reply and tell me why: worst case you help me fix something, best case I change your mind.
 
 - Mehdi${TEXT_FOOTER}`,
-  variables: [{ name: "when", label: "When the trial ends", sample: "in 4 days" }],
+  variables: [
+    { name: "when", label: "When the trial ends", sample: "in 4 days" },
+    ...ORG_LOGO_VARS,
+  ],
 };
 
 export const TEMPLATE_SEEDS: Record<EmailTemplateKey, EmailTemplateSeed> = {

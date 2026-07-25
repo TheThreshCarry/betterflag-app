@@ -27,7 +27,12 @@ interface AppContextValue {
   projects: ApiProject[];
   activeProject: ApiProject | null;
   setActiveProjectId: (id: string) => void;
+  refreshOrgs: () => Promise<void>;
   refreshProjects: () => Promise<void>;
+  /** Patch one project in local state (e.g. after picture upload). */
+  patchProject: (project: ApiProject) => void;
+  /** Patch the active org in local state (e.g. after logo upload). */
+  patchOrg: (org: ApiOrg) => void;
   environments: ApiEnvironment[];
   activeEnv: ApiEnvironment | null;
   setActiveEnvSlug: (slug: string) => void;
@@ -64,6 +69,15 @@ export function AppShell({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
 
+  const refreshOrgs = useCallback(async () => {
+    const { orgs: fresh } = await api<{ orgs: ApiOrg[] }>("/api/v1/orgs");
+    if (fresh.length === 0) {
+      router.replace("/onboarding");
+      return;
+    }
+    setOrgs(fresh);
+  }, [router]);
+
   const refreshProjects = useCallback(async () => {
     try {
       const { projects: fresh } = await api<{ projects: ApiProject[] }>("/api/v1/projects");
@@ -72,6 +86,19 @@ export function AppShell({
       if (err instanceof ApiClientError && err.code === "no_org") return;
       throw err;
     }
+  }, []);
+
+  const patchProject = useCallback((project: ApiProject) => {
+    setProjects((prev) => prev.map((p) => (p.id === project.id ? project : p)));
+  }, []);
+
+  const patchOrg = useCallback((next: ApiOrg) => {
+    setOrgs((prev) => {
+      if (!prev) return prev;
+      return prev.map((o) =>
+        o.id === next.id ? { ...next, members: next.members ?? o.members } : o,
+      );
+    });
   }, []);
 
   useEffect(() => {
@@ -184,7 +211,10 @@ export function AppShell({
       projects,
       activeProject,
       setActiveProjectId,
+      refreshOrgs,
       refreshProjects,
+      patchProject,
+      patchOrg,
       environments,
       activeEnv,
       setActiveEnvSlug,
@@ -196,7 +226,10 @@ export function AppShell({
     projects,
     activeProject,
     setActiveProjectId,
+    refreshOrgs,
     refreshProjects,
+    patchProject,
+    patchOrg,
     environments,
     activeEnv,
     setActiveEnvSlug,
@@ -268,6 +301,7 @@ export function AppShell({
           <AppSidebar
             userEmail={userEmail}
             orgName={contextValue.org.name}
+            orgLogoUrl={contextValue.org.logoUrl}
             signingOut={signingOut}
             onSignOut={() => void signOut()}
           />

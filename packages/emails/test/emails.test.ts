@@ -50,8 +50,9 @@ describe("template registry", () => {
 
   it("declares the variables each template uses", () => {
     expect(TEMPLATE_SEEDS.welcome.variables.map((v) => v.name)).toContain("orgName");
+    expect(TEMPLATE_SEEDS.welcome.variables.map((v) => v.name)).toContain("orgLogoUrl");
     expect(TEMPLATE_SEEDS["trial-ending"].variables.map((v) => v.name)).toContain("when");
-    expect(TEMPLATE_SEEDS.agentic.variables).toHaveLength(0);
+    expect(TEMPLATE_SEEDS.agentic.variables.map((v) => v.name)).toContain("orgLogoUrl");
   });
 
   it("keeps every {{tag}} in the body backed by a declared variable", () => {
@@ -75,6 +76,8 @@ describe("compile (React Email layout)", () => {
     expect(compiled.subject).toContain("Welcome to ShipOS");
     expect(compiled.html).toContain("ShipOS"); // brand lockup + footer
     expect(compiled.html).toContain("{{orgName}}"); // tag survives rendering
+    expect(compiled.html).toContain("{{orgLogoUrl}}");
+    expect(compiled.html).toContain("{{orgLogoDisplay}}");
     expect(compiled.html).toContain("#ff5a1a"); // orange CTA
   });
 });

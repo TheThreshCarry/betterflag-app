@@ -46,12 +46,20 @@ function preheader(text: string): string {
   return `<div style="display:none;overflow:hidden;line-height:1px;max-height:0;max-width:0;opacity:0;">${text}&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;</div>`;
 }
 
-/** The dark monogram badge + wordmark, drawn without images. */
-function brandLockup(): string {
-  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+/** The dark monogram badge + wordmark; optional org logo on the right. */
+function brandLockup(orgLogoUrl?: string | null): string {
+  const orgLogo =
+    orgLogoUrl && orgLogoUrl.length > 0
+      ? `<td width="14" style="width:14px;">&nbsp;</td>
+    <td width="34" valign="middle" align="right">
+      <img src="${escapeHtml(orgLogoUrl)}" width="34" height="34" alt="" style="display:block;width:34px;height:34px;border-radius:9px;object-fit:cover;border:1px solid ${LINE};" />
+    </td>`
+      : "";
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tr>
     <td width="34" valign="middle" align="center" height="34" bgcolor="${BADGE_DARK}" style="width:34px;height:34px;border-radius:9px;color:#ffffff;font-family:${FONT};font-size:15px;font-weight:700;line-height:34px;text-align:center;">S</td>
     <td width="10" style="width:10px;">&nbsp;</td>
     <td valign="middle" style="font-family:${FONT};font-size:16px;font-weight:600;letter-spacing:-0.01em;color:${INK};">ShipOS</td>
+    ${orgLogo}
   </tr></table>`;
 }
 
@@ -108,6 +116,7 @@ interface LayoutOpts {
   eyebrow: string;
   heading: string;
   body: string;
+  orgLogoUrl?: string | null;
 }
 
 function layout(opts: LayoutOpts): string {
@@ -126,7 +135,7 @@ function layout(opts: LayoutOpts): string {
         <td align="center" style="padding:32px 16px;">
           <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;">
             <tr>
-              <td style="padding:0 4px 20px;">${brandLockup()}</td>
+              <td style="padding:0 4px 20px;">${brandLockup(opts.orgLogoUrl)}</td>
             </tr>
             <tr>
               <td style="background:#ffffff;border:1px solid ${LINE};border-radius:24px;padding:40px 36px;">
@@ -157,7 +166,7 @@ const TEXT_FOOTER =
   "\n\n---\nYou're getting this because you created a ShipOS account. It's a short 3-email onboarding series, then I'll leave your inbox alone. Reply any time, it lands in my actual inbox.";
 
 /** Day 0 - welcome, sent right after org creation. */
-export function welcomeEmail(orgName: string): EmailContent {
+export function welcomeEmail(orgName: string, orgLogoUrl?: string | null): EmailContent {
   const subject = "Welcome to ShipOS: your first flag is 5 minutes away";
   const body = `
     ${para("Hey, Mehdi here. I built ShipOS.")}
@@ -179,6 +188,7 @@ export function welcomeEmail(orgName: string): EmailContent {
     eyebrow: "Welcome",
     heading: "Your first flag is 5 minutes away",
     body,
+    orgLogoUrl,
   });
   const text = `Hey, Mehdi here. I built ShipOS.
 
@@ -195,7 +205,7 @@ Your 14-day trial is running: every feature, no card. If anything feels off, hit
 }
 
 /** Day 3 - the agentic angle: MCP server, agent keys, audit trail. */
-export function agenticEmail(): EmailContent {
+export function agenticEmail(orgLogoUrl?: string | null): EmailContent {
   const subject = "Let your agent manage your flags (this is the good part)";
   const steps = [
     `Mint an agent key in <a href="${APP_URL}/settings/keys" style="color:${INK};font-weight:600;text-decoration:underline;">Settings → Keys</a>`,
@@ -239,6 +249,7 @@ export function agenticEmail(): EmailContent {
     eyebrow: "Agentic",
     heading: "Let your agent manage your flags",
     body,
+    orgLogoUrl,
   });
   const text = `The thing that makes ShipOS different: your coding agent can drive it.
 
@@ -257,7 +268,7 @@ Feature flags made easy, with unlimited seats on every plan.
 }
 
 /** Day 10 - trial ending; only sent when the org has no active subscription. */
-export function trialEndingEmail(daysLeft: number): EmailContent {
+export function trialEndingEmail(daysLeft: number, orgLogoUrl?: string | null): EmailContent {
   const days = Math.max(daysLeft, 0);
   const when = days === 0 ? "today" : days === 1 ? "tomorrow" : `in ${days} days`;
   const subject = `Your ShipOS trial ends ${when}`;
@@ -288,6 +299,7 @@ export function trialEndingEmail(daysLeft: number): EmailContent {
     eyebrow: "Trial",
     heading: `Your trial ends ${when}`,
     body,
+    orgLogoUrl,
   });
   const text = `Quick heads-up: your trial ends ${when}.
 
@@ -310,7 +322,11 @@ Not convinced? Reply and tell me why: worst case you help me fix something, best
  * (Launch, Scale, or a volume conversation past Scale). Only sent for orgs
  * with no active subscription, same gate as `trialEndingEmail`.
  */
-export function trialEndingUpsellEmail(daysLeft: number, rec: TierRecommendation): EmailContent {
+export function trialEndingUpsellEmail(
+  daysLeft: number,
+  rec: TierRecommendation,
+  orgLogoUrl?: string | null,
+): EmailContent {
   const days = Math.max(daysLeft, 0);
   const when = days === 0 ? "today" : days === 1 ? "tomorrow" : `in ${days} days`;
   const projected = formatEvals(rec.projectedMonthlyEvals);
@@ -347,6 +363,7 @@ export function trialEndingUpsellEmail(daysLeft: number, rec: TierRecommendation
     eyebrow: "Trial",
     heading: rec.exceedsTopTier ? `You've outgrown self-serve` : `You've outgrown Starter`,
     body,
+    orgLogoUrl,
   });
 
   const textRec = rec.exceedsTopTier

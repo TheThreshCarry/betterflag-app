@@ -16,13 +16,15 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 
 import { AppearanceSettings } from "@/components/appearance-settings";
 import { useApp } from "@/components/app-shell";
+import { ImageUploadField } from "@/components/image-upload-field";
 import { Stagger } from "@/components/stagger";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button, Card, Chip, CopyButton, ErrorNote, type ChipColor } from "@/components/ui";
-import type { ApiOrg } from "@/lib/api-types";
+import type { ApiOrg, ApiProject } from "@/lib/api-types";
 import { api } from "@/lib/client-api";
 import { cn } from "@/lib/utils";
 import { tierForPlan, usePricingTiers } from "@/lib/use-pricing";
+import { toast } from "@/lib/toast";
 
 export type SettingsSection =
   | "organization"
@@ -97,6 +99,13 @@ export function SettingsView({ section }: { section: SettingsSection }) {
   const [error, setError] = useState<string | null>(null);
   const [checkoutSuccess, setCheckoutSuccess] = useState(false);
   const [loadingMembers, setLoadingMembers] = useState(section === "organization");
+
+  useEffect(() => {
+    setOrg((prev) => ({
+      ...shellOrg,
+      members: prev.members ?? shellOrg.members,
+    }));
+  }, [shellOrg]);
 
   const loadOrg = useCallback(
     async (includeMembers = false) => {
@@ -197,13 +206,42 @@ function OrganizationSettings({
   staggerFrom?: number;
   staggerSelf?: boolean;
 }) {
+  const { patchOrg } = useApp();
+  const canEdit = org.role === "owner" || org.role === "admin";
+
   return (
     <SettingsPanel
       title="Organization"
       description="Details shared across every project in this workspace."
       staggerFrom={staggerFrom}
     >
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden px-5 py-5">
+        <ImageUploadField
+          label="Logo"
+          description="Shown in the sidebar and transactional emails. PNG, JPEG, WebP, or SVG · max 1MB."
+          imageUrl={org.logoUrl}
+          canEdit={canEdit}
+          onUpload={async (file) => {
+            const body = new FormData();
+            body.set("file", file);
+            const { org: updated } = await api<{ org: ApiOrg }>(`/api/v1/orgs/${org.id}/logo`, {
+              method: "POST",
+              body,
+            });
+            patchOrg(updated);
+            toast.success({ title: "Logo updated" });
+          }}
+          onRemove={async () => {
+            const { org: updated } = await api<{ org: ApiOrg }>(`/api/v1/orgs/${org.id}/logo`, {
+              method: "DELETE",
+            });
+            patchOrg(updated);
+            toast.success({ title: "Logo removed" });
+          }}
+        />
+      </Card>
+
+      <Card className="mt-4 overflow-hidden">
         <DefinitionRow label="Name" value={org.name} />
         <DefinitionRow
           label="Organization ID"
@@ -284,7 +322,8 @@ function ProjectSettings({
   staggerFrom?: number;
   staggerSelf?: boolean;
 }) {
-  const { activeProject, environments } = useApp();
+  const { activeProject, environments, org, patchProject } = useApp();
+  const canEdit = org.role === "owner" || org.role === "admin";
 
   return (
     <SettingsPanel
@@ -301,7 +340,34 @@ function ProjectSettings({
         </Card>
       ) : (
         <>
-          <Card className="overflow-hidden">
+          <Card className="overflow-hidden px-5 py-5">
+            <ImageUploadField
+              label="Picture"
+              description="Shown in the project switcher. PNG, JPEG, WebP, or SVG · max 1MB."
+              imageUrl={activeProject.pictureUrl}
+              canEdit={canEdit}
+              onUpload={async (file) => {
+                const body = new FormData();
+                body.set("file", file);
+                const { project } = await api<{ project: ApiProject }>(
+                  `/api/v1/projects/${activeProject.id}/picture`,
+                  { method: "POST", body },
+                );
+                patchProject(project);
+                toast.success({ title: "Project picture updated" });
+              }}
+              onRemove={async () => {
+                const { project } = await api<{ project: ApiProject }>(
+                  `/api/v1/projects/${activeProject.id}/picture`,
+                  { method: "DELETE" },
+                );
+                patchProject(project);
+                toast.success({ title: "Project picture removed" });
+              }}
+            />
+          </Card>
+
+          <Card className="mt-4 overflow-hidden">
             <DefinitionRow label="Name" value={activeProject.name} />
             <DefinitionRow
               label="Slug"

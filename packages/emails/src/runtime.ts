@@ -5,7 +5,15 @@
  * the pre-compiled subject/html/text from the DB and only substitute variables.
  */
 export { applyVars, extractVars, type ApplyVarsOptions } from "./vars";
-export { TEMPLATE_SEEDS, TEMPLATE_KEYS, type EmailTemplateKey, type EmailTemplateSeed, type EmailVariable } from "./templates";
+export {
+  TEMPLATE_SEEDS,
+  TEMPLATE_KEYS,
+  ORG_LOGO_VARS,
+  orgLogoMergeVars,
+  type EmailTemplateKey,
+  type EmailTemplateSeed,
+  type EmailVariable,
+} from "./templates";
 
 import { applyVars } from "./vars";
 

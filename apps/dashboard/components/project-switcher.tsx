@@ -47,9 +47,7 @@ export function ProjectSwitcher() {
         <SidebarMenuItem>
           {projects.length === 0 || !activeProject ? (
             <SidebarMenuButton size="lg" onClick={() => setCreateOpen(true)}>
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                <FolderKanbanIcon className="size-4" />
-              </div>
+              <ProjectAvatar pictureUrl={null} className="size-8 rounded-lg" iconClassName="size-4" />
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">No projects yet</span>
                 <span className="truncate text-xs text-muted-foreground">
@@ -67,9 +65,11 @@ export function ProjectSwitcher() {
                   />
                 }
               >
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                  <FolderKanbanIcon className="size-4" />
-                </div>
+                <ProjectAvatar
+                  pictureUrl={activeProject.pictureUrl}
+                  className="size-8 rounded-lg"
+                  iconClassName="size-4"
+                />
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">{activeProject.name}</span>
                   <span className="truncate text-xs text-muted-foreground">{activeProject.slug}</span>
@@ -92,9 +92,12 @@ export function ProjectSwitcher() {
                       onClick={() => setActiveProjectId(project.id)}
                       className="gap-2 p-2"
                     >
-                      <div className="flex size-6 items-center justify-center rounded-md border">
-                        <FolderKanbanIcon className="size-3.5 shrink-0" />
-                      </div>
+                      <ProjectAvatar
+                        pictureUrl={project.pictureUrl}
+                        className="size-6 rounded-md border"
+                        iconClassName="size-3.5"
+                        muted
+                      />
                       <div className="grid flex-1 text-left leading-tight">
                         <span className="truncate text-sm font-medium">{project.name}</span>
                         <span className="truncate text-xs text-muted-foreground">{project.slug}</span>
@@ -117,6 +120,36 @@ export function ProjectSwitcher() {
 
       <CreateProjectDialog open={createOpen} onClose={() => setCreateOpen(false)} />
     </>
+  );
+}
+
+function ProjectAvatar({
+  pictureUrl,
+  className,
+  iconClassName,
+  muted = false,
+}: {
+  pictureUrl: string | null;
+  className?: string;
+  iconClassName?: string;
+  muted?: boolean;
+}) {
+  if (pictureUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- external media CDN URL
+      <img src={pictureUrl} alt="" className={`object-cover ${className ?? ""}`} />
+    );
+  }
+  return (
+    <div
+      className={`flex aspect-square items-center justify-center ${
+        muted
+          ? "bg-transparent text-muted-foreground"
+          : "bg-sidebar-primary text-sidebar-primary-foreground"
+      } ${className ?? ""}`}
+    >
+      <FolderKanbanIcon className={`shrink-0 ${iconClassName ?? "size-4"}`} />
+    </div>
   );
 }
 

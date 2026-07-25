@@ -12,6 +12,7 @@ import {
   Head,
   Heading,
   Html,
+  Img,
   Preview,
   Row,
   Section,
@@ -39,6 +40,10 @@ export interface EmailLayoutProps {
 const FOOTER_NOTE =
   "You're getting this because you created a ShipOS account. It's a short 3-email onboarding series, then I'll leave your inbox alone. Reply any time, it lands in my actual inbox.";
 
+/**
+ * Org logo slot uses merge tags so the pre-compiled HTML can show a customer
+ * logo at send time. Pass `orgLogoDisplay=none` (and empty url) when unset.
+ */
 export function EmailLayout({ preview, eyebrow, heading, bodyHtml }: EmailLayoutProps) {
   return (
     <Html lang="en">
@@ -78,6 +83,22 @@ export function EmailLayout({ preview, eyebrow, heading, bodyHtml }: EmailLayout
                 >
                   ShipOS
                 </span>
+              </Column>
+              <Column style={{ width: 44, paddingLeft: 14, textAlign: "right" }}>
+                <Img
+                  src="{{orgLogoUrl}}"
+                  width={34}
+                  height={34}
+                  alt=""
+                  style={{
+                    display: "{{orgLogoDisplay}}",
+                    width: 34,
+                    height: 34,
+                    borderRadius: 9,
+                    objectFit: "cover",
+                    border: `1px solid ${TOKENS.line}`,
+                  }}
+                />
               </Column>
             </Row>
           </Section>

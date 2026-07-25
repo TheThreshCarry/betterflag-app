@@ -21,6 +21,7 @@
  * templates in src/emails.ts, both unit-tested without the Workers runtime.
  */
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
+import { orgLogoMergeVars } from "@shipos/emails/runtime";
 import { formatRelease, readObservability } from "@shipos/observability";
 
 import {
@@ -120,12 +121,13 @@ export class WelcomeSequence extends WorkflowEntrypoint<LifecycleEnv, WelcomePar
     // Re-validate: params crossed a serialization boundary.
     const params = welcomeParamsSchema.parse(event.payload);
 
-    // Day 0 - welcome.
+    // Day 0 - welcome (logo usually unset at create time).
     await step.do("send welcome email", async () => {
+      const logo = orgLogoMergeVars(null);
       const content = await resolveEmail(
         this.env,
         "welcome",
-        { orgName: params.orgName },
+        { orgName: params.orgName, ...logo },
         welcomeEmail(params.orgName),
       );
       return await send(this.env.EMAIL, params.email, content);
@@ -139,7 +141,13 @@ export class WelcomeSequence extends WorkflowEntrypoint<LifecycleEnv, WelcomePar
     });
     if (!day3.exists) return;
     await step.do("send agentic setup email", async () => {
-      const content = await resolveEmail(this.env, "agentic", {}, agenticEmail());
+      const logo = orgLogoMergeVars(day3.logoUrl);
+      const content = await resolveEmail(
+        this.env,
+        "agentic",
+        { ...logo },
+        agenticEmail(day3.logoUrl),
+      );
       return await send(this.env.EMAIL, params.email, content);
     });
 
@@ -161,17 +169,22 @@ export class WelcomeSequence extends WorkflowEntrypoint<LifecycleEnv, WelcomePar
 
     await step.do("send trial-ending email", async () => {
       const daysLeft = trialDaysLeft(day10.trialEndsAt);
+      const logo = orgLogoMergeVars(day10.logoUrl);
       // The upsell variant's copy branches on usage (named tier vs. "past
       // Scale"), which a static admin merge-template can't express, so it's
       // code-managed and sent directly. The generic path stays admin-editable.
       if (upsell) {
-        return await send(this.env.EMAIL, params.email, trialEndingUpsellEmail(daysLeft, upsell));
+        return await send(
+          this.env.EMAIL,
+          params.email,
+          trialEndingUpsellEmail(daysLeft, upsell, day10.logoUrl),
+        );
       }
       const content = await resolveEmail(
         this.env,
         "trial-ending",
-        { when: trialEndsWhen(daysLeft) },
-        trialEndingEmail(daysLeft),
+        { when: trialEndsWhen(daysLeft), ...logo },
+        trialEndingEmail(daysLeft, day10.logoUrl),
       );
       return await send(this.env.EMAIL, params.email, content);
     });

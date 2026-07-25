@@ -37,6 +37,8 @@ export interface ApiProject {
   name: string;
   slug: string;
   createdAt: string;
+  /** Public project picture URL (media CDN), or null. */
+  pictureUrl: string | null;
   environments: ApiEnvironment[];
 }
 
@@ -114,6 +116,8 @@ export interface ApiOrg {
   createdAt: string;
   role: OrgRole;
   members?: ApiOrgMember[];
+  /** Public org logo URL (media CDN), or null. */
+  logoUrl: string | null;
   /** True when billing has flipped the account read-only (flags still serve). */
   restricted: boolean;
   /**
@@ -219,6 +223,7 @@ export function toApiProject(row: ProjectRow, environments: EnvironmentRow[]): A
     name: row.name,
     slug: row.slug,
     createdAt: row.created_at,
+    pictureUrl: row.picture_url,
     environments: environments.map(toApiEnvironment),
   };
 }
@@ -297,6 +302,7 @@ export function toApiOrg(row: OrgRow, role: OrgRole, members?: ApiOrgMember[]): 
     trialEndsAt: row.trial_ends_at,
     createdAt: row.created_at,
     role,
+    logoUrl: row.logo_url,
     restricted: !decision.access.dashboardWrites,
     billingState: decision.state,
     billingMessage: decision.message,

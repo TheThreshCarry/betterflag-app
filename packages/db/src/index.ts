@@ -33,6 +33,8 @@ export interface OrgRow {
   billing_synced_at: string | null;
   /** Super-admin freeze (migration 20260718090000). Null = active. */
   frozen_at: string | null;
+  /** Public logo URL on media CDN (migration 20260725180000). */
+  logo_url: string | null;
 }
 
 /** Private-alpha allowlist (migration 20260709100000). Service-role only. */
@@ -55,6 +57,8 @@ export interface ProjectRow {
   name: string;
   slug: string;
   created_at: string;
+  /** Public picture URL on media CDN (migration 20260725180000). */
+  picture_url: string | null;
 }
 
 export interface EnvironmentRow {

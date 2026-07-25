@@ -52,11 +52,14 @@ export interface OrgEmailState {
   /** Raw Polar subscription status synced by shipos-webhooks (null = none). */
   subscriptionStatus: string | null;
   trialEndsAt: string | null;
+  /** Public logo URL on media CDN, when set. */
+  logoUrl: string | null;
 }
 
 const orgRowSchema = z.object({
   subscription_status: z.string().nullable(),
   trial_ends_at: z.string().nullable(),
+  logo_url: z.string().nullable().optional(),
 });
 
 export async function readOrgState(env: SupabaseEnv, orgId: string): Promise<OrgEmailState> {
@@ -66,16 +69,19 @@ export async function readOrgState(env: SupabaseEnv, orgId: string): Promise<Org
   });
   const result = await supabase
     .from("orgs")
-    .select("subscription_status,trial_ends_at")
+    .select("subscription_status,trial_ends_at,logo_url")
     .eq("id", orgId)
     .maybeSingle();
   if (result.error) throw new Error(`org query failed: ${result.error.message}`);
-  if (result.data === null) return { exists: false, subscriptionStatus: null, trialEndsAt: null };
+  if (result.data === null) {
+    return { exists: false, subscriptionStatus: null, trialEndsAt: null, logoUrl: null };
+  }
   const row = orgRowSchema.parse(result.data);
   return {
     exists: true,
     subscriptionStatus: row.subscription_status,
     trialEndsAt: row.trial_ends_at,
+    logoUrl: row.logo_url ?? null,
   };
 }
 
