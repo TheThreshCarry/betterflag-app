@@ -21,6 +21,7 @@ import { createBrowserSupabase } from "@/lib/supabase/client";
 type ApiEnvironment = ApiProject["environments"][number];
 
 interface AppContextValue {
+  userEmail: string | null;
   org: ApiOrg;
   orgs: ApiOrg[];
   projects: ApiProject[];
@@ -167,6 +168,7 @@ export function AppShell({
   const contextValue = useMemo<AppContextValue | null>(() => {
     if (!org) return null;
     return {
+      userEmail,
       org,
       orgs: orgs ?? [],
       projects,
@@ -179,6 +181,7 @@ export function AppShell({
     };
   }, [
     org,
+    userEmail,
     orgs,
     projects,
     activeProject,
@@ -256,7 +259,9 @@ export function AppShell({
               </div>
             </header>
           </div>
-          <main className="mx-auto max-w-5xl flex-1 px-8 py-8">{children}</main>
+          <main className="mx-auto w-full max-w-[1400px] flex-1 px-8 py-8">
+            {children}
+          </main>
         </SidebarInset>
       </SidebarProvider>
     </AppContext.Provider>

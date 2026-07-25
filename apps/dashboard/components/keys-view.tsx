@@ -17,18 +17,19 @@ import {
   inputClass,
   type ChipColor,
 } from "@/components/ui";
-import { DataTable, type Column } from "@/components/data-table";
+import { DataTable, TableCell, TableRow, type Column } from "@/components/data-table";
+import { Stagger } from "@/components/stagger";
 import type { ApiApiKey } from "@/lib/api-types";
 import { api } from "@/lib/client-api";
 
 const KEY_COLUMNS: readonly Column[] = [
-  { key: "key", label: "Key", colWidth: "w-[16%]", skeletonWidth: "w-20" },
-  { key: "name", label: "Name", colWidth: "w-[20%]", skeletonWidth: "w-28" },
-  { key: "kind", label: "Kind", colWidth: "w-[10%]", skeletonWidth: "w-14" },
-  { key: "scope", label: "Scope", colWidth: "w-[22%]", skeletonWidth: "w-24" },
-  { key: "lastUsed", label: "Last used", colWidth: "w-[14%]", skeletonWidth: "w-16" },
+  { key: "key", label: "Key", colWidth: "w-[14%]", skeletonWidth: "w-20" },
+  { key: "name", label: "Name", colWidth: "w-[22%]", skeletonWidth: "w-28" },
+  { key: "kind", label: "Kind", colWidth: "w-[12%]", skeletonWidth: "w-14" },
+  { key: "scope", label: "Scope", colWidth: "w-[18%]", skeletonWidth: "w-24" },
+  { key: "lastUsed", label: "Last used", colWidth: "w-[12%]", skeletonWidth: "w-16" },
   { key: "created", label: "Created", colWidth: "w-[12%]", skeletonWidth: "w-16" },
-  { key: "actions", label: "", colWidth: "w-[6%]", skeletonWidth: "w-12", align: "right" },
+  { key: "actions", label: "", colWidth: "w-[10%]", skeletonWidth: "w-14", align: "right" },
 ];
 
 const KIND_COLORS: Record<ApiApiKey["kind"], ChipColor> = {
@@ -89,68 +90,76 @@ export function KeysView({ initialKeys }: { initialKeys: ApiApiKey[] }) {
   );
 
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-[28px] font-semibold tracking-[-0.01em]">API keys</h1>
-          <p className="mt-0.5 text-[14px] text-ink-muted">
-            SDK keys evaluate, agent keys automate, admin keys administer.
-          </p>
+    <>
+      <Stagger>
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-[28px] font-semibold tracking-[-0.01em]">API keys</h1>
+            <p className="mt-0.5 text-[14px] text-ink-muted">
+              SDK keys evaluate, agent keys automate, admin keys administer.
+            </p>
+          </div>
+          <Button onClick={() => setCreateOpen(true)}>New key</Button>
         </div>
-        <Button onClick={() => setCreateOpen(true)}>New key</Button>
-      </div>
 
-      <ErrorNote message={error} />
+        <ErrorNote message={error} />
 
-      {!keys.length ? (
-        <EmptyState
-          title="No keys yet"
-          body="Create an SDK key to evaluate flags, or an agent key to let your agents manage them."
-          action={<Button onClick={() => setCreateOpen(true)}>New key</Button>}
-        />
-      ) : (
-        <DataTable columns={KEY_COLUMNS}>
-          {keys.map((key) => (
-                <tr
-                  key={key.id}
-                  className={`border-t border-line ${key.revokedAt ? "opacity-45" : ""}`}
-                >
-                  <td className="px-5 py-3.5 font-mono text-[13px]">{key.prefix}…</td>
-                  <td className="px-5 py-3.5">{key.name}</td>
-                  <td className="px-5 py-3.5">
-                    <span className="inline-flex items-center gap-1.5">
-                      <Chip color={KIND_COLORS[key.kind]} className="!px-2.5 !py-0.5 text-[12px]">
-                        {key.kind}
+        {!keys.length ? (
+          <EmptyState
+            title="No keys yet"
+            body="Create an SDK key to evaluate flags, or an agent key to let your agents manage them."
+            action={<Button onClick={() => setCreateOpen(true)}>New key</Button>}
+          />
+        ) : (
+          <DataTable columns={KEY_COLUMNS} staggerSelf>
+            {keys.map((key) => (
+              <TableRow key={key.id} className={key.revokedAt ? "opacity-45" : undefined}>
+                <TableCell className="truncate font-mono text-[13px]">{key.prefix}…</TableCell>
+                <TableCell className="truncate whitespace-nowrap text-foreground-strong">
+                  {key.name}
+                </TableCell>
+                <TableCell className="whitespace-nowrap">
+                  <span className="inline-flex items-center gap-1.5">
+                    <Chip color={KIND_COLORS[key.kind]} className="!px-2.5 !py-0.5 text-[12px]">
+                      {key.kind}
+                    </Chip>
+                    {key.source === "oauth" ? (
+                      <Chip color="gray" className="!px-2.5 !py-0.5 text-[12px]">
+                        oauth
                       </Chip>
-                      {key.source === "oauth" ? (
-                        <Chip color="gray" className="!px-2.5 !py-0.5 text-[12px]">
-                          oauth
-                        </Chip>
-                      ) : null}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3.5 font-mono text-[12px] text-ink-muted">
-                    {projectName(key.projectId, key.environmentId)}
-                  </td>
-                  <td className="px-5 py-3.5 text-[13px] text-ink-muted">
-                    {key.lastUsedAt ? <RelativeTime iso={key.lastUsedAt} /> : "never"}
-                  </td>
-                  <td className="px-5 py-3.5 text-[13px] text-ink-muted">
-                    <RelativeTime iso={key.createdAt} />
-                  </td>
-                  <td className="px-5 py-3.5 text-right">
-                    {key.revokedAt ? (
-                      <span className="text-[12px] text-ink-muted">revoked</span>
-                    ) : (
-                      <Button variant="ghost" size="sm" onClick={() => setRevokeTarget(key)}>
-                        Revoke
-                      </Button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-        </DataTable>
-      )}
+                    ) : null}
+                  </span>
+                </TableCell>
+                <TableCell className="truncate font-mono text-[12px] text-foreground-muted">
+                  {projectName(key.projectId, key.environmentId)}
+                </TableCell>
+                <TableCell className="whitespace-nowrap text-foreground-muted">
+                  {key.lastUsedAt ? <RelativeTime iso={key.lastUsedAt} /> : "never"}
+                </TableCell>
+                <TableCell className="whitespace-nowrap text-foreground-muted">
+                  <RelativeTime iso={key.createdAt} />
+                </TableCell>
+                <TableCell className="text-end whitespace-nowrap">
+                  {key.revokedAt ? (
+                    <span className="text-[12px] text-foreground-muted">revoked</span>
+                  ) : (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setRevokeTarget(key);
+                      }}
+                    >
+                      Revoke
+                    </Button>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+          </DataTable>
+        )}
+      </Stagger>
 
       <CreateKeyDialog
         open={createOpen}
@@ -201,7 +210,7 @@ export function KeysView({ initialKeys }: { initialKeys: ApiApiKey[] }) {
           </>
         ) : null}
       </Dialog>
-    </div>
+    </>
   );
 }
 
@@ -289,7 +298,7 @@ function CreateKeyDialog({
                 className={`rounded-2xl border p-3.5 text-left transition-colors ${
                   kind === option
                     ? "border-line-strong bg-surface"
-                    : "border-line bg-white hover:bg-surface/50"
+                    : "border-line bg-canvas hover:bg-surface/50"
                 }`}
               >
                 <Chip color={KIND_COLORS[option]} className="!px-2 !py-0.5 text-[11px]">

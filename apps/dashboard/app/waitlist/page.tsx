@@ -36,7 +36,7 @@ export default async function WaitlistPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-surface p-8">
-      <div className="w-full max-w-md rounded-2xl border border-line bg-white p-8">
+      <div className="w-full max-w-md rounded-2xl border border-line bg-canvas p-8">
         <Logo href="https://shipos.app" size="default" showText />
         <div className="mt-6 flex gap-2">
           <Chip color="orange">Private alpha</Chip>

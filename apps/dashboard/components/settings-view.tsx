@@ -1,14 +1,58 @@
 "use client";
 
 import { ANALYTICS_HOT_DAYS, ANALYTICS_RETENTION_DAYS, PLAN_LIMITS } from "@shipos/db";
-import { useCallback, useEffect, useState } from "react";
+import {
+  Building2Icon,
+  CheckIcon,
+  CreditCardIcon,
+  FolderKanbanIcon,
+  UserRoundIcon,
+} from "lucide-react";
+import Link from "next/link";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 
-import { Button, Card, Chip, ErrorNote, inputClass, type ChipColor } from "@/components/ui";
-import { SettingsSkeleton } from "@/components/skeletons";
+import { AppearanceSettings } from "@/components/appearance-settings";
+import { useApp } from "@/components/app-shell";
+import { Stagger } from "@/components/stagger";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button, Card, Chip, CopyButton, ErrorNote, type ChipColor } from "@/components/ui";
 import type { ApiOrg } from "@/lib/api-types";
 import { api } from "@/lib/client-api";
+import { cn } from "@/lib/utils";
 import { tierForPlan, usePricingTiers } from "@/lib/use-pricing";
+
+export type SettingsSection = "organization" | "project" | "billing" | "account";
+
+const SETTINGS_NAV = [
+  {
+    key: "organization",
+    label: "Organization",
+    description: "Workspace and members",
+    href: "/settings",
+    icon: Building2Icon,
+  },
+  {
+    key: "project",
+    label: "Project",
+    description: "Current project",
+    href: "/settings/project",
+    icon: FolderKanbanIcon,
+  },
+  {
+    key: "billing",
+    label: "Billing",
+    description: "Plan and invoices",
+    href: "/settings/billing",
+    icon: CreditCardIcon,
+  },
+  {
+    key: "account",
+    label: "Account",
+    description: "Personal settings",
+    href: "/settings/account",
+    icon: UserRoundIcon,
+  },
+] as const;
 
 const ROLE_COLORS: Record<string, ChipColor> = {
   owner: "orange",
@@ -16,81 +60,272 @@ const ROLE_COLORS: Record<string, ChipColor> = {
   member: "gray",
 };
 
-export function SettingsView() {
-  const [org, setOrg] = useState<ApiOrg | null>(null);
+export function SettingsView({ section }: { section: SettingsSection }) {
+  const { org: shellOrg } = useApp();
+  const [org, setOrg] = useState<ApiOrg>(shellOrg);
   const [error, setError] = useState<string | null>(null);
   const [checkoutSuccess, setCheckoutSuccess] = useState(false);
+  const [loadingMembers, setLoadingMembers] = useState(section === "organization");
 
-  const loadOrg = useCallback(() => {
-    void api<{ orgs: ApiOrg[] }>("/api/v1/orgs?members=1")
-      .then(({ orgs }) => setOrg(orgs[0] ?? null))
-      .catch((err: unknown) =>
-        setError(err instanceof Error ? err.message : "Failed to load settings"),
-      );
-  }, []);
+  const loadOrg = useCallback(
+    async (includeMembers = false) => {
+      try {
+        const suffix = includeMembers ? "?members=1" : "";
+        const { orgs } = await api<{ orgs: ApiOrg[] }>(`/api/v1/orgs${suffix}`);
+        if (orgs[0]) setOrg(orgs[0]);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load settings");
+      } finally {
+        if (includeMembers) setLoadingMembers(false);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
-    loadOrg();
-  }, [loadOrg]);
+    if (section === "organization") void loadOrg(true);
+  }, [loadOrg, section]);
 
-  // Returning from Polar checkout: the plan updates via webhook (async), so
-  // re-fetch shortly after so this page reflects the new plan.
   useEffect(() => {
+    if (section !== "billing") return;
     const params = new URLSearchParams(window.location.search);
-    if (params.get("checkout") === "success") {
-      setCheckoutSuccess(true);
-      const timer = setTimeout(loadOrg, 4000);
-      return () => clearTimeout(timer);
-    }
-  }, [loadOrg]);
-
-  if (error) return <ErrorNote message={error} />;
+    if (params.get("checkout") !== "success") return;
+    setCheckoutSuccess(true);
+    const timer = setTimeout(() => void loadOrg(), 4000);
+    return () => clearTimeout(timer);
+  }, [loadOrg, section]);
 
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-[28px] font-semibold tracking-[-0.01em]">Settings</h1>
-        <p className="mt-0.5 text-[14px] text-ink-muted">Organization, plan and members.</p>
-      </div>
-
+    <Stagger key={section}>
+      {error ? (
+        <div className="mb-5">
+          <ErrorNote message={error} />
+        </div>
+      ) : null}
       {checkoutSuccess ? (
-        <div
-          className="mb-6 rounded-2xl border px-5 py-4"
-          style={{ borderColor: "#00BC72", backgroundColor: "rgba(0,188,114,0.06)" }}
-        >
-          <p className="text-[14px] font-semibold text-ink">Payment received</p>
-          <p className="mt-0.5 text-[13px] text-ink-muted">
-            Thanks! Your plan will update here in a few seconds.
-          </p>
-        </div>
+        <StatusBanner
+          color="green"
+          title="Payment received"
+          body="Your plan will update here when payment processing finishes."
+        />
+      ) : null}
+      {org.restricted ? (
+        <StatusBanner
+          color="orange"
+          title="Workspace is read-only"
+          body={`${org.billingMessage} Update payment details to make changes again.`}
+        />
       ) : null}
 
-      {org?.restricted ? (
-        <div
-          className="mb-6 rounded-2xl border px-5 py-4"
-          style={{ borderColor: "#FF5A1A", backgroundColor: "rgba(255,90,26,0.06)" }}
-        >
-          <p className="text-[14px] font-semibold text-ink">Account is read-only</p>
-          <p className="mt-0.5 text-[13px] text-ink-muted">
-            {org.billingMessage} Your flags keep serving, update payment to make changes again.
-          </p>
-        </div>
+      {section === "organization" ? (
+        <OrganizationSettings org={org} loadingMembers={loadingMembers} staggerSelf />
       ) : null}
-
-      {!org ? (
-        <SettingsSkeleton />
-      ) : (
-        <div className="data-in">
-          <SettingsContent org={org} />
-        </div>
-      )}
-    </div>
+      {section === "project" ? <ProjectSettings staggerSelf /> : null}
+      {section === "billing" ? <BillingSettings org={org} staggerSelf /> : null}
+      {section === "account" ? <AccountSettings org={org} staggerSelf /> : null}
+    </Stagger>
   );
 }
 
-function SettingsContent({ org }: { org: ApiOrg }) {
-  // Plan limits + price come from Polar (the single source of truth) via
-  // /api/pricing; fall back to the PLAN_LIMITS enforcement mirror while loading.
+export function SettingsNav({ active }: { active: SettingsSection }) {
+  return (
+    <nav aria-label="Settings" className="-mx-2 flex gap-1 overflow-x-auto px-2 pb-2 lg:mx-0 lg:block lg:space-y-1 lg:overflow-visible lg:px-0 lg:pb-0">
+      {SETTINGS_NAV.map((item) => {
+        const Icon = item.icon;
+        const selected = item.key === active;
+        return (
+          <Link
+            key={item.key}
+            href={item.href}
+            aria-current={selected ? "page" : undefined}
+            className={cn(
+              "flex min-w-max items-center gap-3 rounded-xl px-3 py-2.5 transition-colors lg:min-w-0",
+              selected ? "bg-surface text-ink" : "text-ink-muted hover:bg-surface/70 hover:text-ink",
+            )}
+          >
+            <Icon className="size-4 shrink-0" aria-hidden />
+            <span>
+              <span className="block text-[13px] font-medium">{item.label}</span>
+              <span className="hidden text-[11px] text-ink-muted lg:block">{item.description}</span>
+            </span>
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+function OrganizationSettings({
+  org,
+  loadingMembers,
+  staggerFrom = 0,
+  staggerSelf: _staggerSelf,
+}: {
+  org: ApiOrg;
+  loadingMembers: boolean;
+  staggerFrom?: number;
+  staggerSelf?: boolean;
+}) {
+  return (
+    <SettingsPanel
+      title="Organization"
+      description="Details shared across every project in this workspace."
+      staggerFrom={staggerFrom}
+    >
+      <Card className="overflow-hidden">
+        <DefinitionRow label="Name" value={org.name} />
+        <DefinitionRow
+          label="Organization ID"
+          value={<span className="font-mono text-[12px]">{org.id}</span>}
+          action={<CopyButton text={org.id} />}
+        />
+        <DefinitionRow
+          label="Your role"
+          value={<Chip color={ROLE_COLORS[org.role] ?? "gray"}>{org.role}</Chip>}
+        />
+      </Card>
+
+      <section className="mt-8">
+        <div className="mb-3">
+          <h3 className="text-[15px] font-semibold">Members</h3>
+          <p className="mt-0.5 text-[13px] text-ink-muted">
+            People with access to this organization.
+          </p>
+        </div>
+        <Card className="overflow-hidden">
+          {loadingMembers
+            ? Array.from({ length: 2 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="flex items-center gap-3 border-b border-line px-5 py-4 last:border-b-0"
+                >
+                  <Skeleton className="size-9 rounded-full" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-44" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                  <Skeleton className="h-6 w-16 rounded-full" />
+                </div>
+              ))
+            : (org.members ?? []).map((member) => {
+                const email = member.email ?? `${member.userId.slice(0, 8)}…`;
+                return (
+                  <div
+                    key={member.userId}
+                    className="flex items-center gap-3 border-b border-line px-5 py-4 last:border-b-0"
+                  >
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-full border border-line bg-canvas text-[12px] font-semibold">
+                      {email.slice(0, 2).toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[14px] font-medium">{email}</p>
+                      <p className="text-[12px] text-ink-muted">
+                        Joined {new Date(member.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <Chip
+                      color={ROLE_COLORS[member.role] ?? "gray"}
+                      className="px-2.5! py-0.5! text-[12px]"
+                    >
+                      {member.role}
+                    </Chip>
+                  </div>
+                );
+              })}
+          {!loadingMembers && (org.members ?? []).length === 0 ? (
+            <p className="px-5 py-8 text-center text-[13px] text-ink-muted">
+              Member list unavailable.
+            </p>
+          ) : null}
+        </Card>
+        <p className="mt-3 text-[12px] text-ink-muted">
+          Invites and role management are not available during alpha.
+        </p>
+      </section>
+    </SettingsPanel>
+  );
+}
+
+function ProjectSettings({
+  staggerFrom = 0,
+  staggerSelf: _staggerSelf,
+}: {
+  staggerFrom?: number;
+  staggerSelf?: boolean;
+}) {
+  const { activeProject, environments } = useApp();
+
+  return (
+    <SettingsPanel
+      title="Project"
+      description="Settings for the project selected in the sidebar."
+      staggerFrom={staggerFrom}
+    >
+      {!activeProject ? (
+        <Card className="px-6 py-10 text-center">
+          <p className="text-[14px] font-medium">No project selected</p>
+          <p className="mt-1 text-[13px] text-ink-muted">
+            Create or select a project from the sidebar.
+          </p>
+        </Card>
+      ) : (
+        <>
+          <Card className="overflow-hidden">
+            <DefinitionRow label="Name" value={activeProject.name} />
+            <DefinitionRow
+              label="Slug"
+              value={<span className="font-mono text-[12px]">{activeProject.slug}</span>}
+            />
+            <DefinitionRow
+              label="Project ID"
+              value={<span className="font-mono text-[12px]">{activeProject.id}</span>}
+              action={<CopyButton text={activeProject.id} />}
+            />
+            <DefinitionRow
+              label="Created"
+              value={new Date(activeProject.createdAt).toLocaleDateString()}
+            />
+          </Card>
+
+          <section className="mt-8">
+            <div className="mb-3">
+              <h3 className="text-[15px] font-semibold">Environments</h3>
+              <p className="mt-0.5 text-[13px] text-ink-muted">
+                Isolated configuration stages for this project.
+              </p>
+            </div>
+            <Card className="overflow-hidden">
+              {environments.map((environment) => (
+                <div
+                  key={environment.id}
+                  className="flex items-center justify-between gap-4 border-b border-line px-5 py-4 last:border-b-0"
+                >
+                  <div>
+                    <p className="text-[14px] font-medium">{environment.name}</p>
+                    <p className="font-mono text-[12px] text-ink-muted">{environment.slug}</p>
+                  </div>
+                  <Chip color={environment.slug === "prod" ? "green" : "gray"}>
+                    {environment.slug === "prod" ? "Production" : "Non-production"}
+                  </Chip>
+                </div>
+              ))}
+            </Card>
+          </section>
+        </>
+      )}
+    </SettingsPanel>
+  );
+}
+
+function BillingSettings({
+  org,
+  staggerFrom = 0,
+  staggerSelf: _staggerSelf,
+}: {
+  org: ApiOrg;
+  staggerFrom?: number;
+  staggerSelf?: boolean;
+}) {
   const tiers = usePricingTiers();
   const tier = tierForPlan(tiers, org.plan);
   const limits = tier
@@ -100,17 +335,10 @@ function SettingsContent({ org }: { org: ApiOrg }) {
         includedEvalsPerMonth: tier.includedEvaluations,
       }
     : PLAN_LIMITS[org.plan];
-
   const [checkingOut, setCheckingOut] = useState<string | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [openingPortal, setOpeningPortal] = useState(false);
-
-  // A Polar customer exists once the org has subscribed; the portal only makes
-  // sense in those states. Pure trial / expired orgs use the checkout flow.
-  const hasBillingAccount =
-    org.billingState === "active" ||
-    org.billingState === "grace" ||
-    org.billingState === "restricted";
+  const hasBillingAccount = ["active", "grace", "restricted"].includes(org.billingState);
 
   async function openBillingPortal() {
     setCheckoutError(null);
@@ -140,216 +368,258 @@ function SettingsContent({ org }: { org: ApiOrg }) {
   }
 
   return (
-    <div className="space-y-6">
-      <Card className="p-6">
-        <h2 className="text-[16px] font-semibold">Organization</h2>
-        <div className="mt-4 max-w-sm">
-          <label className="mb-1.5 block text-[13px] font-medium">Name</label>
-          <input className={inputClass} value={org.name} readOnly disabled />
-          <p className="mt-1.5 text-[12px] text-ink-muted">
-            Renaming and member management are coming soon.
-          </p>
-        </div>
-      </Card>
-
-      <Card className="p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-baseline gap-2">
-            <h2 className="text-[16px] font-semibold">Plan</h2>
-            {tier ? (
-              <span className="text-[13px] text-ink-muted">
-                {tier.name} · {tier.price}
-                {tier.period}
-              </span>
-            ) : null}
-          </div>
-          <div className="flex items-center gap-3">
-            {hasBillingAccount ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                loading={openingPortal}
-                disabled={openingPortal}
-                onClick={() => void openBillingPortal()}
-              >
-                Manage billing
-              </Button>
-            ) : null}
-            <Chip color={org.billingState === "trialing" ? "orange" : "green"}>
-              {org.plan}
-              {org.billingState === "trialing" ? " (trial)" : ""}
-            </Chip>
-          </div>
-        </div>
-        <div className="mt-4 grid gap-4 sm:grid-cols-3">
-          <div className="rounded-2xl border border-line bg-white p-4">
-            <p className="font-mono text-[22px] font-semibold">
-              {limits.projects === null ? "∞" : limits.projects}
+    <SettingsPanel
+      title="Billing"
+      description="Subscription, usage limits, and data retention."
+      staggerFrom={staggerFrom}
+    >
+      <Card className="overflow-hidden">
+        <div className="flex flex-col gap-4 border-b border-line px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-[16px] font-semibold">{tier?.name ?? org.plan}</h3>
+              <Chip color={org.billingState === "trialing" ? "orange" : "green"}>
+                {org.billingState === "trialing" ? "Trial" : "Active"}
+              </Chip>
+            </div>
+            <p className="mt-1 text-[13px] text-ink-muted">
+              {tier ? `${tier.price}${tier.period}` : "Current subscription"}
+              {org.billingState === "trialing"
+                ? ` · Trial ends ${new Date(org.trialEndsAt).toLocaleDateString()}`
+                : ""}
             </p>
-            <p className="text-[13px] text-ink-muted">projects</p>
           </div>
-          <div className="rounded-2xl border border-line bg-white p-4">
-            <p className="font-mono text-[22px] font-semibold">
-              {limits.agentKeys === null ? "∞" : limits.agentKeys}
-            </p>
-            <p className="text-[13px] text-ink-muted">agent keys</p>
-          </div>
-          <div className="rounded-2xl border border-line bg-white p-4">
-            <p className="font-mono text-[22px] font-semibold">
-              {(limits.includedEvalsPerMonth / 1_000_000).toLocaleString()}M
-            </p>
-            <p className="text-[13px] text-ink-muted">evaluations / month</p>
-          </div>
+          {hasBillingAccount ? (
+            <Button
+              variant="secondary"
+              size="sm"
+              loading={openingPortal}
+              onClick={() => void openBillingPortal()}
+            >
+              Manage invoices
+            </Button>
+          ) : null}
         </div>
-        {org.billingState === "trialing" ? (
-          <p className="mt-4 text-[13px] text-ink-muted">
-            Trial ends{" "}
-            <span className="font-medium text-ink">
-              {new Date(org.trialEndsAt).toLocaleDateString()}
-            </span>
-            . Add payment below to keep the dashboard unlocked, your flags keep serving either
-            way.
-          </p>
-        ) : null}
+        <div className="grid divide-y divide-line sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+          <Metric value={limits.projects === null ? "∞" : limits.projects} label="Projects" />
+          <Metric value={limits.agentKeys === null ? "∞" : limits.agentKeys} label="Agent keys" />
+          <Metric
+            value={`${(limits.includedEvalsPerMonth / 1_000_000).toLocaleString()}M`}
+            label="Evaluations / month"
+          />
+        </div>
+        <div className="grid border-t border-line sm:grid-cols-2 sm:divide-x sm:divide-line">
+          <Metric value={`${ANALYTICS_HOT_DAYS} days`} label="Fast analytics storage" compact />
+          <Metric
+            value={`${ANALYTICS_RETENTION_DAYS[org.plan]} days`}
+            label="Total data retention"
+            compact
+          />
+        </div>
       </Card>
 
       {tiers === null || tiers.length > 0 ? (
-        <Card className="p-6">
-          <h2 className="text-[16px] font-semibold">Change plan</h2>
-          <p className="mt-1 text-[13px] text-ink-muted">
-            Pick a plan, you&apos;ll be taken to Polar to complete payment. 14-day free
-            trial, no card up front.
-          </p>
-          {checkoutError ? (
-            <p className="mt-3 text-[13px]" style={{ color: "#E5484D" }}>
-              {checkoutError}
+        <section className="mt-8">
+          <div className="mb-3">
+            <h3 className="text-[15px] font-semibold">Available plans</h3>
+            <p className="mt-0.5 text-[13px] text-ink-muted">
+              Checkout and subscription management are handled securely by Polar.
             </p>
-          ) : null}
-          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          </div>
+          {checkoutError ? <div className="mb-3"><ErrorNote message={checkoutError} /></div> : null}
+          <div className="grid gap-3 md:grid-cols-3">
             {tiers === null
-              ? Array.from({ length: 3 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="flex flex-col rounded-2xl border border-line bg-white p-4"
-                  >
-                    <div className="flex items-baseline justify-between">
-                      <p className="text-[15px] font-semibold">
-                        <Skeleton className="inline-block h-[1em] w-16 align-middle" />
-                      </p>
-                    </div>
-                    <p className="mt-1 font-mono text-[20px] font-semibold">
-                      <Skeleton className="inline-block h-[1em] w-20 align-middle" />
-                    </p>
-                    <p className="mt-1 text-[12px]">
-                      <Skeleton className="inline-block h-[1em] w-28 align-middle" />
-                    </p>
-                    <Skeleton className="mt-4 h-8 w-full rounded-2xl" />
-                  </div>
+              ? Array.from({ length: 3 }).map((_, index) => (
+                  <Card key={index} className="p-5">
+                    <Skeleton className="h-5 w-16" />
+                    <Skeleton className="mt-3 h-7 w-24" />
+                    <Skeleton className="mt-2 h-4 w-32" />
+                    <Skeleton className="mt-6 h-8 w-full rounded-2xl" />
+                  </Card>
                 ))
-              : tiers.map((t) => {
-              const isCurrent = t.key === org.plan;
-              return (
-                <div
-                  key={t.key}
-                  className="flex flex-col rounded-2xl border border-line bg-white p-4"
-                  style={t.popular ? { borderColor: "#FF5A1A" } : undefined}
-                >
-                  <div className="flex items-baseline justify-between">
-                    <p className="text-[15px] font-semibold">{t.name}</p>
-                    {t.popular ? (
-                      <Chip color="orange" className="!px-2 !py-0.5 text-[11px]">
-                        Popular
-                      </Chip>
-                    ) : null}
-                  </div>
-                  <p className="mt-1 font-mono text-[20px] font-semibold">
-                    {t.price}
-                    <span className="text-[12px] font-normal text-ink-muted">{t.period}</span>
-                  </p>
-                  <p className="mt-1 text-[12px] text-ink-muted">
-                    {(t.includedEvaluations / 1_000_000).toLocaleString()}M evaluations / mo
-                  </p>
-                  <Button
-                    variant={isCurrent ? "secondary" : "primary"}
-                    size="sm"
-                    className="mt-4 w-full"
-                    loading={checkingOut === t.key}
-                    disabled={isCurrent || checkingOut !== null}
-                    onClick={() => startCheckout(t.key)}
-                  >
-                    {isCurrent
-                      ? "Current plan"
-                      : checkingOut === t.key
-                        ? "Starting…"
-                        : org.plan === "trial"
-                          ? `Choose ${t.name}`
-                          : `Switch to ${t.name}`}
-                  </Button>
-                </div>
-              );
-            })}
+              : tiers.map((option) => {
+                  const isCurrent = option.key === org.plan;
+                  return (
+                    <Card
+                      key={option.key}
+                      className={cn(
+                        "flex flex-col p-5",
+                        option.popular && "border-chip-orange",
+                      )}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <h4 className="text-[15px] font-semibold">{option.name}</h4>
+                        {option.popular ? (
+                          <Chip color="orange" className="px-2! py-0.5! text-[11px]">
+                            Popular
+                          </Chip>
+                        ) : null}
+                      </div>
+                      <p className="mt-2 font-mono text-[20px] font-semibold">
+                        {option.price}
+                        <span className="text-[12px] font-normal text-ink-muted">
+                          {option.period}
+                        </span>
+                      </p>
+                      <p className="mt-1 text-[12px] text-ink-muted">
+                        {(option.includedEvaluations / 1_000_000).toLocaleString()}M evaluations
+                        monthly
+                      </p>
+                      <Button
+                        variant={isCurrent ? "secondary" : "primary"}
+                        size="sm"
+                        className="mt-5 w-full"
+                        loading={checkingOut === option.key}
+                        disabled={isCurrent || checkingOut !== null}
+                        onClick={() => void startCheckout(option.key)}
+                      >
+                        {isCurrent ? (
+                          <span className="inline-flex items-center gap-1.5">
+                            <CheckIcon className="size-3.5" /> Current plan
+                          </span>
+                        ) : (
+                          `Choose ${option.name}`
+                        )}
+                      </Button>
+                    </Card>
+                  );
+                })}
           </div>
-        </Card>
+        </section>
       ) : null}
+    </SettingsPanel>
+  );
+}
 
-      <Card className="p-6">
-        <h2 className="text-[16px] font-semibold">Analytics data retention</h2>
-        <p className="mt-1 text-[13px] text-ink-muted">
-          Evaluation analytics stay in fast storage for {ANALYTICS_HOT_DAYS} days, then move to
-          cold storage until your plan&apos;s retention window ends, after which they&apos;re
-          deleted. Aggregated charts and the billing meter are unaffected.
-        </p>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <div className="rounded-2xl border border-line bg-white p-4">
-            <p className="font-mono text-[22px] font-semibold">{ANALYTICS_HOT_DAYS} days</p>
-            <p className="text-[13px] text-ink-muted">hot storage (all plans)</p>
+function AccountSettings({
+  org,
+  staggerFrom = 0,
+  staggerSelf: _staggerSelf,
+}: {
+  org: ApiOrg;
+  staggerFrom?: number;
+  staggerSelf?: boolean;
+}) {
+  const { userEmail } = useApp();
+  const initials = (userEmail ?? "U").slice(0, 2).toUpperCase();
+
+  return (
+    <SettingsPanel
+      title="Account"
+      description="Personal details and appearance preferences."
+      staggerFrom={staggerFrom}
+    >
+      <Card className="overflow-hidden">
+        <div className="flex items-center gap-4 border-b border-line px-5 py-5">
+          <div className="flex size-11 items-center justify-center rounded-full border border-line bg-canvas text-[13px] font-semibold">
+            {initials}
           </div>
-          <div className="rounded-2xl border border-line bg-white p-4">
-            <p className="font-mono text-[22px] font-semibold">
-              {ANALYTICS_RETENTION_DAYS[org.plan]} days
-            </p>
-            <p className="text-[13px] text-ink-muted">total retention on your plan</p>
+          <div className="min-w-0">
+            <p className="truncate text-[14px] font-medium">{userEmail ?? "Signed in"}</p>
+            <p className="text-[12px] text-ink-muted">Authenticated account</p>
           </div>
         </div>
-        {org.plan !== "scale" ? (
-          <p className="mt-3 text-[12px] text-ink-muted">
-            Need longer retention? The Scale plan keeps analytics for{" "}
-            {ANALYTICS_RETENTION_DAYS.scale} days.
+        <DefinitionRow label="Email" value={userEmail ?? "Unavailable"} />
+        <DefinitionRow
+          label="Organization access"
+          value={`${org.name} · ${org.role}`}
+        />
+      </Card>
+      <div className="mt-8">
+        <div className="mb-3">
+          <h3 className="text-[15px] font-semibold">Preferences</h3>
+          <p className="mt-0.5 text-[13px] text-ink-muted">
+            Stored in this browser only.
           </p>
-        ) : null}
-      </Card>
-
-      <Card className="p-6">
-        <h2 className="text-[16px] font-semibold">Members</h2>
-        <div className="mt-4 overflow-hidden rounded-2xl border border-line bg-white">
-          {(org.members ?? []).map((member) => (
-            <div
-              key={member.userId}
-              className="flex items-center justify-between border-b border-line px-4 py-3 last:border-b-0"
-            >
-              <div>
-                <p className="text-[14px] font-medium">
-                  {member.email ?? `${member.userId.slice(0, 8)}…`}
-                </p>
-                <p className="text-[12px] text-ink-muted">
-                  joined {new Date(member.createdAt).toLocaleDateString()}
-                </p>
-              </div>
-              <Chip color={ROLE_COLORS[member.role] ?? "gray"} className="!px-2.5 !py-0.5 text-[12px]">
-                {member.role}
-              </Chip>
-            </div>
-          ))}
-          {(org.members ?? []).length === 0 ? (
-            <p className="px-4 py-6 text-center text-[13px] text-ink-muted">
-              Member list unavailable.
-            </p>
-          ) : null}
         </div>
-        <p className="mt-3 text-[12px] text-ink-muted">
-          Invites are read-only for now, ask us to add teammates during the alpha.
-        </p>
-      </Card>
+        <AppearanceSettings />
+      </div>
+      <p className="mt-3 text-[12px] text-ink-muted">
+        Email and authentication settings are managed by your sign-in provider.
+      </p>
+    </SettingsPanel>
+  );
+}
+
+function SettingsPanel({
+  title,
+  description,
+  children,
+  staggerFrom = 0,
+}: {
+  title: string;
+  description: string;
+  children: ReactNode;
+  staggerFrom?: number;
+}) {
+  return (
+    <Stagger from={staggerFrom}>
+      <div className="mb-5">
+        <h2 className="text-[20px] font-semibold tracking-[-0.01em]">{title}</h2>
+        <p className="mt-1 text-[13px] text-ink-muted">{description}</p>
+      </div>
+      {children}
+    </Stagger>
+  );
+}
+
+function DefinitionRow({
+  label,
+  value,
+  action,
+}: {
+  label: string;
+  value: ReactNode;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="grid gap-1 border-b border-line px-5 py-4 last:border-b-0 sm:grid-cols-[160px_minmax(0,1fr)_auto] sm:items-center sm:gap-4">
+      <p className="text-[13px] text-ink-muted">{label}</p>
+      <div className="min-w-0 text-[14px] font-medium">{value}</div>
+      {action ? <div className="mt-2 sm:mt-0">{action}</div> : null}
+    </div>
+  );
+}
+
+function Metric({
+  value,
+  label,
+  compact = false,
+}: {
+  value: ReactNode;
+  label: string;
+  compact?: boolean;
+}) {
+  return (
+    <div className={compact ? "px-5 py-4" : "px-5 py-5"}>
+      <p className={compact ? "font-mono text-[16px] font-semibold" : "font-mono text-[21px] font-semibold"}>
+        {value}
+      </p>
+      <p className="mt-0.5 text-[12px] text-ink-muted">{label}</p>
+    </div>
+  );
+}
+
+function StatusBanner({
+  color,
+  title,
+  body,
+}: {
+  color: "green" | "orange";
+  title: string;
+  body: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "mb-6 rounded-2xl border px-5 py-4",
+        color === "green"
+          ? "border-chip-green/40 bg-chip-green/5"
+          : "border-chip-orange/40 bg-chip-orange/5",
+      )}
+    >
+      <p className="text-[14px] font-semibold">{title}</p>
+      <p className="mt-0.5 text-[13px] text-ink-muted">{body}</p>
     </div>
   );
 }

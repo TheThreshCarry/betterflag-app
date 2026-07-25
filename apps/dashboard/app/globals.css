@@ -1,19 +1,12 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "shadcn/tailwind.css";
-/*
- ---break---
- */
-@custom-variant dark (&:is(.dark *));
+@import "@appica/ui-react/styles.css";
 
-@import 'tailwindcss';
-@import '@appica/ui-react/styles.css';
-
-@source '../node_modules/@appica/ui-react/dist';
+@source "../node_modules/@appica/ui-react/dist";
 
 /*
  * ShipOS design tokens (DESIGN.md): warm paper canvas, charcoal ink,
- * color only via chips. No gradients, no dark sections.
+ * color only via chips. Dark theme flips surfaces via `.dark` below.
  */
 @theme {
   --color-canvas: #ffffff;
@@ -42,6 +35,229 @@
 
   --shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.04);
   --shadow-mockup: 0 12px 48px rgba(0, 0, 0, 0.09), 0 2px 8px rgba(0, 0, 0, 0.04);
+
+  /* Sidebar chrome (kept for AppSidebar layout) */
+  --color-sidebar: #f6f5f3;
+  --color-sidebar-foreground: #171717;
+  --color-sidebar-primary: #171717;
+  --color-sidebar-primary-foreground: #ffffff;
+  --color-sidebar-accent: #ffffff;
+  --color-sidebar-accent-foreground: #171717;
+  --color-sidebar-border: #e8e4de;
+  --color-sidebar-ring: #c8c4be;
+
+  /* Compat aliases for leftover shadcn / mapcn utility class names */
+  --color-background: #ffffff;
+  --color-foreground: #171717;
+  --color-border: #e8e4de;
+  --color-ring: #c8c4be;
+  --color-muted: #f6f5f3;
+  --color-muted-foreground: #737373;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #171717;
+  --color-accent: #f6f5f3;
+  --color-accent-foreground: #171717;
+}
+
+/* Dark — invert ShipOS surfaces; chips stay saturated. */
+.dark {
+  --color-canvas: #121212;
+  --color-surface: #1a1a1a;
+  --color-surface-alt: #222222;
+  --color-line: #2e2e2e;
+  --color-line-strong: #454545;
+  --color-ink: #f5f5f5;
+  --color-ink-muted: #a3a3a3;
+
+  --shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-mockup: 0 12px 48px rgba(0, 0, 0, 0.45), 0 2px 8px rgba(0, 0, 0, 0.3);
+
+  --color-sidebar: #1a1a1a;
+  --color-sidebar-foreground: #f5f5f5;
+  --color-sidebar-primary: #f5f5f5;
+  --color-sidebar-primary-foreground: #121212;
+  --color-sidebar-accent: #222222;
+  --color-sidebar-accent-foreground: #f5f5f5;
+  --color-sidebar-border: #2e2e2e;
+  --color-sidebar-ring: #454545;
+
+  --color-background: #121212;
+  --color-foreground: #f5f5f5;
+  --color-border: #2e2e2e;
+  --color-ring: #454545;
+  --color-muted: #1a1a1a;
+  --color-muted-foreground: #a3a3a3;
+  --color-popover: #1a1a1a;
+  --color-popover-foreground: #f5f5f5;
+  --color-accent: #222222;
+  --color-accent-foreground: #f5f5f5;
+}
+
+/* Map Appica raw tokens → ShipOS look (override after styles.css). */
+:root,
+.light {
+  --background: #ffffff;
+  --background-subtle: #f6f5f3;
+  --background-muted: #f4f3f1;
+  --background-strong: #e8e4de;
+  --background-inverse: #171717;
+
+  --foreground: #171717;
+  --foreground-subtle: #a3a3a3;
+  --foreground-muted: #737373;
+  --foreground-strong: #171717;
+  --foreground-emphasis: #171717;
+  --foreground-intense: #171717;
+  --foreground-inverse: #ffffff;
+
+  --border: #e8e4de;
+  --border-muted: #f4f3f1;
+  --border-strong: #c8c4be;
+  --border-emphasis: #a3a3a3;
+  --border-intense: #737373;
+  --border-inverse: #171717;
+  --border-overlay: #f4f3f1;
+
+  --primary: #171717;
+  --primary-subtle: #f6f5f3;
+  --primary-soft: #e8e4de;
+  --primary-muted: #404040;
+  --primary-strong: #0a0a0a;
+  --primary-foreground: #ffffff;
+
+  --secondary: #737373;
+  --secondary-subtle: rgb(115 115 115 / 10%);
+  --secondary-soft: rgb(115 115 115 / 20%);
+  --secondary-muted: #a3a3a3;
+  --secondary-strong: #525252;
+  --secondary-emphasis: #737373;
+  --secondary-intense: #404040;
+  --secondary-foreground: #171717;
+
+  --error: #ff2c5f;
+  --error-subtle: rgb(255 44 95 / 10%);
+  --error-soft: rgb(255 44 95 / 20%);
+  --error-muted: #ff8aa8;
+  --error-strong: #e02654;
+  --error-emphasis: #ff2c5f;
+  --error-intense: #c41e48;
+  --error-foreground: #ffffff;
+
+  --success: #00bc72;
+  --success-subtle: rgb(0 188 114 / 10%);
+  --success-soft: rgb(0 188 114 / 20%);
+  --success-muted: #5dd4a3;
+  --success-strong: #00a363;
+  --success-emphasis: #00bc72;
+  --success-intense: #008f56;
+  --success-foreground: #ffffff;
+
+  --warning: #ff5a1a;
+  --warning-subtle: rgb(255 90 26 / 10%);
+  --warning-soft: rgb(255 90 26 / 20%);
+  --warning-muted: #ff9a6b;
+  --warning-strong: #e04e14;
+  --warning-emphasis: #ff5a1a;
+  --warning-intense: #c44210;
+  --warning-foreground: #ffffff;
+
+  --info: #0067f4;
+  --info-subtle: rgb(0 103 244 / 10%);
+  --info-soft: rgb(0 103 244 / 20%);
+  --info-muted: #5a9af8;
+  --info-strong: #0058d4;
+  --info-emphasis: #0067f4;
+  --info-intense: #004bb3;
+  --info-foreground: #ffffff;
+
+  --focus-ring: #c8c4be;
+  --focus-ring-input: #e8e4de;
+  --focus-ring-primary: #c8c4be;
+
+  --radius: 1rem;
+  --selection-color: rgb(255 90 26 / 15%);
+}
+
+.dark {
+  --background: #121212;
+  --background-subtle: #1a1a1a;
+  --background-muted: #222222;
+  --background-strong: #2e2e2e;
+  --background-inverse: #f5f5f5;
+
+  --foreground: #f5f5f5;
+  --foreground-subtle: #737373;
+  --foreground-muted: #a3a3a3;
+  --foreground-strong: #f5f5f5;
+  --foreground-emphasis: #f5f5f5;
+  --foreground-intense: #ffffff;
+  --foreground-inverse: #121212;
+
+  --border: #2e2e2e;
+  --border-muted: #222222;
+  --border-strong: #454545;
+  --border-emphasis: #737373;
+  --border-intense: #a3a3a3;
+  --border-inverse: #f5f5f5;
+  --border-overlay: #222222;
+
+  --primary: #f5f5f5;
+  --primary-subtle: #1a1a1a;
+  --primary-soft: #2e2e2e;
+  --primary-muted: #d4d4d4;
+  --primary-strong: #ffffff;
+  --primary-foreground: #121212;
+
+  --secondary: #a3a3a3;
+  --secondary-subtle: rgb(163 163 163 / 12%);
+  --secondary-soft: rgb(163 163 163 / 20%);
+  --secondary-muted: #737373;
+  --secondary-strong: #d4d4d4;
+  --secondary-emphasis: #a3a3a3;
+  --secondary-intense: #e5e5e5;
+  --secondary-foreground: #f5f5f5;
+
+  --error: #ff2c5f;
+  --error-subtle: rgb(255 44 95 / 14%);
+  --error-soft: rgb(255 44 95 / 24%);
+  --error-muted: #ff8aa8;
+  --error-strong: #ff4d76;
+  --error-emphasis: #ff2c5f;
+  --error-intense: #ff6b8d;
+  --error-foreground: #ffffff;
+
+  --success: #00bc72;
+  --success-subtle: rgb(0 188 114 / 14%);
+  --success-soft: rgb(0 188 114 / 24%);
+  --success-muted: #5dd4a3;
+  --success-strong: #12d488;
+  --success-emphasis: #00bc72;
+  --success-intense: #2ae09a;
+  --success-foreground: #ffffff;
+
+  --warning: #ff5a1a;
+  --warning-subtle: rgb(255 90 26 / 14%);
+  --warning-soft: rgb(255 90 26 / 24%);
+  --warning-muted: #ff9a6b;
+  --warning-strong: #ff7340;
+  --warning-emphasis: #ff5a1a;
+  --warning-intense: #ff8a5c;
+  --warning-foreground: #ffffff;
+
+  --info: #0067f4;
+  --info-subtle: rgb(0 103 244 / 16%);
+  --info-soft: rgb(0 103 244 / 26%);
+  --info-muted: #5a9af8;
+  --info-strong: #1a7aff;
+  --info-emphasis: #0067f4;
+  --info-intense: #4d9aff;
+  --info-foreground: #ffffff;
+
+  --focus-ring: #454545;
+  --focus-ring-input: #2e2e2e;
+  --focus-ring-primary: #454545;
+
+  --selection-color: rgb(255 90 26 / 22%);
 }
 
 @layer base {
@@ -55,165 +271,75 @@
     background-color: var(--color-canvas);
     color: var(--color-ink);
     font-size: 15px;
-    @apply bg-background text-foreground;
   }
 
   ::selection {
-    background: rgba(255, 90, 26, 0.15);
+    background: var(--selection-color);
   }
-  * {
-    @apply border-border outline-ring/50;
+
+  /* Smooth light ↔ dark (independent of stagger / data-in animations). */
+  @media (prefers-reduced-motion: no-preference) {
+    *,
+    *::before,
+    *::after {
+      transition-property: background-color, border-color, color, fill, stroke,
+        box-shadow, outline-color;
+      transition-duration: 0.35s;
+      transition-timing-function: ease;
+    }
+  }
+
+  /* Circular reveal for ThemeToggle — mute default VT crossfade + color tweens. */
+  html[data-theme-transition],
+  html[data-theme-transition] *,
+  html[data-theme-transition] *::before,
+  html[data-theme-transition] *::after {
+    transition: none !important;
+  }
+
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+  }
+
+  ::view-transition-old(root) {
+    z-index: 1;
+  }
+
+  /* Soft radial mask + blur on new root — keep overflow so blur bleeds. */
+  ::view-transition-new(root) {
+    z-index: 9999;
+    overflow: visible;
+  }
+  .maplibregl-popup-content {
+    @apply bg-transparent! shadow-none! p-0! rounded-none!;
+  }
+  .maplibregl-popup-tip {
+    @apply hidden!;
+  }
+  .maplibregl-ctrl-attrib {
+    @apply bg-background! text-muted-foreground! border-border! rounded-md! border! shadow-sm!;
+  }
+  .maplibregl-ctrl-attrib a {
+    @apply text-muted-foreground!;
+  }
+  .maplibregl-ctrl-attrib a:hover {
+    @apply text-foreground!;
+  }
+  .maplibregl-ctrl-attrib-button {
+    @apply bg-transparent! dark:invert;
+  }
+
+  /* Keep WebGL canvas out of global color transitions / filter ancestry quirks */
+  .maplibregl-map,
+  .maplibregl-canvas,
+  .maplibregl-canvas-container {
+    transition: none !important;
+    filter: none !important;
   }
 }
 
-/* Range slider styled to the design system (rollout sliders). */
-input[type="range"].shipos-range {
-  -webkit-appearance: none;
-  appearance: none;
-  height: 6px;
-  border-radius: 9999px;
-  background: var(--color-line);
-  outline: none;
-}
-input[type="range"].shipos-range::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 18px;
-  height: 18px;
-  border-radius: 9999px;
-  background: var(--color-ink);
-  border: 3px solid #ffffff;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
-  cursor: pointer;
-}
-input[type="range"].shipos-range::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
-  border-radius: 9999px;
-  background: var(--color-ink);
-  border: 3px solid #ffffff;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
-  cursor: pointer;
-}
-/*
- ---break---
- */
-@theme inline {
-  --font-heading: var(--font-sans);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-mono);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --color-foreground: var(--foreground);
-  --color-background: var(--background);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
-}
-/*
- ---break---
- */
-:root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: #f6f5f3;
-  --sidebar-foreground: #171717;
-  --sidebar-primary: #171717;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #ffffff;
-  --sidebar-accent-foreground: #171717;
-  --sidebar-border: #e8e4de;
-  --sidebar-ring: #c8c4be;
-}
-/*
- ---break---
- */
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
-}
 /*
  * Data entrance: content that replaces a skeleton blurs + fades in
  * (same motion language as the landing page reveals).
@@ -232,11 +358,42 @@ input[type="range"].shipos-range::-moz-range-thumb {
 }
 
 .data-in {
-  animation: data-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: data-in 700ms ease-in-out both;
+}
+
+/* Staggered entrance — set --stagger (0, 1, 2…) via staggerStyle() */
+.stagger-in {
+  animation: data-in 700ms ease-in-out both;
+  animation-delay: calc(var(--stagger, 0) * 150ms);
+}
+
+/* Skeleton exit before data stagger-in (keep mounted until animation ends) */
+@keyframes skeleton-out {
+  from {
+    opacity: 1;
+    filter: none;
+  }
+  to {
+    opacity: 0;
+    filter: blur(6px);
+  }
+}
+
+.skeleton-out {
+  animation: skeleton-out 280ms ease-in both;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .data-in {
+  .data-in,
+  .stagger-in,
+  .skeleton-out {
     animation: none;
   }
+}
+
+/* User preference — set via PreferencesProvider / ReducedMotionProvider */
+html[data-disable-animations] .data-in,
+html[data-disable-animations] .stagger-in,
+html[data-disable-animations] .skeleton-out {
+  animation: none !important;
 }

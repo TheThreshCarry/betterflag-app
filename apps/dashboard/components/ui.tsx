@@ -1,17 +1,37 @@
 "use client";
 
-/** Shared UI primitives per DESIGN.md. Color arrives only through chips. */
+/** Shared UI primitives — Appica under ShipOS DESIGN.md API. */
 
 import { useEffect, useState, type ReactNode } from "react";
+import { Alert, AlertDescription } from "@appica/ui-react/alert";
+import { Button as AppicaButton } from "@appica/ui-react/button";
+import { Chip as AppicaChip } from "@appica/ui-react/chip";
+import { CopyButton as AppicaCopyButton } from "@appica/ui-react/copy-button";
+import {
+  Dialog as AppicaDialog,
+  DialogBody,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@appica/ui-react/dialog";
+import {
+  Field as AppicaField,
+  FieldDescription,
+  FieldLabel,
+} from "@appica/ui-react/field";
+import { Spinner as AppicaSpinner } from "@appica/ui-react/spinner";
+import { Switch } from "@appica/ui-react/switch";
+
+import { cn } from "@/lib/utils";
 
 export type ChipColor = "blue" | "pink" | "green" | "orange" | "gray";
 
 const CHIP_CLASSES: Record<ChipColor, string> = {
-  blue: "bg-chip-blue/10 text-chip-blue",
-  pink: "bg-chip-pink/10 text-chip-pink",
-  green: "bg-chip-green/10 text-chip-green",
-  orange: "bg-chip-orange/10 text-chip-orange",
-  gray: "bg-chip-gray/10 text-chip-gray",
+  blue: "bg-chip-blue/10 text-chip-blue border-transparent",
+  pink: "bg-chip-pink/10 text-chip-pink border-transparent",
+  green: "bg-chip-green/10 text-chip-green border-transparent",
+  orange: "bg-chip-orange/10 text-chip-orange border-transparent",
+  gray: "bg-chip-gray/10 text-chip-gray border-transparent",
 };
 
 export function Chip({
@@ -26,45 +46,42 @@ export function Chip({
   title?: string;
 }) {
   return (
-    <span
+    <AppicaChip
+      variant="soft"
+      size="sm"
       title={title}
-      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[13px] font-medium ${CHIP_CLASSES[color]} ${className}`}
+      render={<span />}
+      className={cn(
+        "inline-flex cursor-default items-center gap-1.5 rounded-full px-3 py-1 text-[13px] font-medium",
+        CHIP_CLASSES[color],
+        className,
+      )}
     >
       {children}
-    </span>
+    </AppicaChip>
   );
 }
 
 type ButtonVariant = "primary" | "secondary" | "danger" | "ghost";
 
-const BUTTON_CLASSES: Record<ButtonVariant, string> = {
-  primary:
-    "bg-ink text-white hover:opacity-90 disabled:opacity-40 disabled:hover:opacity-40",
-  secondary:
-    "bg-transparent border border-line text-ink hover:bg-surface disabled:opacity-40",
-  danger:
-    "bg-chip-pink/10 text-chip-pink hover:bg-chip-pink/20 disabled:opacity-40",
-  ghost: "bg-transparent text-ink-muted hover:bg-surface hover:text-ink disabled:opacity-40",
+const BUTTON_VARIANT_MAP: Record<
+  ButtonVariant,
+  "primary" | "outline" | "destructive" | "ghost"
+> = {
+  primary: "primary",
+  secondary: "outline",
+  danger: "destructive",
+  ghost: "ghost",
 };
 
 export function Spinner({ size = 16, className = "" }: { size?: number; className?: string }) {
   return (
-    <svg
-      className={`animate-spin ${className}`}
-      width={size}
-      height={size}
-      viewBox="0 0 16 16"
-      fill="none"
-      aria-hidden
-    >
-      <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="2" strokeOpacity="0.25" />
-      <path
-        d="M14 8a6 6 0 0 1-6 6"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-    </svg>
+    <AppicaSpinner
+      currentColor
+      className={cn(className)}
+      style={{ width: size, height: size }}
+      aria-label="Loading"
+    />
   );
 }
 
@@ -77,28 +94,23 @@ export function Button({
   disabled,
   children,
   ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+}: Omit<React.ComponentProps<typeof AppicaButton>, "variant" | "size"> & {
   variant?: ButtonVariant;
   size?: "sm" | "md" | "lg";
   loading?: boolean;
 }) {
-  const sizing =
-    size === "lg"
-      ? "h-12 px-7 text-[15px]"
-      : size === "sm"
-        ? "h-8 px-3.5 text-[13px]"
-        : "h-10 px-5 text-[14px]";
   return (
-    <button
+    <AppicaButton
       type={type}
+      variant={BUTTON_VARIANT_MAP[variant]}
+      size={size}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
-      className={`inline-flex items-center justify-center gap-2 rounded-2xl font-medium transition-colors ${sizing} ${BUTTON_CLASSES[variant]} ${loading ? "cursor-wait" : ""} ${className}`}
+      className={cn(loading && "cursor-wait", className)}
       {...props}
     >
-      {loading ? <Spinner size={size === "sm" ? 14 : 16} /> : null}
-      {children}
-    </button>
+      {loading ? <Spinner size={size === "sm" ? 14 : 16} /> : children}
+    </AppicaButton>
   );
 }
 
@@ -110,15 +122,23 @@ export function Card({
   className?: string;
 }) {
   return (
-    <div className={`rounded-3xl border border-line bg-surface ${className}`}>{children}</div>
+    <div
+      className={cn(
+        "rounded-3xl border border-line bg-surface",
+        className,
+      )}
+    >
+      {children}
+    </div>
   );
 }
 
+/** Compat class for native inputs until call sites move to Appica Input. */
 export const inputClass =
-  "h-10 w-full rounded-xl border border-line bg-white px-3.5 text-[14px] text-ink placeholder:text-ink-muted/60 outline-none focus:border-line-strong";
+  "h-10 w-full rounded-xl border border-line bg-canvas px-3.5 text-[14px] text-ink placeholder:text-ink-muted/60 outline-none focus:border-line-strong";
 
 export const textareaClass =
-  "w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-[13px] font-mono text-ink placeholder:text-ink-muted/60 outline-none focus:border-line-strong";
+  "w-full rounded-xl border border-line bg-canvas px-3.5 py-2.5 text-[13px] font-mono text-ink placeholder:text-ink-muted/60 outline-none focus:border-line-strong";
 
 export function Field({
   label,
@@ -130,11 +150,17 @@ export function Field({
   children: ReactNode;
 }) {
   return (
-    <label className="block">
-      <span className="mb-1.5 block text-[13px] font-medium text-ink">{label}</span>
+    <AppicaField className="block gap-0">
+      <FieldLabel className="mb-1.5 block text-[13px] font-medium text-ink">
+        {label}
+      </FieldLabel>
       {children}
-      {hint ? <span className="mt-1 block text-[12px] text-ink-muted">{hint}</span> : null}
-    </label>
+      {hint ? (
+        <FieldDescription className="mt-1 block text-[12px] text-ink-muted">
+          {hint}
+        </FieldDescription>
+      ) : null}
+    </AppicaField>
   );
 }
 
@@ -151,42 +177,23 @@ export function Dialog({
   children: ReactNode;
   wide?: boolean;
 }) {
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
-
-  if (!open) return null;
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/20 p-4"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
-      <div
-        className={`max-h-[85vh] w-full ${wide ? "max-w-2xl" : "max-w-md"} overflow-y-auto rounded-3xl border border-line bg-white p-6 shadow-[0_12px_48px_rgba(0,0,0,0.09)]`}
+    <AppicaDialog open={open} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent
+        closeButton
+        className={cn(
+          "max-h-[85vh] overflow-y-auto rounded-3xl border border-line bg-canvas p-6 shadow-[0_12px_48px_rgba(0,0,0,0.09)]",
+          wide ? "max-w-2xl" : "max-w-md",
+        )}
       >
-        <div className="mb-4 flex items-start justify-between">
-          <h2 className="text-[20px] font-semibold tracking-[-0.01em]">{title}</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="rounded-lg p-1 text-ink-muted hover:bg-surface hover:text-ink"
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-              <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
+        <DialogHeader className="mb-4">
+          <DialogTitle className="text-[20px] font-semibold tracking-[-0.01em]">
+            {title}
+          </DialogTitle>
+        </DialogHeader>
+        <DialogBody className="p-0">{children}</DialogBody>
+      </DialogContent>
+    </AppicaDialog>
   );
 }
 
@@ -202,23 +209,13 @@ export function Toggle({
   label?: string;
 }) {
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-label={label}
+    <Switch
+      checked={checked}
+      onCheckedChange={onChange}
       disabled={disabled}
-      onClick={() => onChange(!checked)}
-      className={`relative h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-40 ${
-        checked ? "bg-chip-green" : "bg-line-strong"
-      }`}
-    >
-      <span
-        className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${
-          checked ? "left-[22px]" : "left-0.5"
-        }`}
-      />
-    </button>
+      aria-label={label}
+      className={cn(checked && "data-checked:bg-chip-green")}
+    />
   );
 }
 
@@ -243,27 +240,21 @@ export function EmptyState({
 export function ErrorNote({ message }: { message: string | null }) {
   if (!message) return null;
   return (
-    <div className="rounded-xl bg-chip-pink/10 px-4 py-2.5 text-[13px] font-medium text-chip-pink">
-      {message}
-    </div>
+    <Alert variant="error" layout="inline" className="rounded-xl px-4 py-2.5 text-[13px] font-medium">
+      <AlertDescription>{message}</AlertDescription>
+    </Alert>
   );
 }
 
 export function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) {
-  const [copied, setCopied] = useState(false);
   return (
-    <Button
-      variant="secondary"
+    <AppicaCopyButton
+      value={text}
+      label={label}
+      copiedLabel="Copied"
+      variant="outline"
       size="sm"
-      onClick={() => {
-        void navigator.clipboard.writeText(text).then(() => {
-          setCopied(true);
-          setTimeout(() => setCopied(false), 1500);
-        });
-      }}
-    >
-      {copied ? "Copied" : label}
-    </Button>
+    />
   );
 }
 
@@ -297,7 +288,7 @@ export function RelativeTime({ iso }: { iso: string }) {
 
 export function JsonBlock({ value }: { value: unknown }) {
   return (
-    <pre className="max-h-64 overflow-auto rounded-xl border border-line bg-white p-3 font-mono text-[12px] leading-relaxed text-ink">
+    <pre className="max-h-64 overflow-auto rounded-xl border border-line bg-canvas p-3 font-mono text-[12px] leading-relaxed text-ink">
       {JSON.stringify(value, null, 2)}
     </pre>
   );

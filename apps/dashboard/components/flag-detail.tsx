@@ -12,6 +12,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useApp } from "@/components/app-shell";
 import { KIND_COLORS } from "@/components/flags-view";
+import { Slider } from "@appica/ui-react/slider";
+
 import {
   Button,
   Chip,
@@ -24,6 +26,7 @@ import {
   textareaClass,
 } from "@/components/ui";
 import { FlagDetailSkeleton } from "@/components/skeletons";
+import { Stagger } from "@/components/stagger";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CountryTable } from "@/components/analytics-view";
 import type {
@@ -168,51 +171,51 @@ export function FlagDetail({ flagId }: { flagId: string }) {
   const shownConfigs = scoped.length > 0 ? scoped : configs;
 
   return (
-    <div className="data-in">
-      <div className="mb-2 text-[13px] text-ink-muted">
-        <Link href="/flags" className="hover:text-ink">
-          Flags
-        </Link>{" "}
-        / <span className="font-mono text-[12px]">{flag.key}</span>
-      </div>
+    <>
+      <Stagger>
+        <div className="mb-2 text-[13px] text-ink-muted">
+          <Link href="/flags" className="hover:text-ink">
+            Flags
+          </Link>{" "}
+          / <span className="font-mono text-[12px]">{flag.key}</span>
+        </div>
 
-      <div className="mb-8 flex items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="font-mono text-[24px] font-semibold">{flag.key}</h1>
-            <Chip color={KIND_COLORS[flag.kind]} className="!px-2.5 !py-0.5 text-[12px]">
-              {flag.kind}
-            </Chip>
-            {flag.archivedAt ? (
-              <Chip color="gray" className="!px-2.5 !py-0.5 text-[12px]">
-                archived
+        <div className="mb-8 flex items-start justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="font-mono text-[24px] font-semibold">{flag.key}</h1>
+              <Chip color={KIND_COLORS[flag.kind]} className="!px-2.5 !py-0.5 text-[12px]">
+                {flag.kind}
               </Chip>
+              {flag.archivedAt ? (
+                <Chip color="gray" className="!px-2.5 !py-0.5 text-[12px]">
+                  archived
+                </Chip>
+              ) : null}
+            </div>
+            <p className="mt-1 text-[15px] font-medium">{flag.name}</p>
+            {flag.description ? (
+              <p className="mt-1 max-w-2xl text-[14px] text-ink-muted">{flag.description}</p>
             ) : null}
           </div>
-          <p className="mt-1 text-[15px] font-medium">{flag.name}</p>
-          {flag.description ? (
-            <p className="mt-1 max-w-2xl text-[14px] text-ink-muted">{flag.description}</p>
-          ) : null}
+          <div className="flex shrink-0 gap-2">
+            <Button variant="secondary" size="sm" onClick={() => setEditOpen(true)}>
+              Edit
+            </Button>
+            <Button variant="primary" size="sm" onClick={() => setArchiveOpen(true)}>
+              Archive
+            </Button>
+          </div>
         </div>
-        <div className="flex shrink-0 gap-2">
-          <Button variant="secondary" size="sm" onClick={() => setEditOpen(true)}>
-            Edit
-          </Button>
-          <Button variant="primary" size="sm" onClick={() => setArchiveOpen(true)}>
-            Archive
-          </Button>
-        </div>
-      </div>
 
-      <div className="space-y-6">
         {shownConfigs.map((config) => (
           <EnvConfigCard key={config.id} flag={flag} config={config} onRefresh={load} />
         ))}
-      </div>
 
-      {shownConfigs[0]?.environment ? (
-        <FlagAnalytics flagId={flag.id} envSlug={shownConfigs[0].environment.slug} />
-      ) : null}
+        {shownConfigs[0]?.environment ? (
+          <FlagAnalytics flagId={flag.id} envSlug={shownConfigs[0].environment.slug} />
+        ) : null}
+      </Stagger>
 
       <EditFlagDialog
         open={editOpen}
@@ -247,7 +250,7 @@ export function FlagDetail({ flagId }: { flagId: string }) {
           </Button>
         </div>
       </Dialog>
-    </div>
+    </>
   );
 }
 
@@ -471,7 +474,7 @@ function EnvConfigCard({
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-5">
-          <div className="flex items-center justify-between rounded-2xl border border-line bg-white px-4 py-3">
+          <div className="flex items-center justify-between rounded-2xl border border-line bg-canvas px-4 py-3">
             <div>
               <p className="text-[14px] font-medium">Enabled</p>
               <p className="text-[12px] text-ink-muted">Serve rules + rollout instead of OFF.</p>
@@ -486,20 +489,22 @@ function EnvConfigCard({
             />
           </div>
 
-          <div className="rounded-2xl border border-line bg-white px-4 py-3">
+          <div className="rounded-2xl border border-line bg-canvas px-4 py-3">
             <div className="mb-2 flex items-center justify-between">
               <p className="text-[14px] font-medium">Rollout</p>
               <span className="font-mono text-[13px] font-semibold">{rolloutPct}%</span>
             </div>
-            <input
-              type="range"
+            <Slider
               min={0}
               max={100}
               step={1}
-              value={rolloutPct}
-              className="shipos-range w-full"
-              onChange={(event) => {
-                setRolloutPct(Number(event.target.value));
+              value={[rolloutPct]}
+              className="w-full"
+              thumbAriaLabel="Rollout percentage"
+              tooltipVisibility="never"
+              onValueChange={(value) => {
+                const next = Array.isArray(value) ? value[0] : value;
+                setRolloutPct(Number(next ?? 0));
                 touch();
               }}
             />
@@ -646,7 +651,7 @@ function RulesEditor({
   }
 
   return (
-    <div className="rounded-2xl border border-line bg-white p-4">
+    <div className="rounded-2xl border border-line bg-canvas p-4">
       <div className="mb-3 flex items-start justify-between gap-4">
         <div>
           <p className="text-[14px] font-medium">Targeting rules</p>
@@ -733,7 +738,7 @@ function RulesEditor({
                       }
                     />
                     <select
-                      className="h-8 rounded-lg border border-line bg-white px-1.5 text-[12px] outline-none"
+                      className="h-8 rounded-lg border border-line bg-canvas px-1.5 text-[12px] outline-none"
                       value={condition.op}
                       onChange={(event) =>
                         updateRule(index, {
@@ -799,7 +804,7 @@ function RulesEditor({
                 <label className="flex items-center gap-1.5 text-[12px] text-ink-muted">
                   serve
                   <select
-                    className="h-7 rounded-lg border border-line bg-white px-1.5 text-[12px] font-medium text-ink outline-none"
+                    className="h-7 rounded-lg border border-line bg-canvas px-1.5 text-[12px] font-medium text-ink outline-none"
                     value={rule.serve}
                     onChange={(event) =>
                       updateRule(index, { serve: event.target.value as "on" | "off" })
@@ -812,7 +817,7 @@ function RulesEditor({
                 <label className="flex items-center gap-1.5 text-[12px] text-ink-muted">
                   to
                   <input
-                    className="h-7 w-16 rounded-lg border border-line bg-white px-2 text-right font-mono text-[12px] text-ink outline-none"
+                    className="h-7 w-16 rounded-lg border border-line bg-canvas px-2 text-right font-mono text-[12px] text-ink outline-none"
                     placeholder="100"
                     value={rule.rolloutPctText}
                     onChange={(event) => updateRule(index, { rolloutPctText: event.target.value })}
@@ -966,7 +971,7 @@ function FlagAnalytics({ flagId, envSlug }: { flagId: string; envSlug: string })
                     ? "border-ink bg-ink text-white"
                     : beyondRetention
                       ? "cursor-not-allowed border-line text-ink-muted/50"
-                      : "border-line bg-white text-ink hover:bg-surface"
+                      : "border-line bg-canvas text-ink hover:bg-surface"
                 }`}
               >
                 {label}

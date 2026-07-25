@@ -122,7 +122,7 @@ export default async function McpConsentPage({
               {orgs.map((org, index) => (
                 <label
                   key={org.id}
-                  className="flex cursor-pointer items-center gap-3 rounded-xl border border-line bg-white px-3.5 py-3 transition-colors hover:border-line-strong has-[:checked]:border-accent"
+                  className="flex cursor-pointer items-center gap-3 rounded-xl border border-line bg-canvas px-3.5 py-3 transition-colors hover:border-line-strong has-[:checked]:border-accent"
                 >
                   <input
                     type="radio"

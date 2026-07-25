@@ -167,15 +167,26 @@ export interface AnalyticsSeriesPoint {
   evaluations: number;
 }
 
+export interface AnalyticsCityPoint {
+  city: string;
+  lat: number;
+  lng: number;
+  evaluations: number;
+}
+
 export interface ApiAnalytics {
   period: AnalyticsPeriod;
   retentionDays: number;
   availablePeriods: AnalyticsPeriod[];
+  /** Present when the request was scoped with `?country=XX`. */
+  country?: string | null;
   total: number;
   series: AnalyticsSeriesPoint[];
   countries: CountryPoint[];
   flags: { flagKey: string; evaluations: number }[];
   environments: { env: string; evaluations: number }[];
+  /** City rollup with average coords (country-scoped requests only). */
+  cities?: AnalyticsCityPoint[];
 }
 
 // ── Serializers ──────────────────────────────────────────────────────────────

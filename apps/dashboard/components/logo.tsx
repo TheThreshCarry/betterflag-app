@@ -11,6 +11,7 @@ const logoVariants = cva("relative shrink-0", {
       sm: "size-8",
       default: "size-10",
       lg: "size-12",
+      xl: "size-20",
     },
   },
   defaultVariants: {
@@ -74,6 +75,7 @@ export function Logo({
             size === "sm" && "text-[17px]",
             size === "default" && "text-lg",
             size === "lg" && "text-xl",
+            size === "xl" && "text-2xl",
             textClassName,
           )}
         >

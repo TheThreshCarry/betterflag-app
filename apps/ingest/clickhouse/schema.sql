@@ -21,7 +21,10 @@ CREATE TABLE IF NOT EXISTS evaluations (
   actor_kind    LowCardinality(String),   -- sdk | agent | api
   sdk           LowCardinality(String),
   user_hash     UInt64,                   -- FNV-1a 64 of userId; raw IDs never stored
-  country       LowCardinality(String) DEFAULT 'unknown'  -- ISO 3166-1 alpha-2 from request.cf at the edge
+  country       LowCardinality(String) DEFAULT 'unknown',  -- ISO 3166-1 alpha-2 from request.cf at the edge
+  city          LowCardinality(String) DEFAULT '',         -- cf.city; empty when unavailable
+  lat           Nullable(Float64) DEFAULT NULL,            -- ~1 km rounded client latitude
+  lng           Nullable(Float64) DEFAULT NULL             -- ~1 km rounded client longitude
 ) ENGINE = MergeTree
 PARTITION BY toDate(ts)
 ORDER BY (org_id, project_id, ts)
@@ -82,6 +85,12 @@ GROUP BY org_id, project_id, env, flag_key, country, hour;
 --
 --   ALTER TABLE evaluations
 --     ADD COLUMN IF NOT EXISTS country LowCardinality(String) DEFAULT 'unknown';
+--   ALTER TABLE evaluations
+--     ADD COLUMN IF NOT EXISTS city LowCardinality(String) DEFAULT '';
+--   ALTER TABLE evaluations
+--     ADD COLUMN IF NOT EXISTS lat Nullable(Float64) DEFAULT NULL;
+--   ALTER TABLE evaluations
+--     ADD COLUMN IF NOT EXISTS lng Nullable(Float64) DEFAULT NULL;
 --   ALTER TABLE evaluations
 --     MODIFY TTL toDateTime(ts) + INTERVAL 7 DAY;
 --   -- The PARTITION BY change (toYYYYMM → toDate) only applies to fresh

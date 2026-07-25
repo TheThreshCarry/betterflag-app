@@ -144,7 +144,7 @@ export function OnboardingFlow({ userEmail }: { userEmail: string | null }) {
         ) : null}
 
         {/* Keyed by step so each onboarding stage blurs + fades in. */}
-        <div key={step} className={step === "loading" ? undefined : "data-in"}>
+        <div key={step} className={step === "loading" ? undefined : "stagger-in"}>
         {step === "loading" ? (
           <OnboardingResumeSkeleton />
         ) : step === "org" ? (
@@ -280,7 +280,7 @@ function PlanStep({
           {Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}
-              className="flex flex-col rounded-2xl border border-line bg-white p-5"
+              className="flex flex-col rounded-2xl border border-line bg-canvas p-5"
             >
               <div className="flex items-center justify-between gap-2">
                 <p className="text-[15px] font-semibold">
@@ -314,7 +314,7 @@ function PlanStep({
                 aria-pressed={isSelected}
                 disabled={selecting !== null}
                 onClick={() => setSelected(tier.key)}
-                className={`flex flex-col rounded-2xl border bg-white p-5 text-left transition-colors disabled:opacity-60 ${
+                className={`flex flex-col rounded-2xl border bg-canvas p-5 text-left transition-colors disabled:opacity-60 ${
                   isSelected
                     ? "border-[#FF5A1A] ring-2 ring-[#FF5A1A]/30"
                     : "border-line hover:border-line-strong"
@@ -582,7 +582,7 @@ function Checklist({
                 : "Everything below is done except the one that matters."}
             </p>
           </div>
-          <div className="shrink-0 rounded-2xl border border-line bg-white px-4 py-3 text-center">
+          <div className="shrink-0 rounded-2xl border border-line bg-canvas px-4 py-3 text-center">
             <p className="font-mono text-[24px] font-semibold tabular-nums">
               {formatElapsed(elapsed)}
             </p>
@@ -641,7 +641,7 @@ function Checklist({
             <p className="text-[14px] font-semibold">Your dev SDK key</p>
             <CopyButton text={sdkKey} label="Copy key" />
           </div>
-          <code className="block break-all rounded-xl border border-line bg-white p-3 font-mono text-[12px]">
+          <code className="block break-all rounded-xl border border-line bg-canvas p-3 font-mono text-[12px]">
             {sdkKey}
           </code>
           <p className="mt-2 text-[12px] text-ink-muted">

@@ -1,7 +1,7 @@
 /**
  * GET /api/v1/analytics: org-wide evaluation analytics from ClickHouse
  * (evals_per_flag_country_hour): totals, time series, country and flag and
- * environment breakdowns for a period. Optional projectId/env filters.
+ * environment breakdowns for a period. Optional projectId/env/country filters.
  *
  * Periods beyond the org's plan retention (ANALYTICS_RETENTION_DAYS) are
  * rejected with 422 `retention_exceeded`; the response always carries
@@ -16,6 +16,7 @@ import {
   analyticsByCountry,
   analyticsByEnv,
   analyticsByFlag,
+  analyticsByCity,
   analyticsSeries,
   PERIOD_DAYS,
   type AnalyticsFilter,
@@ -33,6 +34,11 @@ const analyticsQuerySchema = z.object({
   period: z.enum(PERIODS).default("7d"),
   projectId: z.uuid().optional(),
   env: z.string().min(1).optional(),
+  /** ISO 3166-1 alpha-2 — when set, series/flags/envs are scoped to that country. */
+  country: z
+    .string()
+    .regex(/^[A-Z]{2}$/, "country must be an ISO 3166-1 alpha-2 code")
+    .optional(),
 });
 
 // Not exported: Next.js route modules may only export handlers/config.
@@ -58,18 +64,27 @@ export const GET = withErrors(async (request: NextRequest) => {
     );
   }
 
-  const filter: AnalyticsFilter = { orgId: actor.orgId, envSlug: query.env };
+  const filter: AnalyticsFilter = {
+    orgId: actor.orgId,
+    envSlug: query.env,
+    country: query.country,
+  };
   if (query.projectId !== undefined) {
     const project = await getProjectInOrg(service, query.projectId, actor.orgId);
     assertKeyScope(actor, project.id);
     filter.projectId = project.id;
   }
 
-  const [series, countries, flags, environments] = await Promise.all([
+  // Country-scoped requests already filter by country — skip the by-country rollup;
+  // load city rollup from hot raw rows for the detail map instead.
+  const [series, countries, flags, environments, cities] = await Promise.all([
     analyticsSeries(filter, query.period),
-    analyticsByCountry(filter, query.period),
+    query.country ? Promise.resolve([]) : analyticsByCountry(filter, query.period),
     analyticsByFlag(filter, query.period),
     analyticsByEnv(filter, query.period),
+    query.country
+      ? analyticsByCity(filter, query.period)
+      : Promise.resolve([]),
   ]);
   const total = series.reduce((sum, point) => sum + point.evaluations, 0);
 
@@ -77,10 +92,12 @@ export const GET = withErrors(async (request: NextRequest) => {
     period: query.period,
     retentionDays,
     availablePeriods: periods,
+    country: query.country ?? null,
     total,
     series,
     countries,
     flags,
     environments,
+    cities,
   });
 });

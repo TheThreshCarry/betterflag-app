@@ -112,7 +112,7 @@ export function BillingWall({ userEmail }: { userEmail: string | null }) {
               {Array.from({ length: 3 }).map((_, i) => (
                 <div
                   key={i}
-                  className="flex flex-col rounded-2xl border border-line bg-white p-5"
+                  className="flex flex-col rounded-2xl border border-line bg-canvas p-5"
                 >
                   <div className="flex items-baseline justify-between">
                     <p className="text-[15px] font-semibold">
@@ -134,7 +134,7 @@ export function BillingWall({ userEmail }: { userEmail: string | null }) {
               {tiers.map((tier) => (
                 <div
                   key={tier.key}
-                  className="flex flex-col rounded-2xl border border-line bg-white p-5"
+                  className="flex flex-col rounded-2xl border border-line bg-canvas p-5"
                   style={tier.popular ? { borderColor: "#FF5A1A" } : undefined}
                 >
                   <div className="flex items-baseline justify-between">

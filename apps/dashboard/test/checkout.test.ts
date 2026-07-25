@@ -14,10 +14,10 @@ describe("buildCheckoutRequest", () => {
     expect(buildCheckoutRequest(base).products).toEqual(["prod_launch"]);
   });
 
-  it("builds a success URL back to settings with the checkout id placeholder", () => {
+  it("builds a success URL back to billing settings with the checkout id placeholder", () => {
     const { successUrl } = buildCheckoutRequest(base);
     expect(successUrl).toBe(
-      "https://app.shipos.app/settings?checkout=success&checkout_id={CHECKOUT_ID}",
+      "https://app.shipos.app/settings/billing?checkout=success&checkout_id={CHECKOUT_ID}",
     );
   });
 
