@@ -44,7 +44,7 @@ import type {
   StatsPoint,
 } from "@/lib/api-types";
 import { api, ApiClientError } from "@/lib/client-api";
-import { toast } from "@/lib/toast";
+import { flagEnvDescription, toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
 interface FlagDetailResponse {
@@ -420,7 +420,7 @@ function EnvConfigCard({
         body: JSON.stringify(body),
       });
       await onRefresh();
-      toast.success({ title: "Changes saved", description: `${flag.key} · ${envSlug}` });
+      toast.success({ title: "Changes saved", description: flagEnvDescription(flag.key, envSlug) });
     } catch (err) {
       if (err instanceof ApiClientError && err.status === 409) {
         setConflict(true);
@@ -441,7 +441,10 @@ function EnvConfigCard({
         body: JSON.stringify({ clearKill: true, expectedVersion: config.version }),
       });
       await onRefresh();
-      toast.success({ title: "Kill switch cleared", description: `${flag.key} · ${envSlug}` });
+      toast.success({
+        title: "Kill switch cleared",
+        description: flagEnvDescription(flag.key, envSlug),
+      });
     } catch (err) {
       if (err instanceof ApiClientError && err.status === 409) {
         setConflict(true);
@@ -633,7 +636,7 @@ function EnvConfigCard({
                   await onRefresh();
                   toast.success({
                     title: "Kill switch activated",
-                    description: `${flag.key} · ${envSlug}`,
+                    description: flagEnvDescription(flag.key, envSlug),
                   });
                 })
                 .catch((err: unknown) =>

@@ -38,7 +38,7 @@ import { VersionHistoryBadge } from "@/components/version-history-badge";
 import type { ApiEnvironment, ApiFlag, ApiFlagConfig } from "@/lib/api-types";
 import { api, ApiClientError } from "@/lib/client-api";
 import { staggerStyle } from "@/lib/stagger";
-import { toast } from "@/lib/toast";
+import { flagEnvDescription, toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
 const FLAG_EXPAND_MS = 400;
@@ -271,7 +271,7 @@ function FlagRow({
       onConfigPatched(updated);
       toast.success({
         title: next ? "Flag enabled" : "Flag disabled",
-        description: `${flag.key} · ${activeEnv.slug}`,
+        description: flagEnvDescription(flag.key, activeEnv.slug),
       });
     } catch (err) {
       if (err instanceof ApiClientError && err.status === 409) {
@@ -320,7 +320,7 @@ function FlagRow({
           ) : flag.kind === "boolean" ? (
             <Toggle
               checked={config.enabled}
-              disabled={toggling}
+              loading={toggling}
               label={config.enabled ? `Disable ${flag.key}` : `Enable ${flag.key}`}
               onChange={(next) => void setEnabled(next)}
             />
@@ -444,7 +444,7 @@ function FlagQuickPanel({
             <span className="text-[12px] text-ink-muted">Enabled</span>
             <Toggle
               checked={config.enabled}
-              disabled={toggling}
+              loading={toggling}
               label={config.enabled ? `Disable ${flag.key}` : `Enable ${flag.key}`}
               onChange={onSetEnabled}
             />

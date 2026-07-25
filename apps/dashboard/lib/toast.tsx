@@ -41,9 +41,22 @@ function StatusIcon({ kind, children }: { kind: ToastKind; children: ReactNode }
 
 type ToastInput = {
   title: string;
-  description?: string;
+  description?: ReactNode;
   timeout?: number;
 };
+
+/** Flag key + quieter “in {env} environment” (toast description is already muted). */
+export function flagEnvDescription(flagKey: string, envSlug: string): ReactNode {
+  return (
+    <>
+      <span className="font-mono text-[var(--foreground)]">{flagKey}</span>
+      <span className="text-[var(--foreground-subtle)]">
+        {" "}
+        · in {envSlug} environment
+      </span>
+    </>
+  );
+}
 
 function add(kind: ToastKind, { title, description, timeout }: ToastInput, icon: ReactNode) {
   return toastManager.add({

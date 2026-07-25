@@ -204,21 +204,34 @@ export function Toggle({
   checked,
   onChange,
   disabled = false,
+  loading = false,
   label,
 }: {
   checked: boolean;
   onChange: (next: boolean) => void;
   disabled?: boolean;
+  /** In-flight save — spinner beside switch, not forbidden/disabled look. */
+  loading?: boolean;
   label?: string;
 }) {
   return (
-    <Switch
-      checked={checked}
-      onCheckedChange={onChange}
-      disabled={disabled}
-      aria-label={label}
-      className={cn(checked && "data-checked:bg-chip-green")}
-    />
+    <span className="inline-flex items-center gap-1.5">
+      <Switch
+        checked={checked}
+        onCheckedChange={(next) => {
+          if (loading || disabled) return;
+          onChange(next);
+        }}
+        disabled={disabled}
+        aria-label={label}
+        aria-busy={loading || undefined}
+        className={cn(
+          checked && "data-checked:bg-chip-green",
+          loading && "pointer-events-none opacity-70",
+        )}
+      />
+      {loading ? <Spinner size={12} className="text-ink-muted" /> : null}
+    </span>
   );
 }
 
