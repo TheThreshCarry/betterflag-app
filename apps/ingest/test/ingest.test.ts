@@ -92,6 +92,7 @@ const EVENT: EvaluationEvent = {
   sdk: "js/0.1.0",
   user_hash: "12345678901234567890",
   country: "FR",
+  region: "Île-de-France",
   city: "Paris",
   lat: 48.86,
   lng: 2.35,
@@ -148,14 +149,18 @@ describe("eventToRow", () => {
       sdk: "js/0.1.0",
       user_hash: "12345678901234567890",
       country: "FR",
+      region: "Île-de-France",
       city: "Paris",
       lat: 48.86,
       lng: 2.35,
     });
   });
 
-  it("maps null city to empty string for ClickHouse", () => {
-    expect(eventToRow({ ...EVENT, city: null }).city).toBe("");
+  it("maps null region/city to empty string for ClickHouse", () => {
+    expect(eventToRow({ ...EVENT, region: null, city: null })).toMatchObject({
+      region: "",
+      city: "",
+    });
   });
 });
 
@@ -171,11 +176,12 @@ describe("evaluationEventSchema", () => {
     if (parsed.success) expect(parsed.data.country).toBe("unknown");
   });
 
-  it("defaults missing city/lat/lng to null (pre-geo in-flight messages)", () => {
-    const { city: _c, lat: _a, lng: _b, ...legacy } = EVENT;
+  it("defaults missing region/city/lat/lng to null (pre-geo in-flight messages)", () => {
+    const { region: _r, city: _c, lat: _a, lng: _b, ...legacy } = EVENT;
     const parsed = evaluationEventSchema.safeParse(legacy);
     expect(parsed.success).toBe(true);
     if (parsed.success) {
+      expect(parsed.data.region).toBeNull();
       expect(parsed.data.city).toBeNull();
       expect(parsed.data.lat).toBeNull();
       expect(parsed.data.lng).toBeNull();

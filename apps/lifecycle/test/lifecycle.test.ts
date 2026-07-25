@@ -107,7 +107,7 @@ describe("email templates", () => {
   it("agentic email points at the keys page and the MCP server", () => {
     const email = agenticEmail();
     expect(email.html).toContain("mcp.shipos.app");
-    expect(email.html).toContain("app.shipos.app/keys");
+    expect(email.html).toContain("app.shipos.app/settings/keys");
     expect(email.text).toContain("mcp.shipos.app");
   });
 

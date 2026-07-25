@@ -168,6 +168,11 @@ export interface AnalyticsFilter {
   flagKey?: string;
   /** ISO 3166-1 alpha-2 — scope series/flags/envs to one country. */
   country?: string;
+  /**
+   * Region/state name (cf.region, with city fallback for older rows).
+   * Only meaningful with `country` set.
+   */
+  region?: string;
 }
 
 interface FilterSql {
@@ -200,6 +205,12 @@ function analyticsFilterSql(
   if (filter.country !== undefined) {
     clauses.push("country = {country:String}");
     params.country = filter.country;
+  }
+  // Region only exists on raw `evaluations` (ts), not on hourly MVs.
+  if (filter.region !== undefined && timeColumn === "ts") {
+    // Match the same expression used in analyticsByRegion grouping.
+    clauses.push("if(region != '', region, city) = {region:String}");
+    params.region = filter.region;
   }
   return { where: clauses.join(" AND "), params };
 }
@@ -299,6 +310,56 @@ export async function analyticsByEnv(
   return rows.map((row) => ({ env: row.env, evaluations: Number(row.evaluations) }));
 }
 
+export interface AnalyticsRegionRow {
+  region: string;
+  lat: number;
+  lng: number;
+  evaluations: number;
+}
+
+/**
+ * Region/state rollup for a country-scoped analytics view.
+ * Prefers `region` (cf.region); falls back to `city` for older rows.
+ * Reads hot raw `evaluations` (7-day TTL).
+ */
+export async function analyticsByRegion(
+  filter: AnalyticsFilter,
+  period: AnalyticsPeriod,
+  limit = 500,
+): Promise<AnalyticsRegionRow[]> {
+  if (filter.country === undefined) return [];
+  const { where, params } = analyticsFilterSql(filter, PERIOD_HOURS[period], "ts");
+  // Alias must not be `lat`/`lng` — ClickHouse can resolve those names in WHERE
+  // to the SELECT aliases, turning `lat IS NOT NULL` into an illegal aggregation.
+  const rows = await chQuery<{
+    region: string;
+    avg_lat: string | number;
+    avg_lng: string | number;
+    evaluations: string | number;
+  }>(
+    `SELECT
+       if(region != '', region, city) AS region,
+       avg(lat) AS avg_lat,
+       avg(lng) AS avg_lng,
+       count() AS evaluations
+     FROM evaluations
+     WHERE ${where}
+       AND (region != '' OR city != '')
+       AND lat IS NOT NULL
+       AND lng IS NOT NULL
+     GROUP BY region
+     ORDER BY evaluations DESC
+     LIMIT {limit:UInt32}`,
+    { ...params, limit },
+  );
+  return rows.map((row) => ({
+    region: row.region,
+    lat: Number(row.avg_lat),
+    lng: Number(row.avg_lng),
+    evaluations: Number(row.evaluations),
+  }));
+}
+
 export interface AnalyticsCityRow {
   city: string;
   lat: number;
@@ -307,26 +368,26 @@ export interface AnalyticsCityRow {
 }
 
 /**
- * City rollup for a country-scoped analytics view.
- * Reads hot raw `evaluations` (7-day TTL); city + coords from Cloudflare cf.*.
+ * City rollup for a region-scoped analytics view.
+ * Requires country + region on the filter.
  */
 export async function analyticsByCity(
   filter: AnalyticsFilter,
   period: AnalyticsPeriod,
   limit = 500,
 ): Promise<AnalyticsCityRow[]> {
-  if (filter.country === undefined) return [];
+  if (filter.country === undefined || filter.region === undefined) return [];
   const { where, params } = analyticsFilterSql(filter, PERIOD_HOURS[period], "ts");
   const rows = await chQuery<{
     city: string;
-    lat: string | number;
-    lng: string | number;
+    avg_lat: string | number;
+    avg_lng: string | number;
     evaluations: string | number;
   }>(
     `SELECT
        city,
-       avg(lat) AS lat,
-       avg(lng) AS lng,
+       avg(lat) AS avg_lat,
+       avg(lng) AS avg_lng,
        count() AS evaluations
      FROM evaluations
      WHERE ${where}
@@ -340,8 +401,8 @@ export async function analyticsByCity(
   );
   return rows.map((row) => ({
     city: row.city,
-    lat: Number(row.lat),
-    lng: Number(row.lng),
+    lat: Number(row.avg_lat),
+    lng: Number(row.avg_lng),
     evaluations: Number(row.evaluations),
   }));
 }

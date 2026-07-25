@@ -21,6 +21,7 @@ import { DataTable, TableCell, TableRow, type Column } from "@/components/data-t
 import { Stagger } from "@/components/stagger";
 import type { ApiApiKey } from "@/lib/api-types";
 import { api } from "@/lib/client-api";
+import { toast } from "@/lib/toast";
 
 const KEY_COLUMNS: readonly Column[] = [
   { key: "key", label: "Key", colWidth: "w-[14%]", skeletonWidth: "w-20" },
@@ -92,10 +93,10 @@ export function KeysView({ initialKeys }: { initialKeys: ApiApiKey[] }) {
   return (
     <>
       <Stagger>
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-5 flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-[28px] font-semibold tracking-[-0.01em]">API keys</h1>
-            <p className="mt-0.5 text-[14px] text-ink-muted">
+            <h2 className="text-[20px] font-semibold tracking-[-0.01em]">API keys</h2>
+            <p className="mt-1 text-[13px] text-ink-muted">
               SDK keys evaluate, agent keys automate, admin keys administer.
             </p>
           </div>
@@ -195,6 +196,10 @@ export function KeysView({ initialKeys }: { initialKeys: ApiApiKey[] }) {
                   setBusy(true);
                   void api(`/api/v1/keys/${revokeTarget.id}`, { method: "DELETE" })
                     .then(async () => {
+                      toast.success({
+                        title: "Key revoked",
+                        description: `${revokeTarget.prefix}…`,
+                      });
                       setRevokeTarget(null);
                       refresh();
                     })
@@ -264,6 +269,7 @@ function CreateKeyDialog({
         }),
       });
       setCreated(result);
+      toast.success({ title: "Key created", description: result.apiKey.name });
       onCreated();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create key");

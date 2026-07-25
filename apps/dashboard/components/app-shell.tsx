@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   createContext,
   useCallback,
@@ -55,6 +55,7 @@ export function AppShell({
   children: ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
 
   const [orgs, setOrgs] = useState<ApiOrg[] | null>(null);
   const [projects, setProjects] = useState<ApiProject[]>([]);
@@ -133,10 +134,6 @@ export function AppShell({
       if (slug === activeEnvSlug) return;
       window.localStorage.setItem(ACTIVE_ENV_KEY, slug);
       setActiveEnvSlugState(slug);
-      // Full reload so every view (flags, keys, analytics, detail) re-fetches
-      // data scoped to the new environment. The slug is read back from
-      // localStorage on mount, so the reload lands on the chosen env.
-      window.location.reload();
     },
     [activeEnvSlug],
   );
@@ -162,6 +159,19 @@ export function AppShell({
     () => environments.find((e) => e.slug === activeEnvSlug) ?? environments[0] ?? null,
     [environments, activeEnvSlug],
   );
+
+  const [bannerEnv, setBannerEnv] = useState<ApiEnvironment | null>(null);
+  const [envBarOpen, setEnvBarOpen] = useState(false);
+
+  useEffect(() => {
+    if (activeEnv && activeEnv.slug !== "prod") {
+      setBannerEnv(activeEnv);
+      // Mount closed, open next frame so height/opacity transition runs.
+      const id = requestAnimationFrame(() => setEnvBarOpen(true));
+      return () => cancelAnimationFrame(id);
+    }
+    setEnvBarOpen(false);
+  }, [activeEnv]);
 
   const org = orgs?.[0] ?? null;
 
@@ -216,19 +226,24 @@ export function AppShell({
 
   return (
     <AppContext.Provider value={contextValue}>
-      <SidebarProvider>
-        <AppSidebar
-          userEmail={userEmail}
-          orgName={contextValue.org.name}
-          signingOut={signingOut}
-          onSignOut={() => void signOut()}
-        />
-        <SidebarInset>
-          <div className="sticky top-0 z-10">
-            {activeEnv && activeEnv.slug !== "prod" ? (
+      <SidebarProvider
+        className="env-bar-shell flex-col"
+        style={
+          {
+            "--env-bar-h": envBarOpen ? "2.5rem" : "0px",
+          } as React.CSSProperties
+        }
+      >
+        {bannerEnv ? (
+          <div
+            className="env-bar sticky top-0 z-20 w-full shrink-0"
+            data-open={envBarOpen ? "true" : "false"}
+            aria-hidden={!envBarOpen}
+          >
+            <div className="min-h-0 overflow-hidden">
               <div
-                className={`flex items-center gap-2 border-b px-8 py-2.5 text-[13px] font-medium ${
-                  activeEnv.slug === "staging"
+                className={`env-bar-inner flex h-10 w-full items-center gap-2 border-b px-8 text-[13px] font-medium ${
+                  bannerEnv.slug === "staging"
                     ? "border-chip-orange/40 bg-chip-orange/20 text-chip-orange"
                     : "border-amber-400 bg-amber-100 text-amber-950"
                 }`}
@@ -236,17 +251,28 @@ export function AppShell({
                 <span
                   aria-hidden
                   className={`inline-block h-2 w-2 shrink-0 rounded-full ${
-                    activeEnv.slug === "staging" ? "bg-chip-orange" : "bg-amber-500"
+                    bannerEnv.slug === "staging" ? "bg-chip-orange" : "bg-amber-500"
                   }`}
                 />
                 <span>
                   You&rsquo;re in the{" "}
-                  <span className="font-semibold mr-1">{activeEnv.name}</span> environment, changes here
-                  don&rsquo;t affect <span className="font-semibold">production</span>.
+                  <span className="font-semibold mr-1">{bannerEnv.name}</span> environment,
+                  changes here don&rsquo;t affect{" "}
+                  <span className="font-semibold">production</span>.
                 </span>
               </div>
-            ) : null}
-            <header className="flex h-14 items-center border-b border-line bg-canvas/90 px-8 backdrop-blur">
+            </div>
+          </div>
+        ) : null}
+        <div className="flex min-h-0 w-full flex-1">
+          <AppSidebar
+            userEmail={userEmail}
+            orgName={contextValue.org.name}
+            signingOut={signingOut}
+            onSignOut={() => void signOut()}
+          />
+          <SidebarInset>
+            <header className="sticky top-(--env-bar-h,0px) z-10 flex h-14 items-center border-b border-line bg-canvas/90 px-8 backdrop-blur transition-[top] duration-300 ease-out">
               <div className="flex items-center gap-2 text-[13px] text-ink-muted">
                 {activeProject ? (
                   <>
@@ -258,11 +284,19 @@ export function AppShell({
                 )}
               </div>
             </header>
-          </div>
-          <main className="mx-auto w-full max-w-[1400px] flex-1 px-8 py-8">
-            {children}
-          </main>
-        </SidebarInset>
+            <main
+              // Env-scoped pages remount on switch; settings (org-wide) stays put.
+              key={
+                pathname.startsWith("/settings")
+                  ? "settings"
+                  : (activeEnv?.slug ?? "none")
+              }
+              className="mx-auto w-full max-w-[1400px] flex-1 px-8 py-8"
+            >
+              {children}
+            </main>
+          </SidebarInset>
+        </div>
       </SidebarProvider>
     </AppContext.Provider>
   );

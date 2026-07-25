@@ -1,7 +1,5 @@
-import { KeysView } from "@/components/keys-view";
-import { loadOrgKeys } from "@/lib/keys";
+import { redirect } from "next/navigation";
 
-export default async function KeysPage() {
-  const keys = await loadOrgKeys();
-  return <KeysView initialKeys={keys} />;
+export default function KeysRedirectPage() {
+  redirect("/settings/keys");
 }

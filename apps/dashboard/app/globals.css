@@ -57,6 +57,13 @@
   --color-popover-foreground: #171717;
   --color-accent: #f6f5f3;
   --color-accent-foreground: #171717;
+
+  /* shadcn/ui chart series (ui.shadcn.com/charts) — chip hues */
+  --color-chart-1: #0067f4;
+  --color-chart-2: #00bc72;
+  --color-chart-3: #ff5a1a;
+  --color-chart-4: #ff2c5f;
+  --color-chart-5: #737373;
 }
 
 /* Dark — invert ShipOS surfaces; chips stay saturated. */
@@ -96,6 +103,13 @@
 /* Map Appica raw tokens → ShipOS look (override after styles.css). */
 :root,
 .light {
+  /* shadcn chart series tokens (consumed as var(--chart-N)) */
+  --chart-1: #0067f4;
+  --chart-2: #00bc72;
+  --chart-3: #ff5a1a;
+  --chart-4: #ff2c5f;
+  --chart-5: #737373;
+
   --background: #ffffff;
   --background-subtle: #f6f5f3;
   --background-muted: #f4f3f1;
@@ -265,12 +279,39 @@
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
     @apply font-sans;
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-line-strong) transparent;
   }
 
   body {
     background-color: var(--color-canvas);
     color: var(--color-ink);
     font-size: 15px;
+  }
+
+  /* Scrollbars — ShipOS line / line-strong (light + dark). */
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: var(--color-line-strong);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-ink-muted);
+  }
+
+  *::-webkit-scrollbar-corner {
+    background: transparent;
   }
 
   ::selection {
@@ -286,6 +327,10 @@
         box-shadow, outline-color;
       transition-duration: 0.35s;
       transition-timing-function: ease;
+    }
+
+    *::-webkit-scrollbar-thumb {
+      transition: background-color 0.35s ease;
     }
   }
 
@@ -340,6 +385,77 @@
   }
 }
 
+/* Env bar height offset — interpolates so sidebar/header track the bar. */
+@property --env-bar-h {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
+.env-bar-shell {
+  transition: --env-bar-h 500ms ease-out;
+}
+
+.env-bar {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 500ms ease-out;
+}
+
+.env-bar[data-open="true"] {
+  grid-template-rows: 1fr;
+}
+
+.env-bar-inner {
+  opacity: 0;
+  transform: translateY(-6px);
+  transition:
+    opacity 500ms ease-out,
+    transform 500ms ease-out;
+}
+
+.env-bar[data-open="true"] .env-bar-inner {
+  opacity: 1;
+  transform: none;
+}
+
+/* Flag list row expand — grid 0fr→1fr so height animates cleanly. */
+.flag-row-expand {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 400ms ease-out;
+}
+
+.flag-row-expand[data-open="true"] {
+  grid-template-rows: 1fr;
+}
+
+.flag-row-expand-inner {
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition:
+    opacity 400ms ease-out,
+    transform 400ms ease-out;
+}
+
+.flag-row-expand[data-open="true"] .flag-row-expand-inner {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flag-row-expand,
+  .flag-row-expand-inner {
+    transition: none;
+  }
+}
+
+html[data-disable-animations] .flag-row-expand,
+html[data-disable-animations] .flag-row-expand-inner {
+  transition: none !important;
+}
+
 /*
  * Data entrance: content that replaces a skeleton blurs + fades in
  * (same motion language as the landing page reveals).
@@ -389,6 +505,12 @@
   .skeleton-out {
     animation: none;
   }
+
+  .env-bar-shell,
+  .env-bar,
+  .env-bar-inner {
+    transition: none;
+  }
 }
 
 /* User preference — set via PreferencesProvider / ReducedMotionProvider */
@@ -396,4 +518,119 @@ html[data-disable-animations] .data-in,
 html[data-disable-animations] .stagger-in,
 html[data-disable-animations] .skeleton-out {
   animation: none !important;
+}
+
+html[data-disable-animations] .env-bar-shell,
+html[data-disable-animations] .env-bar,
+html[data-disable-animations] .env-bar-inner {
+  transition: none !important;
+}
+
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/*
+ * Toast overlay — portal + viewport are pointer-events-none; restore hits
+ * on the toast card so dismiss / actions still work.
+ */
+[data-slot="toast"] {
+  pointer-events: auto;
+}
+
+/*
+ * Typed toasts — pale tinted surface, matching border, solid circle icon.
+ * Layout mirrors the status-toast reference (success / info / warning / error).
+ */
+[data-slot="toast"][data-type="success"],
+[data-slot="toast"][data-type="error"],
+[data-slot="toast"][data-type="info"],
+[data-slot="toast"][data-type="warning"] {
+  border-radius: 1.125rem;
+  padding: 0.875rem 1rem;
+  backdrop-filter: none;
+  align-items: center;
+}
+
+[data-slot="toast"][data-type="success"] {
+  background: color-mix(in srgb, var(--success) 12%, var(--background));
+  border-color: color-mix(in srgb, var(--success) 38%, transparent);
+}
+
+[data-slot="toast"][data-type="error"] {
+  background: color-mix(in srgb, var(--error) 12%, var(--background));
+  border-color: color-mix(in srgb, var(--error) 38%, transparent);
+}
+
+[data-slot="toast"][data-type="info"] {
+  background: color-mix(in srgb, var(--info) 12%, var(--background));
+  border-color: color-mix(in srgb, var(--info) 38%, transparent);
+}
+
+[data-slot="toast"][data-type="warning"] {
+  background: color-mix(in srgb, var(--warning) 12%, var(--background));
+  border-color: color-mix(in srgb, var(--warning) 38%, transparent);
+}
+
+.dark [data-slot="toast"][data-type="success"] {
+  background: color-mix(in srgb, var(--success) 16%, #141a18);
+  border-color: color-mix(in srgb, var(--success) 32%, transparent);
+}
+
+.dark [data-slot="toast"][data-type="error"] {
+  background: color-mix(in srgb, var(--error) 16%, #1a1416);
+  border-color: color-mix(in srgb, var(--error) 32%, transparent);
+}
+
+.dark [data-slot="toast"][data-type="info"] {
+  background: color-mix(in srgb, var(--info) 18%, #121820);
+  border-color: color-mix(in srgb, var(--info) 36%, transparent);
+}
+
+.dark [data-slot="toast"][data-type="warning"] {
+  background: color-mix(in srgb, var(--warning) 16%, #1a1612);
+  border-color: color-mix(in srgb, var(--warning) 32%, transparent);
+}
+
+[data-slot="toast"][data-type] [data-slot="toast-icon"] {
+  align-self: center;
+}
+
+[data-slot="toast"][data-type] [data-slot="toast-title"] {
+  font-size: 0.9375rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--foreground-intense);
+}
+
+[data-slot="toast"][data-type] [data-slot="toast-description"] {
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  color: var(--foreground-muted);
+}
+
+[data-slot="toast"][data-type] [data-slot="toast-close"] {
+  align-self: start;
+  color: var(--foreground-subtle);
+}
+
+[data-slot="toast"][data-type="success"] [data-slot="toast-title"] {
+  color: var(--success-intense);
+}
+
+[data-slot="toast"][data-type="error"] [data-slot="toast-title"] {
+  color: var(--error-intense);
+}
+
+[data-slot="toast"][data-type="info"] [data-slot="toast-title"] {
+  color: var(--info-intense);
+}
+
+[data-slot="toast"][data-type="warning"] [data-slot="toast-title"] {
+  color: var(--warning-intense);
 }

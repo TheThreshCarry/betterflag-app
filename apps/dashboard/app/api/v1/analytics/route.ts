@@ -1,22 +1,29 @@
 /**
  * GET /api/v1/analytics: org-wide evaluation analytics from ClickHouse
  * (evals_per_flag_country_hour): totals, time series, country and flag and
- * environment breakdowns for a period. Optional projectId/env/country filters.
+ * environment breakdowns for a period. Optional projectId/env/flag/country/region.
+ *
+ * Drill-down:
+ *   (none)           → countries
+ *   ?country=ES      → regions
+ *   ?country=ES&region=Madrid → cities
  *
  * Periods beyond the org's plan retention (ANALYTICS_RETENTION_DAYS) are
  * rejected with 422 `retention_exceeded`; the response always carries
  * `retentionDays` + `availablePeriods` so the UI can disable options.
  */
+import { flagKeySchema } from "@shipos/core";
 import { ANALYTICS_RETENTION_DAYS } from "@shipos/db";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
 import { assertKeyScope, resolveActor } from "@/lib/auth";
 import {
+  analyticsByCity,
   analyticsByCountry,
   analyticsByEnv,
   analyticsByFlag,
-  analyticsByCity,
+  analyticsByRegion,
   analyticsSeries,
   PERIOD_DAYS,
   type AnalyticsFilter,
@@ -30,16 +37,25 @@ export const runtime = "nodejs";
 
 const PERIODS = ["24h", "7d", "30d", "90d"] as const;
 
-const analyticsQuerySchema = z.object({
-  period: z.enum(PERIODS).default("7d"),
-  projectId: z.uuid().optional(),
-  env: z.string().min(1).optional(),
-  /** ISO 3166-1 alpha-2 — when set, series/flags/envs are scoped to that country. */
-  country: z
-    .string()
-    .regex(/^[A-Z]{2}$/, "country must be an ISO 3166-1 alpha-2 code")
-    .optional(),
-});
+const analyticsQuerySchema = z
+  .object({
+    period: z.enum(PERIODS).default("7d"),
+    projectId: z.uuid().optional(),
+    env: z.string().min(1).optional(),
+    /** Flag key — scopes all rollups to a single flag (flag detail map). */
+    flag: flagKeySchema.optional(),
+    /** ISO 3166-1 alpha-2 — when set, series/flags/envs are scoped to that country. */
+    country: z
+      .string()
+      .regex(/^[A-Z]{2}$/, "country must be an ISO 3166-1 alpha-2 code")
+      .optional(),
+    /** Region/state name — requires country; returns city rollup instead of regions. */
+    region: z.string().min(1).max(120).optional(),
+  })
+  .refine((q) => q.region === undefined || q.country !== undefined, {
+    message: "region requires country",
+    path: ["region"],
+  });
 
 // Not exported: Next.js route modules may only export handlers/config.
 function availablePeriods(retentionDays: number): AnalyticsPeriod[] {
@@ -48,9 +64,7 @@ function availablePeriods(retentionDays: number): AnalyticsPeriod[] {
 
 export const GET = withErrors(async (request: NextRequest) => {
   const actor = await resolveActor(request);
-  const query = parseQuery(request, analyticsQuerySchema.passthrough()) as z.infer<
-    typeof analyticsQuerySchema
-  >;
+  const query = parseQuery(request, analyticsQuerySchema);
   const service = createServiceClient();
 
   const org = await getOrg(service, actor.orgId);
@@ -68,6 +82,8 @@ export const GET = withErrors(async (request: NextRequest) => {
     orgId: actor.orgId,
     envSlug: query.env,
     country: query.country,
+    region: query.region,
+    flagKey: query.flag,
   };
   if (query.projectId !== undefined) {
     const project = await getProjectInOrg(service, query.projectId, actor.orgId);
@@ -75,29 +91,36 @@ export const GET = withErrors(async (request: NextRequest) => {
     filter.projectId = project.id;
   }
 
-  // Country-scoped requests already filter by country — skip the by-country rollup;
-  // load city rollup from hot raw rows for the detail map instead.
-  const [series, countries, flags, environments, cities] = await Promise.all([
+  const scopedCountry = Boolean(query.country);
+  const scopedRegion = Boolean(query.country && query.region);
+
+  const [series, countries, flags, environments, regions, cities] = await Promise.all([
     analyticsSeries(filter, query.period),
-    query.country ? Promise.resolve([]) : analyticsByCountry(filter, query.period),
+    scopedCountry ? Promise.resolve([]) : analyticsByCountry(filter, query.period),
     analyticsByFlag(filter, query.period),
     analyticsByEnv(filter, query.period),
-    query.country
-      ? analyticsByCity(filter, query.period)
+    scopedCountry && !scopedRegion
+      ? analyticsByRegion(filter, query.period)
       : Promise.resolve([]),
+    scopedRegion ? analyticsByCity(filter, query.period) : Promise.resolve([]),
   ]);
-  const total = series.reduce((sum, point) => sum + point.evaluations, 0);
+  // Region isn't on the hourly MV — when region-scoped, total comes from cities.
+  const total = scopedRegion
+    ? cities.reduce((sum, row) => sum + row.evaluations, 0)
+    : series.reduce((sum, point) => sum + point.evaluations, 0);
 
   return NextResponse.json({
     period: query.period,
     retentionDays,
     availablePeriods: periods,
     country: query.country ?? null,
+    region: query.region ?? null,
     total,
     series,
     countries,
     flags,
     environments,
+    regions,
     cities,
   });
 });

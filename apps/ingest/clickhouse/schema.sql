@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS evaluations (
   sdk           LowCardinality(String),
   user_hash     UInt64,                   -- FNV-1a 64 of userId; raw IDs never stored
   country       LowCardinality(String) DEFAULT 'unknown',  -- ISO 3166-1 alpha-2 from request.cf at the edge
+  region        LowCardinality(String) DEFAULT '',         -- cf.region (state / community); empty when unavailable
   city          LowCardinality(String) DEFAULT '',         -- cf.city; empty when unavailable
   lat           Nullable(Float64) DEFAULT NULL,            -- ~1 km rounded client latitude
   lng           Nullable(Float64) DEFAULT NULL             -- ~1 km rounded client longitude
@@ -85,6 +86,8 @@ GROUP BY org_id, project_id, env, flag_key, country, hour;
 --
 --   ALTER TABLE evaluations
 --     ADD COLUMN IF NOT EXISTS country LowCardinality(String) DEFAULT 'unknown';
+--   ALTER TABLE evaluations
+--     ADD COLUMN IF NOT EXISTS region LowCardinality(String) DEFAULT '';
 --   ALTER TABLE evaluations
 --     ADD COLUMN IF NOT EXISTS city LowCardinality(String) DEFAULT '';
 --   ALTER TABLE evaluations

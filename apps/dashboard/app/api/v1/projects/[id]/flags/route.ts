@@ -1,4 +1,4 @@
-import { flagKeySchema, flagKindSchema, jsonValueSchema, type JsonValue } from "@shipos/core";
+import { flagKeyCreateSchema, flagKindSchema, jsonValueSchema, type JsonValue } from "@shipos/core";
 import type { FlagConfigRow, FlagRow } from "@shipos/db";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
@@ -8,7 +8,7 @@ import { assertKeyScope, auditActor, resolveActor } from "@/lib/auth";
 import { assertOrgWritable } from "@/lib/billing-guard";
 import { enqueueConfigSync } from "@/lib/cloudflare";
 import { getProjectInOrg, listEnvironments } from "@/lib/db";
-import { parseJson, unwrap, withErrors } from "@/lib/errors";
+import { HttpError, parseJson, unwrap, withErrors } from "@/lib/errors";
 import { captureServer, distinctIdForActor } from "@/lib/posthog-server";
 import { createServiceClient } from "@/lib/supabase/server";
 
@@ -55,7 +55,7 @@ function defaultValueForKind(kind: "boolean" | "string" | "number" | "json"): Js
 }
 
 const createFlagSchema = z.object({
-  key: flagKeySchema,
+  key: flagKeyCreateSchema,
   name: z.string().min(1).max(160),
   description: z.string().max(2000).optional(),
   kind: flagKindSchema,
@@ -73,19 +73,25 @@ export const POST = withErrors<{ id: string }>(async (request: NextRequest, { pa
   assertKeyScope(actor, project.id);
 
   const audit = auditActor(actor);
-  const flag = unwrap(
-    await service.rpc("create_flag_with_configs", {
-      p_project: project.id,
-      p_key: body.key,
-      p_name: body.name,
-      p_description: body.description ?? "",
-      p_kind: body.kind,
-      p_default_value: body.defaultValue ?? defaultValueForKind(body.kind),
-      p_actor_type: audit.actorType,
-      p_actor_id: audit.actorId,
-      p_actor_key_prefix: audit.actorKeyPrefix,
-    }),
-  ) as FlagRow;
+  const created = await service.rpc("create_flag_with_configs", {
+    p_project: project.id,
+    p_key: body.key,
+    p_name: body.name,
+    p_description: body.description ?? "",
+    p_kind: body.kind,
+    p_default_value: body.defaultValue ?? defaultValueForKind(body.kind),
+    p_actor_type: audit.actorType,
+    p_actor_id: audit.actorId,
+    p_actor_key_prefix: audit.actorKeyPrefix,
+  });
+  if (created.error?.code === "23505") {
+    throw new HttpError(
+      409,
+      "conflict",
+      `A flag with key "${body.key}" already exists in this project`,
+    );
+  }
+  const flag = unwrap(created) as FlagRow;
 
   const environments = await listEnvironments(service, project.id);
   for (const env of environments) {

@@ -3,8 +3,8 @@ import { FlagDetail } from "@/components/flag-detail";
 export default async function FlagDetailPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ key: string }>;
 }) {
-  const { id } = await params;
-  return <FlagDetail flagId={id} />;
+  const { key } = await params;
+  return <FlagDetail flagKey={key} />;
 }

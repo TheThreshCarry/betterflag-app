@@ -1,5 +1,5 @@
-import { UsageView } from "@/components/usage-view";
+import { redirect } from "next/navigation";
 
-export default function UsagePage() {
-  return <UsageView />;
+export default function UsageRedirectPage() {
+  redirect("/settings/usage");
 }

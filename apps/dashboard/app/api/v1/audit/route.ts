@@ -12,6 +12,8 @@ export const runtime = "nodejs";
 const auditQuerySchema = z.object({
   actorType: z.enum(["user", "agent"]).optional(),
   projectId: z.uuid().optional(),
+  /** Exact subject match, e.g. `flag:my-flag`. */
+  subject: z.string().min(1).max(200).optional(),
   before: z.iso.datetime({ offset: true }).optional(),
   limit: z.coerce.number().int().min(1).max(200).default(50),
 });
@@ -31,6 +33,7 @@ export const GET = withErrors(async (request: NextRequest) => {
     .limit(query.limit);
   if (query.actorType) dbQuery = dbQuery.eq("actor_type", query.actorType);
   if (query.projectId) dbQuery = dbQuery.eq("project_id", query.projectId);
+  if (query.subject) dbQuery = dbQuery.eq("subject", query.subject);
   if (query.before) dbQuery = dbQuery.lt("created_at", query.before);
 
   const rows = unwrap(await dbQuery) as AuditLogRow[];

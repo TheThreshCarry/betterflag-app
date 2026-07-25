@@ -117,6 +117,11 @@ export interface EvaluationEvent {
    */
   city: string | null;
   /**
+   * Region / state name from Cloudflare `request.cf.region`
+   * (e.g. "Community of Madrid", "California"). Null when unavailable.
+   */
+  region: string | null;
+  /**
    * Approximate client coordinates from `request.cf`, rounded at the edge
    * (~1 km). Null when Cloudflare does not provide them.
    */

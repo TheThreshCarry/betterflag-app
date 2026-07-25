@@ -3,16 +3,35 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
+import { DailyAreaChart } from "@/components/charts";
 import { Button, Card, Chip, ErrorNote } from "@/components/ui";
 import { UsageSkeleton } from "@/components/skeletons";
 import { Stagger } from "@/components/stagger";
 import type { ApiUsage } from "@/lib/api-types";
 import { api } from "@/lib/client-api";
+import { PRICING_SPEC, type PlanKey } from "@/lib/pricing-config";
+import { tierForPlan, usePricingTiers } from "@/lib/use-pricing";
 
 function formatCount(value: number): string {
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(value % 1_000_000 === 0 ? 0 : 1)}M`;
   if (value >= 1_000) return `${(value / 1_000).toFixed(value % 1_000 === 0 ? 0 : 1)}k`;
   return value.toLocaleString();
+}
+
+function formatUsdFromCents(cents: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: cents % 100 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  }).format(cents / 100);
+}
+
+function overageRateCents(plan: ApiUsage["plan"], tiers: ReturnType<typeof usePricingTiers>): number {
+  const fromPolar = tierForPlan(tiers, plan)?.overagePerMillionCents;
+  if (fromPolar != null) return fromPolar;
+  const key: PlanKey = plan === "trial" ? "launch" : plan;
+  return PRICING_SPEC.find((t) => t.key === key)?.overagePerMillionCents ?? 0;
 }
 
 export function UsageView() {
@@ -30,25 +49,24 @@ export function UsageView() {
   const chart = useMemo(() => {
     if (!usage) return null;
     const byDay = new Map(usage.series.map((point) => [point.day.slice(0, 10), point.evaluations]));
-    const days: { day: string; evaluations: number }[] = [];
+    const days: { day: string; value: number }[] = [];
     for (let i = 29; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
       const key = date.toISOString().slice(0, 10);
-      days.push({ day: key, evaluations: byDay.get(key) ?? 0 });
+      days.push({ day: key, value: byDay.get(key) ?? 0 });
     }
-    const max = Math.max(...days.map((d) => d.evaluations), 1);
-    return { days, max };
+    return { days };
   }, [usage]);
 
   if (error) return <ErrorNote message={error} />;
 
   return (
     <Stagger>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-5 flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-[28px] font-semibold tracking-[-0.01em]">Usage</h1>
-          <p className="mt-0.5 text-[14px] text-ink-muted">
+          <h2 className="text-[20px] font-semibold tracking-[-0.01em]">Usage</h2>
+          <p className="mt-1 text-[13px] text-ink-muted">
             Evaluations are the one meter. Flags, seats and environments are never counted.
           </p>
         </div>
@@ -77,16 +95,24 @@ function UsageContent({
   staggerSelf: _staggerSelf,
 }: {
   usage: ApiUsage;
-  chart: { days: { day: string; evaluations: number }[]; max: number };
+  chart: { days: { day: string; value: number }[] };
   staggerFrom?: number;
   staggerSelf?: boolean;
 }) {
-  const pctUsed = Math.min(100, (usage.used / usage.includedEvalsPerMonth) * 100);
+  const tiers = usePricingTiers();
+  const included = Math.max(1, usage.includedEvalsPerMonth);
+  const overageEvals = Math.max(0, usage.used - usage.includedEvalsPerMonth);
+  const overLimit = overageEvals > 0;
+  const pctRaw = (usage.used / included) * 100;
+  const pctBar = Math.min(100, pctRaw);
+  const perMillionCents = overageRateCents(usage.plan, tiers);
+  const overageCents = overLimit
+    ? Math.round((overageEvals / 1_000_000) * perMillionCents)
+    : 0;
   const trialDaysLeft = Math.max(
     0,
     Math.ceil((new Date(usage.trialEndsAt).getTime() - Date.now()) / 86_400_000),
   );
-  const barWidth = 100 / 30;
 
   return (
     <Stagger from={staggerFrom} className="space-y-6">
@@ -104,7 +130,7 @@ function UsageContent({
               either way.
             </p>
           </div>
-          <Link href="/settings">
+          <Link href="/settings/billing">
             <Button size="sm">Add payment</Button>
           </Link>
         </div>
@@ -115,32 +141,11 @@ function UsageContent({
           <h2 className="text-[16px] font-semibold">Evaluations per day</h2>
           <span className="text-[12px] text-ink-muted">last 30 days</span>
         </div>
-        <svg viewBox="0 0 100 40" className="h-44 w-full" preserveAspectRatio="none" role="img" aria-label="Evaluations per day bar chart">
-          {chart.days.map((point, i) => {
-            const height = (point.evaluations / chart.max) * 36;
-            return (
-              <rect
-                key={point.day}
-                x={i * barWidth + barWidth * 0.15}
-                y={40 - height}
-                width={barWidth * 0.7}
-                height={Math.max(height, point.evaluations > 0 ? 0.5 : 0)}
-                rx={0.6}
-                fill="#0067F4"
-                opacity={0.85}
-              >
-                <title>
-                  {point.day}: {point.evaluations.toLocaleString()} evaluations
-                </title>
-              </rect>
-            );
-          })}
-          <line x1="0" y1="40" x2="100" y2="40" stroke="#e8e4de" strokeWidth="0.4" />
-        </svg>
-        <div className="mt-2 flex justify-between text-[11px] text-ink-muted">
-          <span>{chart.days[0]?.day}</span>
-          <span>{chart.days[chart.days.length - 1]?.day}</span>
-        </div>
+        <DailyAreaChart
+          data={chart.days}
+          label="Evaluations"
+          className="aspect-auto h-44 w-full"
+        />
       </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -154,14 +159,44 @@ function UsageContent({
           </p>
           <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-line">
             <div
-              className={`h-full rounded-full ${pctUsed > 90 ? "bg-chip-pink" : "bg-chip-green"}`}
-              style={{ width: `${Math.max(pctUsed, usage.used > 0 ? 2 : 0)}%` }}
+              className={`h-full rounded-full ${overLimit || pctBar > 90 ? "bg-chip-pink" : "bg-chip-green"}`}
+              style={{ width: `${Math.max(pctBar, usage.used > 0 ? 2 : 0)}%` }}
             />
           </div>
           <p className="mt-2 text-[12px] text-ink-muted">
-            {pctUsed.toFixed(pctUsed < 10 ? 1 : 0)}% used. Evaluations are metered, never blocked
-            mid-cycle.
+            {overLimit ? (
+              <>
+                {formatCount(overageEvals)} over included
+                {perMillionCents > 0 ? (
+                  <>
+                    {" "}
+                    · {formatUsdFromCents(perMillionCents)} / additional 1M
+                  </>
+                ) : null}
+                . Evaluations are metered, never blocked mid-cycle.
+              </>
+            ) : (
+              <>
+                {pctBar.toFixed(pctBar < 10 ? 1 : 0)}% used. Evaluations are metered, never
+                blocked mid-cycle.
+              </>
+            )}
           </p>
+          {overLimit && perMillionCents > 0 ? (
+            <div className="mt-4 flex items-baseline justify-between gap-3 border-t border-line pt-4">
+              <div>
+                <p className="text-[13px] font-medium text-ink">
+                  {usage.billingState === "trialing" ? "Est. overage bill" : "Overage this period"}
+                </p>
+                <p className="mt-0.5 text-[12px] text-ink-muted">
+                  Billed on your {usage.plan} plan rate
+                </p>
+              </div>
+              <p className="font-mono text-[20px] font-semibold tracking-tight text-chip-pink">
+                {formatUsdFromCents(overageCents)}
+              </p>
+            </div>
+          ) : null}
         </Card>
 
         <Card className="p-6">
@@ -169,7 +204,7 @@ function UsageContent({
           <p className="mt-1.5 text-[13px] text-ink-muted">
             Upgrade for more projects, agent keys and included evaluations.
           </p>
-          <Link href="/settings" className="mt-4 block">
+          <Link href="/settings/billing" className="mt-4 block">
             <Button variant="secondary" size="sm" className="w-full">
               View plans
             </Button>

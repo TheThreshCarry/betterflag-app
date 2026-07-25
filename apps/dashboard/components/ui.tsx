@@ -2,7 +2,7 @@
 
 /** Shared UI primitives — Appica under ShipOS DESIGN.md API. */
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { Alert, AlertDescription } from "@appica/ui-react/alert";
 import { Button as AppicaButton } from "@appica/ui-react/button";
 import { Chip as AppicaChip } from "@appica/ui-react/chip";
@@ -22,6 +22,7 @@ import {
 import { Spinner as AppicaSpinner } from "@appica/ui-react/spinner";
 import { Switch } from "@appica/ui-react/switch";
 
+import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
 export type ChipColor = "blue" | "pink" | "green" | "orange" | "gray";
@@ -75,11 +76,13 @@ const BUTTON_VARIANT_MAP: Record<
 };
 
 export function Spinner({ size = 16, className = "" }: { size?: number; className?: string }) {
+  // Appica Spinner sizes the SVG via `1em` and defaults to text-[2.5rem].
+  // fontSize makes 1em match `size` so it doesn't fill the host button.
   return (
     <AppicaSpinner
       currentColor
       className={cn(className)}
-      style={{ width: size, height: size }}
+      style={{ width: size, height: size, fontSize: size } satisfies CSSProperties}
       aria-label="Loading"
     />
   );
@@ -201,21 +204,34 @@ export function Toggle({
   checked,
   onChange,
   disabled = false,
+  loading = false,
   label,
 }: {
   checked: boolean;
   onChange: (next: boolean) => void;
   disabled?: boolean;
+  /** In-flight save — spinner beside switch, not forbidden/disabled look. */
+  loading?: boolean;
   label?: string;
 }) {
   return (
-    <Switch
-      checked={checked}
-      onCheckedChange={onChange}
-      disabled={disabled}
-      aria-label={label}
-      className={cn(checked && "data-checked:bg-chip-green")}
-    />
+    <span className="inline-flex items-center gap-1.5">
+      <Switch
+        checked={checked}
+        onCheckedChange={(next) => {
+          if (loading || disabled) return;
+          onChange(next);
+        }}
+        disabled={disabled}
+        aria-label={label}
+        aria-busy={loading || undefined}
+        className={cn(
+          checked && "data-checked:bg-chip-green",
+          loading && "pointer-events-none opacity-70",
+        )}
+      />
+      {loading ? <Spinner size={12} className="text-ink-muted" /> : null}
+    </span>
   );
 }
 
@@ -254,6 +270,7 @@ export function CopyButton({ text, label = "Copy" }: { text: string; label?: str
       copiedLabel="Copied"
       variant="outline"
       size="sm"
+      onCopy={() => toast.copied()}
     />
   );
 }
