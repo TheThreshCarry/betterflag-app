@@ -11,9 +11,14 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useApp } from "@/components/app-shell";
-import { CountryTable } from "@/components/analytics-view";
+import {
+  AnalyticsMapPanel,
+  SoftRefresh,
+  formatCount,
+} from "@/components/analytics-view";
 import { SparklineArea, StackedAreaChart } from "@/components/charts";
 import { KIND_COLORS } from "@/components/flags-view";
+import { VersionHistoryBadge } from "@/components/version-history-badge";
 import { Slider } from "@appica/ui-react/slider";
 
 import {
@@ -32,6 +37,7 @@ import { Stagger } from "@/components/stagger";
 import { Skeleton } from "@/components/ui/skeleton";
 import type {
   AnalyticsPeriod,
+  ApiAnalytics,
   ApiFlag,
   ApiFlagConfigWithEnv,
   ApiStats,
@@ -39,6 +45,7 @@ import type {
 } from "@/lib/api-types";
 import { api, ApiClientError } from "@/lib/client-api";
 import { toast } from "@/lib/toast";
+import { cn } from "@/lib/utils";
 
 interface FlagDetailResponse {
   flag: ApiFlag;
@@ -136,24 +143,47 @@ function newRuleId(): string {
   return `r_${Math.random().toString(36).slice(2, 10)}`;
 }
 
-export function FlagDetail({ flagId }: { flagId: string }) {
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function FlagDetail({ flagKey }: { flagKey: string }) {
   const router = useRouter();
   const [data, setData] = useState<FlagDetailResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
-  const { activeEnv } = useApp();
+  const { activeEnv, activeProject } = useApp();
 
   const load = useCallback(async () => {
+    // Legacy UUID bookmarks: load by id, then rewrite URL to the key slug.
+    if (UUID_RE.test(flagKey)) {
+      try {
+        const response = await api<FlagDetailResponse>(`/api/v1/flags/${flagKey}`);
+        setData(response);
+        setError(null);
+        router.replace(`/flags/${encodeURIComponent(response.flag.key)}`);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load flag");
+      }
+      return;
+    }
+
+    if (!activeProject) return;
+
     try {
-      const response = await api<FlagDetailResponse>(`/api/v1/flags/${flagId}`);
+      const response = await api<FlagDetailResponse>(
+        `/api/v1/flags/lookup?projectSlug=${encodeURIComponent(activeProject.slug)}&key=${encodeURIComponent(flagKey)}`,
+      );
       setData(response);
+      setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load flag");
     }
-  }, [flagId]);
+  }, [flagKey, activeProject, router]);
 
   useEffect(() => {
+    setData(null);
+    setError(null);
     void load();
   }, [load]);
 
@@ -215,7 +245,12 @@ export function FlagDetail({ flagId }: { flagId: string }) {
         ))}
 
         {shownConfigs[0]?.environment ? (
-          <FlagAnalytics flagId={flag.id} envSlug={shownConfigs[0].environment.slug} />
+          <FlagAnalytics
+            flagId={flag.id}
+            flagKey={flag.key}
+            projectId={project.id}
+            envSlug={shownConfigs[0].environment.slug}
+          />
         ) : null}
       </Stagger>
 
@@ -429,7 +464,12 @@ function EnvConfigCard({
             {envSlug}
           </Chip>
           <span className="text-[15px] font-semibold">{envName}</span>
-          <span className="font-mono text-[11px] text-ink-muted">v{config.version}</span>
+          <VersionHistoryBadge
+            flagId={flag.id}
+            flagKey={flag.key}
+            envSlug={envSlug}
+            version={config.version}
+          />
         </div>
         <div className="flex items-center gap-3 text-[12px] text-ink-muted">
           <span>
@@ -444,6 +484,7 @@ function EnvConfigCard({
               </>
             ) : null}
           </span>
+          {/* 24h eval sparkline + total count */}
           <EnvSparkline flagId={flag.id} envSlug={envSlug} />
         </div>
       </div>
@@ -904,28 +945,149 @@ const FLAG_PERIODS: { value: AnalyticsPeriod; label: string; days: number }[] = 
   { value: "90d", label: "90d", days: 90 },
 ];
 
-function FlagAnalytics({ flagId, envSlug }: { flagId: string; envSlug: string }) {
+function FlagAnalytics({
+  flagId,
+  flagKey,
+  projectId,
+  envSlug,
+}: {
+  flagId: string;
+  flagKey: string;
+  projectId: string;
+  envSlug: string;
+}) {
   const [period, setPeriod] = useState<AnalyticsPeriod>("7d");
   const [stats, setStats] = useState<ApiStats | null>(null);
+  const [geo, setGeo] = useState<ApiAnalytics | null>(null);
+  const [loading, setLoading] = useState(true);
   const [statsError, setStatsError] = useState<string | null>(null);
+  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+  const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
+  const [countryDetail, setCountryDetail] = useState<ApiAnalytics | null>(null);
+  const [countryLoading, setCountryLoading] = useState(false);
+  const [countryError, setCountryError] = useState<string | null>(null);
+  const [regionDetail, setRegionDetail] = useState<ApiAnalytics | null>(null);
+  const [regionLoading, setRegionLoading] = useState(false);
+  const [regionError, setRegionError] = useState<string | null>(null);
+
+  const selectCountry = (code: string | null) => {
+    setSelectedCountry(code);
+    setSelectedRegion(null);
+  };
 
   useEffect(() => {
     let cancelled = false;
-    setStats(null);
+    setLoading(true);
     setStatsError(null);
-    void api<ApiStats>(`/api/v1/flags/${flagId}/environments/${envSlug}/stats?period=${period}`)
-      .then((result) => {
-        if (!cancelled) setStats(result);
+    setSelectedCountry(null);
+    setSelectedRegion(null);
+
+    const geoQuery = new URLSearchParams({
+      period,
+      projectId,
+      env: envSlug,
+      flag: flagKey,
+    });
+
+    void Promise.all([
+      api<ApiStats>(`/api/v1/flags/${flagId}/environments/${envSlug}/stats?period=${period}`),
+      api<ApiAnalytics>(`/api/v1/analytics?${geoQuery.toString()}`),
+    ])
+      .then(([statsResult, geoResult]) => {
+        if (!cancelled) {
+          setStats(statsResult);
+          setGeo(geoResult);
+          setLoading(false);
+        }
       })
       .catch((err: unknown) => {
         if (!cancelled) {
           setStatsError(err instanceof Error ? err.message : "Failed to load analytics");
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [flagId, flagKey, projectId, envSlug, period]);
+
+  useEffect(() => {
+    if (!selectedCountry) {
+      setCountryDetail(null);
+      setCountryError(null);
+      setCountryLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setCountryLoading(true);
+    setCountryDetail(null);
+    setCountryError(null);
+    const query = new URLSearchParams({
+      period,
+      projectId,
+      env: envSlug,
+      flag: flagKey,
+      country: selectedCountry,
+    });
+    void api<ApiAnalytics>(`/api/v1/analytics?${query.toString()}`)
+      .then((result) => {
+        if (!cancelled) {
+          setCountryDetail(result);
+          setCountryLoading(false);
+        }
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setCountryError(
+            err instanceof Error ? err.message : "Failed to load country analytics",
+          );
+          setCountryLoading(false);
         }
       });
     return () => {
       cancelled = true;
     };
-  }, [flagId, envSlug, period]);
+  }, [flagKey, projectId, envSlug, period, selectedCountry]);
+
+  useEffect(() => {
+    if (!selectedCountry || !selectedRegion) {
+      setRegionDetail(null);
+      setRegionError(null);
+      setRegionLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setRegionLoading(true);
+    setRegionDetail(null);
+    setRegionError(null);
+    const query = new URLSearchParams({
+      period,
+      projectId,
+      env: envSlug,
+      flag: flagKey,
+      country: selectedCountry,
+      region: selectedRegion,
+    });
+    void api<ApiAnalytics>(`/api/v1/analytics?${query.toString()}`)
+      .then((result) => {
+        if (!cancelled) {
+          setRegionDetail(result);
+          setRegionLoading(false);
+        }
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setRegionError(
+            err instanceof Error ? err.message : "Failed to load region analytics",
+          );
+          setRegionLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [flagKey, projectId, envSlug, period, selectedCountry, selectedRegion]);
 
   const chart = useMemo(() => {
     if (!stats) return null;
@@ -959,18 +1121,25 @@ function FlagAnalytics({ flagId, envSlug }: { flagId: string; envSlug: string })
     };
   }, [stats]);
 
-  const retentionDays = stats?.retentionDays ?? 365;
+  const retentionDays = stats?.retentionDays ?? geo?.retentionDays ?? 365;
+  const refreshing = loading && (stats !== null || geo !== null);
+  const initialLoad = loading && stats === null && geo === null;
+  const total = geo?.total ?? chart?.total ?? 0;
+  const countries = geo?.countries ?? stats?.countries ?? [];
+  const showEmpty = !loading && !statsError && geo !== null && total === 0;
 
   return (
-    <div className="mt-8 rounded-3xl border border-line bg-surface p-6">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <div className="mt-8 space-y-6 rounded-3xl border border-line bg-surface p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-baseline gap-2">
           <h2 className="text-[16px] font-semibold">Analytics</h2>
           <span className="font-mono text-[12px] text-ink-muted">{envSlug}</span>
-          {chart ? (
-            <span className="text-[12px] text-ink-muted">
-              {chart.total.toLocaleString()} evaluations
-            </span>
+          {!initialLoad ? (
+            <SoftRefresh active={refreshing}>
+              <span className="text-[12px] text-ink-muted">
+                {formatCount(total)} evaluations
+              </span>
+            </SoftRefresh>
           ) : null}
         </div>
         <div className="flex items-center gap-1.5" role="group" aria-label="Timeframe">
@@ -987,13 +1156,14 @@ function FlagAnalytics({ flagId, envSlug }: { flagId: string; envSlug: string })
                     : undefined
                 }
                 onClick={() => setPeriod(value)}
-                className={`h-7 rounded-lg border px-2.5 text-[12px] font-medium transition-colors ${
+                className={cn(
+                  "h-7 rounded-lg border px-2.5 text-[12px] font-medium transition-colors",
                   period === value
-                    ? "border-ink bg-ink text-white"
+                    ? "border-ink bg-ink text-canvas"
                     : beyondRetention
                       ? "cursor-not-allowed border-line text-ink-muted/50"
-                      : "border-line bg-canvas text-ink hover:bg-surface"
-                }`}
+                      : "border-line bg-canvas text-ink hover:bg-surface",
+                )}
               >
                 {label}
               </button>
@@ -1003,25 +1173,53 @@ function FlagAnalytics({ flagId, envSlug }: { flagId: string; envSlug: string })
       </div>
 
       {statsError ? <ErrorNote message={statsError} /> : null}
-      {!statsError && !stats ? <Skeleton className="h-40 w-full" /> : null}
-      {!statsError && stats && chart ? (
-        chart.total === 0 ? (
-          <p className="data-in py-8 text-center text-[13px] text-ink-muted">
-            No evaluations for this flag in the selected period.
-          </p>
-        ) : (
-          <div className="data-in grid gap-6 lg:grid-cols-2">
-            <StackedAreaChart
-              data={chart.data}
-              series={chart.series}
-              className="aspect-auto h-40 w-full"
-            />
-            <div>
-              <p className="mb-3 text-[13px] font-medium">By country</p>
-              <CountryTable countries={stats.countries} total={chart.total} />
+      {showEmpty ? (
+        <p className="py-8 text-center text-[13px] text-ink-muted">
+          No evaluations for this flag in the selected period.
+        </p>
+      ) : null}
+      {!statsError && !showEmpty ? (
+        <>
+          <AnalyticsMapPanel
+            countries={countries}
+            total={total}
+            period={period}
+            initialLoad={initialLoad}
+            refreshing={refreshing}
+            hasData={geo !== null || stats !== null}
+            selectedCountry={selectedCountry}
+            onSelectCountry={selectCountry}
+            selectedRegion={selectedRegion}
+            onSelectRegion={setSelectedRegion}
+            countryDetail={countryDetail}
+            countryLoading={countryLoading}
+            countryError={countryError}
+            regionDetail={regionDetail}
+            regionLoading={regionLoading}
+            regionError={regionError}
+            hideTopFlags
+          />
+
+          <div>
+            <div className="mb-3 flex items-baseline justify-between">
+              <h3 className="text-[14px] font-semibold">By variation</h3>
+              <span className="text-[12px] text-ink-muted">
+                {period === "24h" ? "hourly" : "daily"}
+              </span>
             </div>
+            {initialLoad || !chart ? (
+              <Skeleton className="h-40 w-full" />
+            ) : (
+              <SoftRefresh active={refreshing}>
+                <StackedAreaChart
+                  data={chart.data}
+                  series={chart.series}
+                  className="aspect-auto h-40 w-full"
+                />
+              </SoftRefresh>
+            )}
           </div>
-        )
+        </>
       ) : null}
     </div>
   );

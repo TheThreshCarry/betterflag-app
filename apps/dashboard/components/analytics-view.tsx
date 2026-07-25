@@ -137,6 +137,12 @@ export function formatCount(value: number): string {
   return value.toLocaleString();
 }
 
+/** Share of total for display; capped at 100 when raw vs MV windows disagree. */
+function sharePct(part: number, total: number): number {
+  if (total <= 0) return 0;
+  return Math.min(100, (part / total) * 100);
+}
+
 const regionNames =
   typeof Intl !== "undefined" ? new Intl.DisplayNames(["en"], { type: "region" }) : null;
 
@@ -212,7 +218,7 @@ function FilterButton({
 }
 
 /** Soft blur while refetching — keep prior values visible, then settle. */
-function SoftRefresh({
+export function SoftRefresh({
   active,
   children,
   className,
@@ -224,7 +230,7 @@ function SoftRefresh({
   return (
     <div
       className={cn(
-        "transition-[filter,opacity] duration-300 ease-out",
+        "transition-[filter,opacity] duration-500 ease-out",
         active && "pointer-events-none opacity-55 blur-[3px]",
         className,
       )}
@@ -434,6 +440,189 @@ export function AnalyticsView() {
   );
 }
 
+/** Map + country/region/city sidebar — shared by Analytics and flag detail. */
+export function AnalyticsMapPanel({
+  countries,
+  total,
+  period,
+  initialLoad,
+  refreshing,
+  hasData,
+  selectedCountry,
+  onSelectCountry,
+  selectedRegion,
+  onSelectRegion,
+  countryDetail,
+  countryLoading,
+  countryError,
+  regionDetail,
+  regionLoading,
+  regionError,
+  hideTopFlags = false,
+  staggerFrom = 0,
+  className,
+}: {
+  countries: CountryPoint[];
+  total: number;
+  period: AnalyticsPeriod;
+  initialLoad: boolean;
+  refreshing: boolean;
+  hasData: boolean;
+  selectedCountry: string | null;
+  onSelectCountry: (code: string | null) => void;
+  selectedRegion: string | null;
+  onSelectRegion: (region: string | null) => void;
+  countryDetail: ApiAnalytics | null;
+  countryLoading: boolean;
+  countryError: string | null;
+  regionDetail: ApiAnalytics | null;
+  regionLoading: boolean;
+  regionError: string | null;
+  hideTopFlags?: boolean;
+  staggerFrom?: number;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(260px,320px)]",
+        className,
+      )}
+    >
+      {/*
+        Map must NOT sit under stagger-in / CSS filter. Those break MapLibre
+        WebGL. Refresh uses a sibling overlay, not filter on the canvas.
+      */}
+      <div className="relative h-[320px] min-w-0 overflow-hidden rounded-3xl border border-line bg-surface sm:h-[380px] xl:h-[420px]">
+        {initialLoad || !hasData ? (
+          <Skeleton className="h-full w-full rounded-none" />
+        ) : (
+          <>
+            <EvaluationsMap
+              countries={countries}
+              total={total}
+              period={period}
+              selectedCountry={selectedCountry}
+              onSelectCountry={onSelectCountry}
+              selectedRegion={selectedRegion}
+              onSelectRegion={onSelectRegion}
+              countryDetail={countryDetail}
+              countryLoading={countryLoading}
+              regionDetail={regionDetail}
+              regionLoading={regionLoading}
+            />
+            <div
+              aria-hidden
+              className={cn(
+                "pointer-events-none absolute inset-0 z-[2] bg-surface/35 backdrop-blur-[2px] transition-opacity duration-500 ease-out",
+                refreshing ? "opacity-100" : "opacity-0",
+              )}
+            />
+          </>
+        )}
+      </div>
+      <div className="stagger-in min-w-0 xl:h-[420px]" style={staggerStyle(staggerFrom)}>
+        <Card className="flex min-w-0 flex-col overflow-hidden px-4 pt-5 pb-3 xl:h-full xl:px-3 xl:pt-4 xl:pb-2">
+          <div className="min-h-0 xl:flex-1 xl:overflow-hidden">
+            <div
+              className={cn(
+                "flex w-[200%] transition-transform duration-500 ease-out xl:h-full",
+                selectedCountry && !refreshing ? "-translate-x-1/2" : "translate-x-0",
+              )}
+            >
+              <div
+                className={cn(
+                  "flex w-1/2 min-w-0 flex-col xl:h-full",
+                  selectedCountry && !refreshing && "pointer-events-none",
+                )}
+                aria-hidden={Boolean(selectedCountry && !refreshing)}
+              >
+                <p className="text-[12px] font-medium tracking-wide text-ink-muted uppercase">
+                  Evaluations
+                </p>
+                {initialLoad ? (
+                  <>
+                    <Skeleton className="mt-1 h-10 w-28" />
+                    <Skeleton className="mt-2 h-4 w-32" />
+                  </>
+                ) : (
+                  <SoftRefresh active={refreshing}>
+                    <p className="mt-1 font-mono text-[36px] font-semibold tracking-tight">
+                      {formatCount(total)}
+                    </p>
+                    <p className="text-[13px] text-ink-muted">in the last {period}</p>
+                  </SoftRefresh>
+                )}
+                <div className="mt-5 flex items-baseline justify-between border-t border-line pt-4">
+                  <h2 className="text-[14px] font-semibold">By country</h2>
+                  {initialLoad ? (
+                    <Skeleton className="h-3 w-6" />
+                  ) : (
+                    <SoftRefresh active={refreshing}>
+                      <span className="text-[12px] text-ink-muted">{countries.length}</span>
+                    </SoftRefresh>
+                  )}
+                </div>
+                <div className="mt-3 min-h-0 min-w-0 xl:flex-1 xl:overflow-x-hidden xl:overflow-y-auto xl:pr-1">
+                  {initialLoad ? (
+                    <div className="space-y-2">
+                      {Array.from({ length: 8 }).map((_, i) => (
+                        <Skeleton key={i} className="h-8 w-full rounded-xl" />
+                      ))}
+                    </div>
+                  ) : (
+                    <SoftRefresh active={refreshing}>
+                      <CountryTable
+                        countries={countries}
+                        total={total}
+                        selectedCountry={selectedCountry}
+                        onSelectCountry={onSelectCountry}
+                        compact
+                      />
+                    </SoftRefresh>
+                  )}
+                </div>
+              </div>
+              <div
+                className={cn(
+                  "flex w-1/2 min-w-0 flex-col xl:h-full",
+                  (!selectedCountry || refreshing) && "pointer-events-none",
+                )}
+                aria-hidden={!selectedCountry || refreshing}
+              >
+                {selectedCountry && !refreshing ? (
+                  selectedRegion ? (
+                    <RegionDetailPanel
+                      country={selectedCountry}
+                      region={selectedRegion}
+                      detail={regionDetail}
+                      loading={regionLoading}
+                      error={regionError}
+                      period={period}
+                      onBack={() => onSelectRegion(null)}
+                    />
+                  ) : (
+                    <CountryDetailPanel
+                      country={selectedCountry}
+                      detail={countryDetail}
+                      loading={countryLoading}
+                      error={countryError}
+                      period={period}
+                      onClear={() => onSelectCountry(null)}
+                      onSelectRegion={(region) => onSelectRegion(region)}
+                      hideTopFlags={hideTopFlags}
+                    />
+                  )
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
 function AnalyticsContent({
   data,
   loading,
@@ -479,141 +668,25 @@ function AnalyticsContent({
 
   return (
     <div className={cn("space-y-6", className)}>
-      {/*
-        Map must NOT sit under stagger-in / CSS filter. Those break MapLibre
-        WebGL. Refresh uses a sibling overlay, not filter on the canvas.
-      */}
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(260px,320px)]">
-        <div className="relative h-[320px] min-w-0 overflow-hidden rounded-3xl border border-line bg-surface sm:h-[380px] xl:h-[420px]">
-          {initialLoad || !data ? (
-            <Skeleton className="h-full w-full rounded-none" />
-          ) : (
-            <>
-              <EvaluationsMap
-                countries={countries}
-                total={total}
-                period={displayPeriod}
-                selectedCountry={selectedCountry}
-                onSelectCountry={onSelectCountry}
-                selectedRegion={selectedRegion}
-                onSelectRegion={onSelectRegion}
-                countryDetail={countryDetail}
-                countryLoading={countryLoading}
-                regionDetail={regionDetail}
-                regionLoading={regionLoading}
-              />
-              <div
-                aria-hidden
-                className={cn(
-                  "pointer-events-none absolute inset-0 z-[2] bg-surface/35 backdrop-blur-[2px] transition-opacity duration-300 ease-out",
-                  refreshing ? "opacity-100" : "opacity-0",
-                )}
-              />
-            </>
-          )}
-        </div>
-        <div className="stagger-in min-w-0 xl:h-[420px]" style={staggerStyle(staggerFrom)}>
-          {/*
-            Height locked only at xl (match map). On mobile, hug content —
-            h-full + flex-1 was leaving a tall empty void under short lists.
-          */}
-          <Card className="flex min-w-0 flex-col overflow-hidden px-4 pt-5 pb-3 xl:h-full xl:px-3 xl:pt-4 xl:pb-2">
-            <div className="min-h-0 xl:flex-1 xl:overflow-hidden">
-              <div
-                className={cn(
-                  "flex w-[200%] transition-transform duration-300 ease-out xl:h-full",
-                  selectedCountry && !refreshing ? "-translate-x-1/2" : "translate-x-0",
-                )}
-              >
-                <div
-                  className={cn(
-                    "flex w-1/2 min-w-0 flex-col xl:h-full",
-                    selectedCountry && !refreshing && "pointer-events-none",
-                  )}
-                  aria-hidden={Boolean(selectedCountry && !refreshing)}
-                >
-                  <p className="text-[12px] font-medium tracking-wide text-ink-muted uppercase">
-                    Evaluations
-                  </p>
-                  {initialLoad ? (
-                    <>
-                      <Skeleton className="mt-1 h-10 w-28" />
-                      <Skeleton className="mt-2 h-4 w-32" />
-                    </>
-                  ) : (
-                    <SoftRefresh active={refreshing}>
-                      <p className="mt-1 font-mono text-[36px] font-semibold tracking-tight">
-                        {formatCount(total)}
-                      </p>
-                      <p className="text-[13px] text-ink-muted">in the last {displayPeriod}</p>
-                    </SoftRefresh>
-                  )}
-                  <div className="mt-5 flex items-baseline justify-between border-t border-line pt-4">
-                    <h2 className="text-[14px] font-semibold">By country</h2>
-                    {initialLoad ? (
-                      <Skeleton className="h-3 w-6" />
-                    ) : (
-                      <SoftRefresh active={refreshing}>
-                        <span className="text-[12px] text-ink-muted">{countries.length}</span>
-                      </SoftRefresh>
-                    )}
-                  </div>
-                  <div className="mt-3 min-h-0 min-w-0 xl:flex-1 xl:overflow-x-hidden xl:overflow-y-auto xl:pr-1">
-                    {initialLoad ? (
-                      <div className="space-y-2">
-                        {Array.from({ length: 8 }).map((_, i) => (
-                          <Skeleton key={i} className="h-8 w-full rounded-xl" />
-                        ))}
-                      </div>
-                    ) : (
-                      <SoftRefresh active={refreshing}>
-                        <CountryTable
-                          countries={countries}
-                          total={total}
-                          selectedCountry={selectedCountry}
-                          onSelectCountry={onSelectCountry}
-                          compact
-                        />
-                      </SoftRefresh>
-                    )}
-                  </div>
-                </div>
-                <div
-                  className={cn(
-                    "flex w-1/2 min-w-0 flex-col xl:h-full",
-                    (!selectedCountry || refreshing) && "pointer-events-none",
-                  )}
-                  aria-hidden={!selectedCountry || refreshing}
-                >
-                  {selectedCountry && !refreshing ? (
-                    selectedRegion ? (
-                      <RegionDetailPanel
-                        country={selectedCountry}
-                        region={selectedRegion}
-                        detail={regionDetail}
-                        loading={regionLoading}
-                        error={regionError}
-                        period={displayPeriod}
-                        onBack={() => onSelectRegion(null)}
-                      />
-                    ) : (
-                      <CountryDetailPanel
-                        country={selectedCountry}
-                        detail={countryDetail}
-                        loading={countryLoading}
-                        error={countryError}
-                        period={displayPeriod}
-                        onClear={() => onSelectCountry(null)}
-                        onSelectRegion={(region) => onSelectRegion(region)}
-                      />
-                    )
-                  ) : null}
-                </div>
-              </div>
-            </div>
-          </Card>
-        </div>
-      </div>
+      <AnalyticsMapPanel
+        countries={countries}
+        total={total}
+        period={displayPeriod}
+        initialLoad={initialLoad}
+        refreshing={refreshing}
+        hasData={data !== null}
+        selectedCountry={selectedCountry}
+        onSelectCountry={onSelectCountry}
+        selectedRegion={selectedRegion}
+        onSelectRegion={onSelectRegion}
+        countryDetail={countryDetail}
+        countryLoading={countryLoading}
+        countryError={countryError}
+        regionDetail={regionDetail}
+        regionLoading={regionLoading}
+        regionError={regionError}
+        staggerFrom={staggerFrom}
+      />
 
       <Stagger from={staggerFrom + 1} className="space-y-6">
         <Card className="p-6">
@@ -746,7 +819,7 @@ function RegionDetailPanel({
             ) : (
               <ul className="space-y-2">
                 {cities.map((row) => {
-                  const pct = total > 0 ? (row.evaluations / total) * 100 : 0;
+                  const pct = sharePct(row.evaluations, total);
                   return (
                     <li key={row.city} className="min-w-0">
                       <div className="mb-1 flex min-w-0 items-center justify-between gap-2 text-[12px]">
@@ -784,6 +857,7 @@ function CountryDetailPanel({
   period,
   onClear,
   onSelectRegion,
+  hideTopFlags = false,
 }: {
   country: string;
   detail: ApiAnalytics | null;
@@ -792,6 +866,8 @@ function CountryDetailPanel({
   period: AnalyticsPeriod;
   onClear: () => void;
   onSelectRegion: (region: string) => void;
+  /** Flag detail already scopes to one flag — hide redundant top-flags list. */
+  hideTopFlags?: boolean;
 }) {
   const regions = detail?.regions ?? [];
   const total =
@@ -850,7 +926,7 @@ function CountryDetailPanel({
               ) : (
                 <ul className="space-y-2">
                   {regions.map((row) => {
-                    const pct = total > 0 ? (row.evaluations / total) * 100 : 0;
+                    const pct = sharePct(row.evaluations, total);
                     return (
                       <li key={row.region} className="min-w-0">
                         <button
@@ -881,19 +957,21 @@ function CountryDetailPanel({
               )}
             </div>
 
-            <div className="min-w-0">
-              <h3 className="mb-2 text-[13px] font-semibold">Top flags</h3>
-              <RankedBars
-                compact
-                rows={detail.flags.slice(0, 8).map((row) => ({
-                  key: row.flagKey,
-                  label: row.flagKey,
-                  mono: true,
-                  evaluations: row.evaluations,
-                }))}
-                total={detail.total}
-              />
-            </div>
+            {hideTopFlags ? null : (
+              <div className="min-w-0">
+                <h3 className="mb-2 text-[13px] font-semibold">Top flags</h3>
+                <RankedBars
+                  compact
+                  rows={detail.flags.slice(0, 8).map((row) => ({
+                    key: row.flagKey,
+                    label: row.flagKey,
+                    mono: true,
+                    evaluations: row.evaluations,
+                  }))}
+                  total={detail.total}
+                />
+              </div>
+            )}
           </div>
         </>
       )}
@@ -1638,7 +1716,15 @@ function EvaluationsMap({
       </MapView>
       <div className="pointer-events-none absolute top-4 left-4 z-10 max-w-[min(320px,calc(100%-2rem))]">
         {selectedCountry ? (
-          <div className="pointer-events-auto overflow-hidden rounded-2xl border border-line/80 bg-canvas/90 shadow-sm backdrop-blur-sm">
+          <div
+            className="pointer-events-auto overflow-hidden rounded-2xl border border-line/80 bg-canvas/90 shadow-sm backdrop-blur-sm"
+            onMouseEnter={() => {
+              setHover(null);
+              setRegionHover(null);
+              setCityHover(null);
+            }}
+            onPointerDown={(event) => event.stopPropagation()}
+          >
             <div className="flex items-center gap-2 px-3 py-2.5">
               <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <p className="text-[12px] text-ink-muted">
@@ -1723,7 +1809,7 @@ function EvaluationsMap({
             </div>
             <div
               className={cn(
-                "grid transition-[grid-template-rows] duration-300 ease-out",
+                "grid transition-[grid-template-rows] duration-500 ease-out",
                 focusDetailsOpen && hasFocusDetails
                   ? "grid-rows-[1fr]"
                   : "grid-rows-[0fr]",
@@ -1734,8 +1820,7 @@ function EvaluationsMap({
                   {regionFocused ? (
                     <ul className="space-y-1.5">
                       {cities.map((row) => {
-                        const pct =
-                          focusTotal > 0 ? (row.evaluations / focusTotal) * 100 : 0;
+                        const pct = sharePct(row.evaluations, focusTotal);
                         return (
                           <li
                             key={row.city}
@@ -1755,8 +1840,7 @@ function EvaluationsMap({
                   ) : (
                     <ul className="space-y-1.5">
                       {regions.map((row) => {
-                        const pct =
-                          focusTotal > 0 ? (row.evaluations / focusTotal) * 100 : 0;
+                        const pct = sharePct(row.evaluations, focusTotal);
                         return (
                           <li key={row.region}>
                             <button
@@ -1784,7 +1868,15 @@ function EvaluationsMap({
             </div>
           </div>
         ) : (
-          <div className="rounded-2xl border border-line/80 bg-canvas/90 px-3.5 py-2.5 shadow-sm backdrop-blur-sm">
+          <div
+            className="pointer-events-auto rounded-2xl border border-line/80 bg-canvas/90 px-3.5 py-2.5 shadow-sm backdrop-blur-sm"
+            onMouseEnter={() => {
+              setHover(null);
+              setRegionHover(null);
+              setCityHover(null);
+            }}
+            onPointerDown={(event) => event.stopPropagation()}
+          >
             <p className="text-[12px] text-ink-muted">Geographic spread · {period}</p>
             <p className="mt-0.5 text-[14px] font-medium">
               {mappedCount} countries
@@ -1878,7 +1970,7 @@ export function CountryTable({
     return (
       <div className={cn("space-y-1", compact && "space-y-0.5")}>
         {countries.map((row) => {
-          const pct = total > 0 ? (row.evaluations / total) * 100 : 0;
+          const pct = sharePct(row.evaluations, total);
           const selected = selectedCountry === row.country;
           const hasCentroid = countryCentroid(row.country) != null;
           return (
@@ -1968,7 +2060,7 @@ function RankedBars({
   return (
     <div className="min-w-0 space-y-2.5">
       {rows.map((row) => {
-        const pct = total > 0 ? (row.evaluations / total) * 100 : 0;
+        const pct = sharePct(row.evaluations, total);
         const title =
           row.title ?? (typeof row.label === "string" ? row.label : undefined);
         const barWidth = `${Math.max((row.evaluations / max) * 100, 1)}%`;

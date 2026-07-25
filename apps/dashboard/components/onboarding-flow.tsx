@@ -556,7 +556,7 @@ function Checklist({
 
   const elapsed = (firstFlagAtRef.current ?? now) - orgCreatedAt;
   const edgeUrl = process.env.NEXT_PUBLIC_EDGE_URL ?? "https://edge.shipos.app";
-  const flagKeyForSnippet = firstFlag?.key ?? (slugifyFlagKey(flagName) || "my-first-flag");
+  const flagKeyForSnippet = firstFlag?.key ?? (slugifyFlagKey(flagName) || "myfirstflag");
   const snippet = `curl -X POST ${edgeUrl}/v1/evaluate \\
   -H "Authorization: Bearer ${sdkKey ?? "sos_sdk_YOUR_KEY"}" \\
   -H "Content-Type: application/json" \\

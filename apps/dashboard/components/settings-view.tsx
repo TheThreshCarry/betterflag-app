@@ -2,10 +2,13 @@
 
 import { ANALYTICS_HOT_DAYS, ANALYTICS_RETENTION_DAYS, PLAN_LIMITS } from "@shipos/db";
 import {
+  BarChart3Icon,
   Building2Icon,
   CheckIcon,
   CreditCardIcon,
   FolderKanbanIcon,
+  KeyIcon,
+  ScrollTextIcon,
   UserRoundIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -21,7 +24,14 @@ import { api } from "@/lib/client-api";
 import { cn } from "@/lib/utils";
 import { tierForPlan, usePricingTiers } from "@/lib/use-pricing";
 
-export type SettingsSection = "organization" | "project" | "billing" | "account";
+export type SettingsSection =
+  | "organization"
+  | "project"
+  | "keys"
+  | "usage"
+  | "audit"
+  | "billing"
+  | "account";
 
 const SETTINGS_NAV = [
   {
@@ -37,6 +47,27 @@ const SETTINGS_NAV = [
     description: "Current project",
     href: "/settings/project",
     icon: FolderKanbanIcon,
+  },
+  {
+    key: "keys",
+    label: "Keys",
+    description: "SDK, agent, and admin",
+    href: "/settings/keys",
+    icon: KeyIcon,
+  },
+  {
+    key: "usage",
+    label: "Usage",
+    description: "Evaluations meter",
+    href: "/settings/usage",
+    icon: BarChart3Icon,
+  },
+  {
+    key: "audit",
+    label: "Audit",
+    description: "Mutation trail",
+    href: "/settings/audit",
+    icon: ScrollTextIcon,
   },
   {
     key: "billing",

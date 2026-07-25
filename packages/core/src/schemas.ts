@@ -69,11 +69,21 @@ export const evaluationContextSchema = z.object({
   attributes: z.record(z.string(), jsonValueSchema).optional(),
 });
 
-/** Flag keys: kebab/dot/underscore, must start alphanumeric. */
+/**
+ * Flag keys as stored / looked up (includes legacy keys with '.', '_', '-').
+ * New creates use {@link flagKeyCreateSchema} instead.
+ */
 export const flagKeySchema = z
   .string()
   .min(1)
   .max(128)
   .regex(/^[a-z0-9][a-z0-9._-]*$/i, "flag keys may contain letters, digits, '.', '_' and '-'");
+
+/** New flag keys: lowercase letters and digits only — no special characters. */
+export const flagKeyCreateSchema = z
+  .string()
+  .min(1)
+  .max(128)
+  .regex(/^[a-z0-9]+$/, "flag keys may only contain letters and numbers");
 
 export type TargetingRuleInput = z.infer<typeof targetingRuleSchema>;

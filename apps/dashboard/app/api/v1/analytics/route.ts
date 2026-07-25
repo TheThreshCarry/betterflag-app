@@ -1,7 +1,7 @@
 /**
  * GET /api/v1/analytics: org-wide evaluation analytics from ClickHouse
  * (evals_per_flag_country_hour): totals, time series, country and flag and
- * environment breakdowns for a period. Optional projectId/env/country/region.
+ * environment breakdowns for a period. Optional projectId/env/flag/country/region.
  *
  * Drill-down:
  *   (none)           → countries
@@ -12,6 +12,7 @@
  * rejected with 422 `retention_exceeded`; the response always carries
  * `retentionDays` + `availablePeriods` so the UI can disable options.
  */
+import { flagKeySchema } from "@shipos/core";
 import { ANALYTICS_RETENTION_DAYS } from "@shipos/db";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
@@ -41,6 +42,8 @@ const analyticsQuerySchema = z
     period: z.enum(PERIODS).default("7d"),
     projectId: z.uuid().optional(),
     env: z.string().min(1).optional(),
+    /** Flag key — scopes all rollups to a single flag (flag detail map). */
+    flag: flagKeySchema.optional(),
     /** ISO 3166-1 alpha-2 — when set, series/flags/envs are scoped to that country. */
     country: z
       .string()
@@ -80,6 +83,7 @@ export const GET = withErrors(async (request: NextRequest) => {
     envSlug: query.env,
     country: query.country,
     region: query.region,
+    flagKey: query.flag,
   };
   if (query.projectId !== undefined) {
     const project = await getProjectInOrg(service, query.projectId, actor.orgId);

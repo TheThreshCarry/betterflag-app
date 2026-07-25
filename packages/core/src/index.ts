@@ -38,6 +38,7 @@ export {
   projectSnapshotSchema,
   evaluationContextSchema,
   flagKeySchema,
+  flagKeyCreateSchema,
   type TargetingRuleInput,
 } from "./schemas";
 export type {

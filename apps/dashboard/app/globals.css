@@ -385,6 +385,77 @@
   }
 }
 
+/* Env bar height offset — interpolates so sidebar/header track the bar. */
+@property --env-bar-h {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
+.env-bar-shell {
+  transition: --env-bar-h 500ms ease-out;
+}
+
+.env-bar {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 500ms ease-out;
+}
+
+.env-bar[data-open="true"] {
+  grid-template-rows: 1fr;
+}
+
+.env-bar-inner {
+  opacity: 0;
+  transform: translateY(-6px);
+  transition:
+    opacity 500ms ease-out,
+    transform 500ms ease-out;
+}
+
+.env-bar[data-open="true"] .env-bar-inner {
+  opacity: 1;
+  transform: none;
+}
+
+/* Flag list row expand — grid 0fr→1fr so height animates cleanly. */
+.flag-row-expand {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 400ms ease-out;
+}
+
+.flag-row-expand[data-open="true"] {
+  grid-template-rows: 1fr;
+}
+
+.flag-row-expand-inner {
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition:
+    opacity 400ms ease-out,
+    transform 400ms ease-out;
+}
+
+.flag-row-expand[data-open="true"] .flag-row-expand-inner {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flag-row-expand,
+  .flag-row-expand-inner {
+    transition: none;
+  }
+}
+
+html[data-disable-animations] .flag-row-expand,
+html[data-disable-animations] .flag-row-expand-inner {
+  transition: none !important;
+}
+
 /*
  * Data entrance: content that replaces a skeleton blurs + fades in
  * (same motion language as the landing page reveals).
@@ -434,6 +505,12 @@
   .skeleton-out {
     animation: none;
   }
+
+  .env-bar-shell,
+  .env-bar,
+  .env-bar-inner {
+    transition: none;
+  }
 }
 
 /* User preference — set via PreferencesProvider / ReducedMotionProvider */
@@ -443,6 +520,12 @@ html[data-disable-animations] .skeleton-out {
   animation: none !important;
 }
 
+html[data-disable-animations] .env-bar-shell,
+html[data-disable-animations] .env-bar,
+html[data-disable-animations] .env-bar-inner {
+  transition: none !important;
+}
+
 @utility no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -450,6 +533,14 @@ html[data-disable-animations] .skeleton-out {
   &::-webkit-scrollbar {
     display: none;
   }
+}
+
+/*
+ * Toast overlay — portal + viewport are pointer-events-none; restore hits
+ * on the toast card so dismiss / actions still work.
+ */
+[data-slot="toast"] {
+  pointer-events: auto;
 }
 
 /*

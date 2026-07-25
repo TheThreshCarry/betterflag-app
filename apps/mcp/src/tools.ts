@@ -56,14 +56,14 @@ const projectSlugParam = z
   .min(1)
   .optional()
   .describe("Project slug. Optional, when the org has exactly one project it is used automatically.");
-const keyParam = z.string().min(1).describe('Flag key, e.g. "checkout-v2".');
+const keyParam = z.string().min(1).describe('Flag key, e.g. "checkoutv2".');
 const envParam = z.string().min(1).describe("Environment slug (projects start with dev, staging, prod).");
 const flagKeyFormat = z
   .string()
   .min(1)
   .max(128)
-  .regex(/^[a-z0-9][a-z0-9._-]*$/i, "flag keys may contain letters, digits, '.', '_' and '-' and must start alphanumeric")
-  .describe('New flag key, e.g. "checkout-v2". Letters, digits, ".", "_", "-".');
+  .regex(/^[a-z0-9]+$/, "flag keys may only contain letters and numbers")
+  .describe('New flag key, e.g. "checkoutv2". Letters and numbers only.');
 
 const FLAG_LIST_KEYS = ["flags", "data", "items"] as const;
 

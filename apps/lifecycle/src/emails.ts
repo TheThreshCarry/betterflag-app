@@ -198,7 +198,7 @@ Your 14-day trial is running: every feature, no card. If anything feels off, hit
 export function agenticEmail(): EmailContent {
   const subject = "Let your agent manage your flags (this is the good part)";
   const steps = [
-    `Mint an agent key on the <a href="${APP_URL}/keys" style="color:${INK};font-weight:600;text-decoration:underline;">Keys page</a>`,
+    `Mint an agent key in <a href="${APP_URL}/settings/keys" style="color:${INK};font-weight:600;text-decoration:underline;">Settings → Keys</a>`,
     "Add the MCP server to your agent's config",
     `Ask it to "create a flag and roll it out to 10%"`,
   ]
@@ -231,7 +231,7 @@ export function agenticEmail(): EmailContent {
     )}
     ${para(`<strong style="color:${INK};">Setup is one key and one config block:</strong>`)}
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 8px;">${steps}</table>
-    ${cta(`${APP_URL}/keys`, "Mint an agent key")}
+    ${cta(`${APP_URL}/settings/keys`, "Mint an agent key")}
     ${mutedPara("Feature flags made easy, with unlimited seats on every plan.")}
     ${para("- Mehdi")}`;
   const html = layout({
@@ -246,7 +246,7 @@ Point Claude Code or Cursor at mcp.shipos.app with an agent key and it can creat
 
 Setup is one key and one config block:
 
-1. Mint an agent key on the Keys page: ${APP_URL}/keys
+1. Mint an agent key in Settings → Keys: ${APP_URL}/settings/keys
 2. Add the MCP server to your agent's config
 3. Ask it to "create a flag and roll it out to 10%"
 

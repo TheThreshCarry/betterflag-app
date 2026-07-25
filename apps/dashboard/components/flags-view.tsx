@@ -1,8 +1,16 @@
 "use client";
 
+import { useDebounce } from "@uidotdev/usehooks";
+import { Check, ChevronDown, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+  type FormEvent,
+  type MouseEvent,
+} from "react";
 
 import { useApp } from "@/components/app-shell";
 import {
@@ -13,6 +21,8 @@ import {
   ErrorNote,
   Field,
   RelativeTime,
+  Spinner,
+  Toggle,
   inputClass,
   textareaClass,
   type ChipColor,
@@ -24,18 +34,24 @@ import {
   type Column,
 } from "@/components/data-table";
 import { Stagger } from "@/components/stagger";
-import type { ApiFlag, ApiFlagConfig } from "@/lib/api-types";
-import { api } from "@/lib/client-api";
+import { VersionHistoryBadge } from "@/components/version-history-badge";
+import type { ApiEnvironment, ApiFlag, ApiFlagConfig } from "@/lib/api-types";
+import { api, ApiClientError } from "@/lib/client-api";
+import { staggerStyle } from "@/lib/stagger";
 import { toast } from "@/lib/toast";
+import { cn } from "@/lib/utils";
+
+const FLAG_EXPAND_MS = 400;
 
 type FlagWithConfigs = ApiFlag & { configs: ApiFlagConfig[] };
 
 const FLAG_COLUMNS: readonly Column[] = [
-  { key: "key", label: "Key", colWidth: "w-[18%]", skeletonWidth: "w-24" },
-  { key: "name", label: "Name", colWidth: "w-[26%]", skeletonWidth: "w-32" },
+  { key: "key", label: "Key", colWidth: "w-[20%]", skeletonWidth: "w-24" },
+  { key: "name", label: "Name", colWidth: "w-[28%]", skeletonWidth: "w-32" },
   { key: "kind", label: "Kind", colWidth: "w-[12%]", skeletonWidth: "w-14" },
-  { key: "environments", label: "Environments", colWidth: "w-[32%]", skeletonWidth: "w-40" },
-  { key: "updated", label: "Updated", colWidth: "w-[12%]", skeletonWidth: "w-16" },
+  { key: "enabled", label: "Enabled", colWidth: "w-[14%]", skeletonWidth: "w-12" },
+  { key: "updated", label: "Updated", colWidth: "w-[18%]", skeletonWidth: "w-16" },
+  { key: "expand", label: "", colWidth: "w-[8%]", skeletonWidth: "w-6" },
 ];
 
 export const KIND_COLORS: Record<ApiFlag["kind"], ChipColor> = {
@@ -45,14 +61,12 @@ export const KIND_COLORS: Record<ApiFlag["kind"], ChipColor> = {
   json: "pink",
 };
 
-const ENV_ORDER = ["dev", "staging", "prod"];
-
+/** Flag keys: lowercase letters + digits only (no hyphens or other specials). */
 export function slugifyFlagKey(name: string): string {
   return name
     .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9._-]+/g, "-")
-    .replace(/^[-._]+|[-._]+$/g, "")
+    .replace(/[^a-z0-9]+/g, "")
     .slice(0, 128);
 }
 
@@ -71,6 +85,7 @@ export function FlagsView() {
   const [flags, setFlags] = useState<FlagWithConfigs[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!activeProject) return;
@@ -86,25 +101,34 @@ export function FlagsView() {
 
   useEffect(() => {
     setFlags(null);
+    setExpandedId(null);
     void load();
   }, [load]);
 
-  const environments = useMemo(
-    () =>
-      activeProject
-        ? [...activeProject.environments].sort(
-            (a, b) => ENV_ORDER.indexOf(a.slug) - ENV_ORDER.indexOf(b.slug),
-          )
-        : [],
-    [activeProject],
-  );
+  // Close expand when env changes — config context shifts.
+  useEffect(() => {
+    setExpandedId(null);
+  }, [activeEnv?.id]);
 
   // Every flag exists in every environment (configs are created for all of
-  // them, disabled by default), so the list is project-wide. The per-flag
-  // environment dots below show each flag's enabled/killed state per env.
-  // We must NOT hide disabled flags here: a brand-new flag is disabled
-  // everywhere, and filtering it out would make it unreachable from the UI.
+  // them, disabled by default), so the list is project-wide. Env state is
+  // scoped via the global env switcher, not a per-row env column.
   const visibleFlags = flags;
+
+  function patchFlagConfig(flagId: string, next: ApiFlagConfig) {
+    setFlags((current) => {
+      if (!current) return current;
+      return current.map((flag) => {
+        if (flag.id !== flagId) return flag;
+        return {
+          ...flag,
+          configs: flag.configs.map((config) =>
+            config.id === next.id ? next : config,
+          ),
+        };
+      });
+    });
+  }
 
   if (!activeProject) {
     return (
@@ -144,6 +168,7 @@ export function FlagsView() {
         <DataTable
           columns={FLAG_COLUMNS}
           hoverableRows
+          stagger={false}
           staggerSelf
           loading={!flags || !visibleFlags}
           empty={
@@ -156,66 +181,21 @@ export function FlagsView() {
             ) : undefined
           }
         >
-          {(visibleFlags ?? []).map((flag) => {
-            const lastUpdated = flag.configs.reduce<string | null>(
-              (latest, config) =>
-                !latest || config.updatedAt > latest ? config.updatedAt : latest,
-              null,
-            );
-            return (
-              <TableRow
-                key={flag.id}
-                className="cursor-pointer"
-                onClick={() => router.push(`/flags/${flag.id}`)}
-              >
-                <TableCell className="truncate">
-                  <Link
-                    href={`/flags/${flag.id}`}
-                    className="font-mono text-[13px] font-medium"
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    {flag.key}
-                  </Link>
-                </TableCell>
-                <TableCell className="truncate text-foreground-strong">{flag.name}</TableCell>
-                <TableCell className="whitespace-nowrap">
-                  <Chip color={KIND_COLORS[flag.kind]} className="!px-2.5 !py-0.5 text-[12px]">
-                    {flag.kind}
-                  </Chip>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    {environments.map((env) => {
-                      const config = flag.configs.find((c) => c.environmentId === env.id);
-                      const dotColor = config?.killed
-                        ? "bg-chip-pink"
-                        : config?.enabled
-                          ? "bg-chip-green"
-                          : "bg-line-strong";
-                      const state = config?.killed
-                        ? "killed"
-                        : config?.enabled
-                          ? `on · ${config.rolloutPct}%`
-                          : "off";
-                      return (
-                        <span
-                          key={env.id}
-                          title={`${env.slug}: ${state}`}
-                          className="flex items-center gap-1 text-[11px] text-foreground-muted"
-                        >
-                          <span className={`h-2 w-2 rounded-full ${dotColor}`} />
-                          {env.slug}
-                        </span>
-                      );
-                    })}
-                  </div>
-                </TableCell>
-                <TableCell className="whitespace-nowrap text-foreground-muted">
-                  {lastUpdated ? <RelativeTime iso={lastUpdated} /> : "-"}
-                </TableCell>
-              </TableRow>
-            );
-          })}
+          {(visibleFlags ?? []).map((flag, index) => (
+            <FlagRow
+              key={flag.id}
+              flag={flag}
+              activeEnv={activeEnv}
+              expanded={expandedId === flag.id}
+              staggerIndex={index}
+              onToggleExpand={() =>
+                setExpandedId((current) => (current === flag.id ? null : flag.id))
+              }
+              onConfigPatched={(config) => patchFlagConfig(flag.id, config)}
+              onOpen={() => router.push(`/flags/${encodeURIComponent(flag.key)}`)}
+              onError={setError}
+            />
+          ))}
         </DataTable>
       </Stagger>
 
@@ -225,10 +205,256 @@ export function FlagsView() {
         projectId={activeProject.id}
         onCreated={(flag) => {
           setDialogOpen(false);
-          router.push(`/flags/${flag.id}`);
+          router.push(`/flags/${encodeURIComponent(flag.key)}`);
         }}
       />
     </>
+  );
+}
+
+function FlagRow({
+  flag,
+  activeEnv,
+  expanded,
+  staggerIndex,
+  onToggleExpand,
+  onConfigPatched,
+  onOpen,
+  onError,
+}: {
+  flag: FlagWithConfigs;
+  activeEnv: ApiEnvironment | null;
+  expanded: boolean;
+  staggerIndex: number;
+  onToggleExpand: () => void;
+  onConfigPatched: (config: ApiFlagConfig) => void;
+  onOpen: () => void;
+  onError: (message: string | null) => void;
+}) {
+  const config = activeEnv
+    ? flag.configs.find((c) => c.environmentId === activeEnv.id) ?? null
+    : null;
+  const [toggling, setToggling] = useState(false);
+  /** Keep expand row mounted through close animation. */
+  const [expandMounted, setExpandMounted] = useState(false);
+  /** Separate from mount so 0fr→1fr can paint and animate. */
+  const [expandOpen, setExpandOpen] = useState(false);
+
+  useEffect(() => {
+    if (expanded) {
+      setExpandMounted(true);
+      const frame = window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => setExpandOpen(true));
+      });
+      return () => window.cancelAnimationFrame(frame);
+    }
+    setExpandOpen(false);
+    const timer = window.setTimeout(() => setExpandMounted(false), FLAG_EXPAND_MS);
+    return () => window.clearTimeout(timer);
+  }, [expanded]);
+
+  async function setEnabled(next: boolean) {
+    if (!activeEnv || !config || toggling) return;
+    setToggling(true);
+    onError(null);
+    try {
+      const { config: updated } = await api<{ config: ApiFlagConfig }>(
+        `/api/v1/flags/${flag.id}/environments/${activeEnv.slug}/config`,
+        {
+          method: "PUT",
+          body: JSON.stringify({
+            enabled: next,
+            expectedVersion: config.version,
+          }),
+        },
+      );
+      onConfigPatched(updated);
+      toast.success({
+        title: next ? "Flag enabled" : "Flag disabled",
+        description: `${flag.key} · ${activeEnv.slug}`,
+      });
+    } catch (err) {
+      if (err instanceof ApiClientError && err.status === 409) {
+        onError("Config changed elsewhere — refresh and try again.");
+      } else {
+        onError(err instanceof Error ? err.message : "Failed to update flag");
+      }
+    } finally {
+      setToggling(false);
+    }
+  }
+
+  function stopRowNav(event: MouseEvent) {
+    event.stopPropagation();
+  }
+
+  return (
+    <>
+      <TableRow
+        className="cursor-pointer stagger-in"
+        style={staggerStyle(staggerIndex)}
+        onClick={onOpen}
+      >
+        <TableCell className="truncate">
+          <Link
+            href={`/flags/${encodeURIComponent(flag.key)}`}
+            className="font-mono text-[13px] font-medium"
+            onClick={stopRowNav}
+          >
+            {flag.key}
+          </Link>
+        </TableCell>
+        <TableCell className="truncate text-foreground-strong">{flag.name}</TableCell>
+        <TableCell className="whitespace-nowrap">
+          <Chip color={KIND_COLORS[flag.kind]} className="!px-2.5 !py-0.5 text-[12px]">
+            {flag.kind}
+          </Chip>
+        </TableCell>
+        <TableCell onClick={stopRowNav}>
+          {!activeEnv || !config ? (
+            <span className="text-[12px] text-ink-muted">—</span>
+          ) : config.killed ? (
+            <Chip color="pink" className="!px-2 !py-0 text-[11px]">
+              killed
+            </Chip>
+          ) : flag.kind === "boolean" ? (
+            <Toggle
+              checked={config.enabled}
+              disabled={toggling}
+              label={config.enabled ? `Disable ${flag.key}` : `Enable ${flag.key}`}
+              onChange={(next) => void setEnabled(next)}
+            />
+          ) : (
+            <span className="text-[12px] text-ink-muted">
+              {config.enabled ? `on · ${config.rolloutPct}%` : "off"}
+            </span>
+          )}
+        </TableCell>
+        <TableCell className="whitespace-nowrap text-foreground-muted">
+          {config?.updatedAt ? <RelativeTime iso={config.updatedAt} /> : "—"}
+        </TableCell>
+        <TableCell className="text-end" onClick={stopRowNav}>
+          <button
+            type="button"
+            aria-expanded={expanded}
+            aria-label={expanded ? "Collapse flag details" : "Expand flag details"}
+            onClick={onToggleExpand}
+            className="inline-flex size-8 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-canvas hover:text-ink"
+          >
+            <ChevronDown
+              className={cn(
+                "size-4 transition-transform duration-[400ms] ease-out",
+                expandOpen && "rotate-180",
+              )}
+              aria-hidden
+            />
+          </button>
+        </TableCell>
+      </TableRow>
+      {expandMounted ? (
+        <TableRow className="hover:bg-transparent!">
+          <TableCell colSpan={FLAG_COLUMNS.length} className="border-0 bg-transparent p-0!">
+            <div className="flag-row-expand" data-open={expandOpen ? "true" : "false"}>
+              <div className="flag-row-expand-inner">
+                <div className="bg-surface/60 px-4 py-4">
+                  <FlagQuickPanel
+                    flag={flag}
+                    config={config}
+                    envSlug={activeEnv?.slug ?? null}
+                    toggling={toggling}
+                    onSetEnabled={(next) => void setEnabled(next)}
+                    onOpen={onOpen}
+                  />
+                </div>
+              </div>
+            </div>
+          </TableCell>
+        </TableRow>
+      ) : null}
+    </>
+  );
+}
+
+function FlagQuickPanel({
+  flag,
+  config,
+  envSlug,
+  toggling,
+  onSetEnabled,
+  onOpen,
+}: {
+  flag: FlagWithConfigs;
+  config: ApiFlagConfig | null;
+  envSlug: string | null;
+  toggling: boolean;
+  onSetEnabled: (next: boolean) => void;
+  onOpen: () => void;
+}) {
+  return (
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="min-w-0 space-y-2">
+        <div>
+          <p className="font-mono text-[13px] font-medium">{flag.key}</p>
+          <p className="mt-0.5 text-[14px] text-ink">{flag.name}</p>
+          <p className="mt-1 text-[13px] text-ink-muted">
+            {flag.description?.trim() || "No description."}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-ink-muted">
+          <span>
+            Kind{" "}
+            <span className="text-ink">{flag.kind}</span>
+          </span>
+          {envSlug ? (
+            <span>
+              Env{" "}
+              <span className="font-mono text-ink">{envSlug}</span>
+            </span>
+          ) : null}
+          {config && envSlug ? (
+            <>
+              <span className="inline-flex items-center gap-1">
+                Version{" "}
+                <VersionHistoryBadge
+                  flagId={flag.id}
+                  flagKey={flag.key}
+                  envSlug={envSlug}
+                  version={config.version}
+                  className="text-ink"
+                />
+              </span>
+              <span>
+                Rollout{" "}
+                <span className="font-mono text-ink">{config.rolloutPct}%</span>
+              </span>
+              {config.killed ? (
+                <Chip color="pink" className="!px-2 !py-0 text-[11px]">
+                  kill switch on
+                </Chip>
+              ) : null}
+            </>
+          ) : (
+            <span>No config for this environment.</span>
+          )}
+        </div>
+      </div>
+      <div className="flex shrink-0 flex-wrap items-center gap-2">
+        {config && !config.killed ? (
+          <div className="flex items-center gap-2 rounded-2xl border border-line bg-canvas px-3 py-2">
+            <span className="text-[12px] text-ink-muted">Enabled</span>
+            <Toggle
+              checked={config.enabled}
+              disabled={toggling}
+              label={config.enabled ? `Disable ${flag.key}` : `Enable ${flag.key}`}
+              onChange={onSetEnabled}
+            />
+          </div>
+        ) : null}
+        <Button variant="secondary" size="sm" onClick={onOpen}>
+          Open flag
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -304,6 +530,8 @@ function CreateProjectButton() {
   );
 }
 
+type KeyAvailability = "idle" | "checking" | "available" | "taken" | "invalid";
+
 function NewFlagDialog({
   open,
   onClose,
@@ -323,9 +551,64 @@ function NewFlagDialog({
   const [defaultValueText, setDefaultValueText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [keyAvailability, setKeyAvailability] = useState<KeyAvailability>("idle");
+
+  const effectiveKey = key || slugifyFlagKey(name);
+  const debouncedKey = useDebounce(effectiveKey, 400);
+  const keyPending = effectiveKey.length > 0 && effectiveKey !== debouncedKey;
+  const checking = keyPending || keyAvailability === "checking";
+
+  useEffect(() => {
+    if (!open) {
+      setName("");
+      setKey("");
+      setKeyTouched(false);
+      setKind("boolean");
+      setDescription("");
+      setDefaultValueText("");
+      setBusy(false);
+      setError(null);
+      setKeyAvailability("idle");
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || debouncedKey.length === 0) {
+      setKeyAvailability("idle");
+      return;
+    }
+    if (!/^[a-z0-9]+$/.test(debouncedKey)) {
+      setKeyAvailability("invalid");
+      return;
+    }
+
+    let cancelled = false;
+    setKeyAvailability("checking");
+    void api<{ flags: ApiFlag[] }>(
+      `/api/v1/projects/${projectId}/flags?key=${encodeURIComponent(debouncedKey)}`,
+    )
+      .then(({ flags }) => {
+        if (cancelled) return;
+        setKeyAvailability(flags.length > 0 ? "taken" : "available");
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setKeyAvailability("idle");
+        toast.error({
+          title: "Couldn't check key",
+          description:
+            err instanceof Error ? err.message : "Try again in a moment.",
+        });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [debouncedKey, open, projectId]);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (keyAvailability === "taken" || checking) return;
     setBusy(true);
     setError(null);
     try {
@@ -344,10 +627,11 @@ function NewFlagDialog({
           }
         }
       }
+      const flagKey = key || slugifyFlagKey(name);
       const { flag } = await api<{ flag: ApiFlag }>(`/api/v1/projects/${projectId}/flags`, {
         method: "POST",
         body: JSON.stringify({
-          key: key || slugifyFlagKey(name),
+          key: flagKey,
           name,
           kind,
           ...(description ? { description } : {}),
@@ -359,32 +643,74 @@ function NewFlagDialog({
       setKeyTouched(false);
       setDescription("");
       setDefaultValueText("");
+      setKeyAvailability("idle");
       toast.success({ title: "Flag created", description: flag.key });
       onCreated(flag);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create flag");
+      if (err instanceof ApiClientError && err.code === "conflict") {
+        setKeyAvailability("taken");
+        toast.error({
+          title: "Flag key already taken",
+          description: `A flag with key “${effectiveKey}” already exists in this project.`,
+        });
+        return;
+      }
+      const message = err instanceof Error ? err.message : "Failed to create flag";
+      setError(message);
+      toast.error({ title: "Couldn't create flag", description: message });
     } finally {
       setBusy(false);
     }
   }
 
+  const nameStatusMessage =
+    keyAvailability === "taken"
+      ? `Key “${debouncedKey}” is already taken.`
+      : keyAvailability === "invalid"
+        ? "Key may only contain letters and numbers."
+        : null;
+
   return (
     <Dialog open={open} onClose={onClose} title="New flag">
       <form onSubmit={(event) => void submit(event)} className="space-y-4">
         <Field label="Name">
-          <input
-            className={inputClass}
-            value={name}
-            required
-            autoFocus
-            onChange={(event) => {
-              setName(event.target.value);
-              if (!keyTouched) setKey(slugifyFlagKey(event.target.value));
-            }}
-            placeholder="New checkout flow"
-          />
+          <div className="relative">
+            <input
+              className={cn(inputClass, "pr-9")}
+              value={name}
+              required
+              autoFocus
+              onChange={(event) => {
+                setName(event.target.value);
+                if (!keyTouched) setKey(slugifyFlagKey(event.target.value));
+              }}
+              placeholder="New checkout flow"
+              aria-invalid={keyAvailability === "taken" || keyAvailability === "invalid"}
+              aria-describedby={nameStatusMessage ? "flag-name-status" : undefined}
+            />
+            <span
+              className="pointer-events-none absolute inset-y-0 right-2.5 flex items-center"
+              aria-hidden
+            >
+              {effectiveKey.length === 0 ? null : checking ? (
+                <Spinner size={14} className="text-ink-muted" />
+              ) : keyAvailability === "available" ? (
+                <Check className="size-3.5 text-chip-green" strokeWidth={2.5} />
+              ) : keyAvailability === "taken" || keyAvailability === "invalid" ? (
+                <X className="size-3.5 text-chip-pink" strokeWidth={2.5} />
+              ) : null}
+            </span>
+          </div>
+          {nameStatusMessage ? (
+            <p id="flag-name-status" className="mt-1 text-[12px] text-chip-pink">
+              {nameStatusMessage}
+            </p>
+          ) : null}
         </Field>
-        <Field label="Key" hint="What your code evaluates. Immutable once created.">
+        <Field
+          label="Key"
+          hint="What your code evaluates. Letters and numbers only. Immutable once created."
+        >
           <input
             className={`${inputClass} font-mono`}
             value={key}
@@ -393,7 +719,9 @@ function NewFlagDialog({
               setKeyTouched(true);
               setKey(slugifyFlagKey(event.target.value));
             }}
-            placeholder="new-checkout-flow"
+            placeholder="newcheckoutflow"
+            pattern="[a-z0-9]+"
+            title="Letters and numbers only"
           />
         </Field>
         <Field label="Kind">
@@ -435,7 +763,17 @@ function NewFlagDialog({
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" loading={busy} disabled={!name || !(key || slugifyFlagKey(name))}>
+          <Button
+            type="submit"
+            loading={busy}
+            disabled={
+              !name ||
+              !effectiveKey ||
+              checking ||
+              keyAvailability === "taken" ||
+              keyAvailability === "invalid"
+            }
+          >
             {busy ? "Creating…" : "Create flag"}
           </Button>
         </div>

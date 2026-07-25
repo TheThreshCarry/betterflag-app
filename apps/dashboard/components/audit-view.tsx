@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Table,
   TableBody,
@@ -55,6 +56,8 @@ const AUDIT_COLUMNS: readonly Column[] = [
 ];
 
 export function AuditView() {
+  const searchParams = useSearchParams();
+  const subjectFilter = searchParams.get("subject");
   const [filter, setFilter] = useState<Filter>("all");
   const [entries, setEntries] = useState<ApiAuditEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -66,13 +69,14 @@ export function AuditView() {
     async (before?: string): Promise<ApiAuditEntry[]> => {
       const params = new URLSearchParams({ limit: String(PAGE_SIZE) });
       if (filter !== "all") params.set("actorType", filter);
+      if (subjectFilter) params.set("subject", subjectFilter);
       if (before) params.set("before", before);
       const { entries: page } = await api<{ entries: ApiAuditEntry[] }>(
         `/api/v1/audit?${params.toString()}`,
       );
       return page;
     },
-    [filter],
+    [filter, subjectFilter],
   );
 
   useEffect(() => {
@@ -113,11 +117,13 @@ export function AuditView() {
 
   return (
     <Stagger>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-5 flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-[28px] font-semibold tracking-[-0.01em]">Audit log</h1>
-          <p className="mt-0.5 text-[14px] text-ink-muted">
-            Every mutation, human or machine, in one trail.
+          <h2 className="text-[20px] font-semibold tracking-[-0.01em]">Audit log</h2>
+          <p className="mt-1 text-[13px] text-ink-muted">
+            {subjectFilter
+              ? `Filtered to ${subjectFilter}.`
+              : "Every mutation, human or machine, in one trail."}
           </p>
         </div>
         <div className="flex rounded-2xl border border-line p-1">
@@ -127,7 +133,7 @@ export function AuditView() {
               type="button"
               onClick={() => setFilter(option.value)}
               className={`rounded-xl px-4 py-1.5 text-[13px] font-medium transition-colors ${
-                filter === option.value ? "bg-ink text-white" : "text-ink-muted hover:text-ink"
+                filter === option.value ? "bg-ink text-canvas" : "text-ink-muted hover:text-ink"
               }`}
             >
               {option.label}

@@ -2,7 +2,7 @@
 
 /** Shared UI primitives — Appica under ShipOS DESIGN.md API. */
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { Alert, AlertDescription } from "@appica/ui-react/alert";
 import { Button as AppicaButton } from "@appica/ui-react/button";
 import { Chip as AppicaChip } from "@appica/ui-react/chip";
@@ -76,11 +76,13 @@ const BUTTON_VARIANT_MAP: Record<
 };
 
 export function Spinner({ size = 16, className = "" }: { size?: number; className?: string }) {
+  // Appica Spinner sizes the SVG via `1em` and defaults to text-[2.5rem].
+  // fontSize makes 1em match `size` so it doesn't fill the host button.
   return (
     <AppicaSpinner
       currentColor
       className={cn(className)}
-      style={{ width: size, height: size }}
+      style={{ width: size, height: size, fontSize: size } satisfies CSSProperties}
       aria-label="Loading"
     />
   );
