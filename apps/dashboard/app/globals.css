@@ -6,6 +6,11 @@
  */
 @custom-variant dark (&:is(.dark *));
 
+@import 'tailwindcss';
+@import '@appica/ui-react/styles.css';
+
+@source '../node_modules/@appica/ui-react/dist';
+
 /*
  * ShipOS design tokens (DESIGN.md): warm paper canvas, charcoal ink,
  * color only via chips. No gradients, no dark sections.
