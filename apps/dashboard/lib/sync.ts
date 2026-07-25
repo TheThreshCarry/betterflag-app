@@ -1,8 +1,8 @@
 /**
- * Snapshot rebuild + push. Used by the kill-switch fast path (synchronous
- * KV write so the flag dies in seconds). Normal
- * config edits only enqueue a config-sync message; the ingest worker does
- * the same rebuild via buildSnapshot, so the two can never drift.
+ * Snapshot rebuild + push. Synchronous KV write so enable / kill / promote
+ * land at the edge in seconds (queue-only sync can take minutes). Always
+ * enqueues config-sync afterward for reconciliation. Ingest rebuilds with
+ * the same `buildSnapshot`, so the two paths cannot drift.
  */
 
 import { buildSnapshot, type FlagConfigRowLike, type FlagRowLike } from "@shipos/core";

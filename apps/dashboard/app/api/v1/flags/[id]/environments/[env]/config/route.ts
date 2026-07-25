@@ -6,10 +6,10 @@ import { z } from "zod";
 import { toApiFlagConfig } from "@/lib/api-types";
 import { assertKeyScope, auditActor, resolveActor } from "@/lib/auth";
 import { assertOrgWritable } from "@/lib/billing-guard";
-import { enqueueConfigSync } from "@/lib/cloudflare";
 import { getEnvironmentBySlug, getFlagInOrg } from "@/lib/db";
 import { parseJson, unwrap, withErrors } from "@/lib/errors";
 import { createServiceClient } from "@/lib/supabase/server";
+import { rebuildAndPushSnapshot } from "@/lib/sync";
 
 export const runtime = "nodejs";
 
@@ -55,12 +55,15 @@ export const PUT = withErrors<{ id: string; env: string }>(
       }),
     ) as FlagConfigRow;
 
-    enqueueConfigSync({
-      projectId: project.id,
-      environmentId: environment.id,
-      envSlug: environment.slug,
-      orgId: actor.orgId,
-    });
+    // Same fast path as kill: write KV now so enable/rollout land in seconds,
+    // then enqueue sync for reconciliation (queue alone can take minutes).
+    await rebuildAndPushSnapshot(
+      service,
+      project.id,
+      environment.id,
+      environment.slug,
+      actor.orgId,
+    );
 
     return NextResponse.json({ config: toApiFlagConfig(config) });
   },

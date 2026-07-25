@@ -6,10 +6,10 @@ import { z } from "zod";
 import { toApiFlagConfig } from "@/lib/api-types";
 import { assertKeyScope, auditActor, resolveActor } from "@/lib/auth";
 import { assertOrgWritable } from "@/lib/billing-guard";
-import { enqueueConfigSync } from "@/lib/cloudflare";
 import { getEnvironmentBySlug, getFlagConfig, getFlagInOrg } from "@/lib/db";
 import { HttpError, parseJson, unwrap, withErrors } from "@/lib/errors";
 import { createServiceClient } from "@/lib/supabase/server";
+import { rebuildAndPushSnapshot } from "@/lib/sync";
 
 export const runtime = "nodejs";
 
@@ -64,12 +64,13 @@ export const POST = withErrors<{ id: string; env: string }>(
       }),
     ) as FlagConfigRow;
 
-    enqueueConfigSync({
-      projectId: project.id,
-      environmentId: target.id,
-      envSlug: target.slug,
-      orgId: actor.orgId,
-    });
+    await rebuildAndPushSnapshot(
+      service,
+      project.id,
+      target.id,
+      target.slug,
+      actor.orgId,
+    );
 
     return NextResponse.json({ config: toApiFlagConfig(config) });
   },
