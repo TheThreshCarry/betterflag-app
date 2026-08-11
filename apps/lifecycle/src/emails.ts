@@ -56,7 +56,9 @@ function brandLockup(orgLogoUrl?: string | null): string {
     </td>`
       : "";
   return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tr>
-    <td width="34" valign="middle" align="center" height="34" bgcolor="${BADGE_DARK}" style="width:34px;height:34px;border-radius:9px;color:#ffffff;font-family:${FONT};font-size:15px;font-weight:700;line-height:34px;text-align:center;">S</td>
+    <td width="34" valign="middle" align="center" height="34" bgcolor="${BADGE_DARK}" style="width:34px;height:34px;border-radius:9px;">
+      <img src="https://betterflag.app/brand/email-logo.png" width="34" height="34" alt="Betterflag" style="display:block;width:34px;height:34px;border-radius:9px;" />
+    </td>
     <td width="10" style="width:10px;">&nbsp;</td>
     <td valign="middle" style="font-family:${FONT};font-size:16px;font-weight:600;letter-spacing:-0.01em;color:${INK};">Betterflag</td>
     ${orgLogo}

@@ -21,11 +21,13 @@ const CHIPS = [
 ];
 
 export default async function Image() {
-  const [geist, geistSemiBold, mono] = await Promise.all([
+  const [geist, geistSemiBold, mono, markPng] = await Promise.all([
     readFile(join(process.cwd(), "assets/og/geist-sans-latin-400-normal.woff")),
     readFile(join(process.cwd(), "assets/og/geist-sans-latin-600-normal.woff")),
     readFile(join(process.cwd(), "assets/og/geist-mono-latin-400-normal.woff")),
+    readFile(join(process.cwd(), "assets/og/betterflag-mark.png")),
   ]);
+  const markSrc = `data:image/png;base64,${markPng.toString("base64")}`;
 
   return new ImageResponse(
     (
@@ -61,23 +63,10 @@ export default async function Image() {
                 width: 64,
                 height: 64,
                 borderRadius: 18,
-                backgroundColor: "#222222",
+                backgroundImage: "linear-gradient(180deg, #19191B 0%, #060607 100%)",
               }}
             >
-              <svg
-                width="38"
-                height="38"
-                viewBox="0 0 155 155"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M67.7248 84.8159L121.298 76.5131L113.229 105.881L44.8111 117.822L33.8384 90.0677L67.7248 84.8159ZM67.7248 84.8159V72.9631M67.7248 72.9631V30.6858L99.3521 61.9904L67.7248 72.9631Z"
-                  stroke="white"
-                  strokeWidth="8"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              <img src={markSrc} width={40} height={24} alt="" />
             </div>
             <div
               style={{

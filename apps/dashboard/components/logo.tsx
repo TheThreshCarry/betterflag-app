@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { cva, type VariantProps } from "class-variance-authority";
 import type { HTMLAttributes } from "react";
 
@@ -37,31 +38,30 @@ export function Logo({
   asLink = true,
   ...props
 }: LogoProps) {
-  const svg = (
-    <svg
-      width="100%"
-      height="100%"
-      viewBox="0 0 155 155"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
+  // The metal flag centered in the dark rounded box: the only way the mark ships.
+  const mark = (
+    <span
       aria-hidden
+      className="absolute inset-0 flex items-center justify-center overflow-hidden rounded-[28%]"
+      style={{ background: "linear-gradient(180deg, #19191B 0%, #060607 100%)" }}
     >
-      <rect width="154.69" height="154.69" rx="43.2963" fill="#222222" />
-      <path
-        d="M67.7248 84.8159L121.298 76.5131L113.229 105.881L44.8111 117.822L33.8384 90.0677L67.7248 84.8159ZM67.7248 84.8159V72.9631M67.7248 72.9631V30.6858L99.3521 61.9904L67.7248 72.9631Z"
-        stroke="white"
-        strokeWidth="5.88494"
-        strokeLinejoin="round"
+      <Image
+        src="/brand/betterflag-mark-liquidmetal.png"
+        alt=""
+        width={482}
+        height={289}
+        className="h-auto w-[62%]"
+        priority
       />
-    </svg>
+    </span>
   );
 
   const icon = asLink ? (
     <Link href={href} className={cn(logoVariants({ size }))} aria-label="Betterflag home">
-      {svg}
+      {mark}
     </Link>
   ) : (
-    <div className={cn(logoVariants({ size }))}>{svg}</div>
+    <div className={cn(logoVariants({ size }))}>{mark}</div>
   );
 
   return (
