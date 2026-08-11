@@ -50,7 +50,7 @@ export function Logo({
         alt=""
         width={482}
         height={289}
-        className="h-auto w-[62%]"
+        className="h-auto w-[42%]"
         priority
       />
     </span>

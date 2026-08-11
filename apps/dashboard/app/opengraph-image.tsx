@@ -66,7 +66,7 @@ export default async function Image() {
                 backgroundImage: "linear-gradient(180deg, #19191B 0%, #060607 100%)",
               }}
             >
-              <img src={markSrc} width={40} height={24} alt="" />
+              <img src={markSrc} width={28} height={17} alt="" />
             </div>
             <div
               style={{
