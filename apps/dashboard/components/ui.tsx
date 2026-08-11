@@ -1,6 +1,6 @@
 "use client";
 
-/** Shared UI primitives — Appica under ShipOS DESIGN.md API. */
+/** Shared UI primitives — Appica under Betterflag DESIGN.md API. */
 
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { Alert, AlertDescription } from "@appica/ui-react/alert";

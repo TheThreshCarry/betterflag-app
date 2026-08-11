@@ -4,8 +4,8 @@
  * in `cloudflare:workers` and can't load under plain vitest) only wires these
  * to the Workflow + Email Service bindings.
  */
-import { PLAN_LIMITS } from "@shipos/db";
-import { fillTemplate } from "@shipos/emails/runtime";
+import { PLAN_LIMITS } from "@betterflag/db";
+import { fillTemplate } from "@betterflag/emails/runtime";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
@@ -49,7 +49,7 @@ export interface ClickhouseEnv {
 /** What the workflow needs to know about an org before emailing it again. */
 export interface OrgEmailState {
   exists: boolean;
-  /** Raw Polar subscription status synced by shipos-webhooks (null = none). */
+  /** Raw Polar subscription status synced by betterflag-webhooks (null = none). */
   subscriptionStatus: string | null;
   trialEndsAt: string | null;
   /** Public logo URL on media CDN, when set. */
@@ -121,7 +121,7 @@ const MONTH_DAYS = 30;
 
 /**
  * Upsell tier catalog, ascending by included evaluations. Caps come from the
- * canonical `@shipos/db` PLAN_LIMITS (the same numbers billing enforces) so the
+ * canonical `@betterflag/db` PLAN_LIMITS (the same numbers billing enforces) so the
  * trigger never drifts from real pricing; name/price are display copy kept in
  * sync with apps/dashboard/lib/pricing-config.ts.
  */
@@ -280,7 +280,7 @@ export interface RenderedEmail {
  * Fetch a template edited in the admin panel and substitute its variables for
  * this recipient. Returns null when the template row is missing, so callers can
  * fall back to the built-in default. The worker never renders React: the admin
- * pre-compiles `compiled_html` on save via @shipos/emails.
+ * pre-compiles `compiled_html` on save via @betterflag/emails.
  */
 export async function fetchTemplate(
   env: SupabaseEnv,

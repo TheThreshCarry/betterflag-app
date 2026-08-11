@@ -1,5 +1,5 @@
 /**
- * ShipOS brand icon, embedded so the MCP worker can serve it itself.
+ * Betterflag brand icon, embedded so the MCP worker can serve it itself.
  * Claude (and other MCP clients) fetch /favicon.ico from the server origin
  * to render the connector icon; the MCP spec also carries `icons` on the
  * server Implementation info (see agent.ts). Source asset:

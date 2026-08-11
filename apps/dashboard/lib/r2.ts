@@ -1,7 +1,7 @@
 /**
  * Cloudflare R2 helpers for public branding assets (org logos, project pictures).
  * Uses the S3-compatible API. Objects are served from R2_PUBLIC_BASE_URL
- * (e.g. https://media.shipos.app).
+ * (e.g. https://media.betterflag.app).
  *
  * Unset env → throws HttpError 503 so routes can surface a clear message
  * (unlike CF KV helpers which no-op; uploads must fail visibly).

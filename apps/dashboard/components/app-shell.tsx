@@ -50,8 +50,8 @@ export function useApp(): AppContextValue {
   return value;
 }
 
-const ACTIVE_PROJECT_KEY = "shipos.activeProjectId";
-const ACTIVE_ENV_KEY = "shipos.activeEnvSlug";
+const ACTIVE_PROJECT_KEY = "betterflag.activeProjectId";
+const ACTIVE_ENV_KEY = "betterflag.activeEnvSlug";
 const DEFAULT_ENV_SLUG = "dev";
 
 const ENV_ORDER = ["dev", "staging", "prod"] as const;

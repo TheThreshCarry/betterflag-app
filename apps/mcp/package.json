@@ -1,18 +1,18 @@
 {
-  "name": "@shipos/mcp",
+  "name": "@betterflag/mcp",
   "version": "0.6.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy --var SHIPOS_GIT_SHA:$(git rev-parse --short=7 HEAD 2>/dev/null || echo unknown)",
+    "deploy": "wrangler deploy --var BETTERFLAG_GIT_SHA:$(git rev-parse --short=7 HEAD 2>/dev/null || echo unknown)",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@cloudflare/workers-oauth-provider": "^0.8.1",
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "@shipos/core": "workspace:*",
-    "@shipos/observability": "workspace:*",
+    "@betterflag/core": "workspace:*",
+    "@betterflag/observability": "workspace:*",
     "agents": "^0.17.3",
     "zod": "^4.4.3"
   },

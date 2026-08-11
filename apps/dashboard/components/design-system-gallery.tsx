@@ -135,7 +135,7 @@ export function DesignSystemGallery() {
       <main className="mx-auto max-w-5xl space-y-16 px-6 py-10">
         <div>
           <h1 className="text-[36px] font-semibold tracking-[-0.03em]">
-            ShipOS components
+            Betterflag components
           </h1>
           <p className="mt-2 max-w-2xl text-[15px] text-ink-muted">
             Gallery of dashboard primitives — Appica under the DESIGN.md API.
@@ -143,7 +143,7 @@ export function DesignSystemGallery() {
           </p>
         </div>
 
-        <Section id="tokens" title="Tokens" description="ShipOS color + surface language.">
+        <Section id="tokens" title="Tokens" description="Betterflag color + surface language.">
           <Row label="Surfaces">
             {[
               ["canvas", "bg-canvas border border-line"],

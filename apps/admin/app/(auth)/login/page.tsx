@@ -9,7 +9,7 @@ type Busy = "password" | "magic" | null;
 
 /**
  * Team sign-in only. There is no signup here: admins use their existing
- * ShipOS account, and the SHIPOS_ADMIN_EMAILS allowlist decides who gets
+ * Betterflag account, and the BETTERFLAG_ADMIN_EMAILS allowlist decides who gets
  * past the layout gate after authenticating.
  */
 export default function LoginPage() {
@@ -60,7 +60,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-surface px-4">
       <div className="w-full max-w-sm rounded-3xl border border-line bg-white p-8 shadow-[0_12px_48px_rgba(0,0,0,0.06)]">
         <div className="mb-6 flex items-center gap-2">
-          <span className="text-[19px] font-semibold tracking-[-0.02em]">ShipOS</span>
+          <span className="text-[19px] font-semibold tracking-[-0.02em]">Betterflag</span>
           <span className="h-2 w-2 rounded-full bg-chip-orange" aria-hidden />
           <span className="rounded-full bg-ink px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-white">
             Admin
@@ -68,7 +68,7 @@ export default function LoginPage() {
         </div>
 
         <p className="mb-6 text-[14px] text-ink-muted">
-          Team access only. Sign in with your ShipOS account.
+          Team access only. Sign in with your Betterflag account.
         </p>
 
         {magicSent ? (
@@ -85,7 +85,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 className={inputClass}
-                placeholder="you@shipos.app"
+                placeholder="you@betterflag.app"
               />
             </Field>
             <Field label="Password">

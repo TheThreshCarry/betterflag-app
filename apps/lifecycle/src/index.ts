@@ -1,5 +1,5 @@
 /**
- * ShipOS lifecycle worker: the welcome email sequence, built on Cloudflare
+ * Betterflag lifecycle worker: the welcome email sequence, built on Cloudflare
  * Workflows + Cloudflare Email Service (native `send_email` binding).
  *
  * One workflow instance per org (id `welcome-{orgId}`, so re-triggering is
@@ -21,8 +21,8 @@
  * templates in src/emails.ts, both unit-tested without the Workers runtime.
  */
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
-import { orgLogoMergeVars } from "@shipos/emails/runtime";
-import { formatRelease, readObservability } from "@shipos/observability";
+import { orgLogoMergeVars } from "@betterflag/emails/runtime";
+import { formatRelease, readObservability } from "@betterflag/observability";
 
 import {
   agenticEmail,
@@ -72,9 +72,9 @@ export interface LifecycleEnv {
   BETTER_STACK_LOGS_ENDPOINT?: string;
   OTEL_EXPORTER_OTLP_ENDPOINT?: string;
   OTEL_EXPORTER_OTLP_HEADERS?: string;
-  SHIPOS_ENV?: string;
-  SHIPOS_GIT_SHA?: string;
-  SHIPOS_RELEASE?: string;
+  BETTERFLAG_ENV?: string;
+  BETTERFLAG_GIT_SHA?: string;
+  BETTERFLAG_RELEASE?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -214,9 +214,9 @@ const handler = {
       });
     }
 
-    const obs = readObservability(env as unknown as Record<string, unknown>, "shipos-lifecycle", {
-      environment: env.SHIPOS_ENV,
-      release: formatRelease({ version: VERSION, gitSha: env.SHIPOS_GIT_SHA, override: env.SHIPOS_RELEASE }),
+    const obs = readObservability(env as unknown as Record<string, unknown>, "betterflag-lifecycle", {
+      environment: env.BETTERFLAG_ENV,
+      release: formatRelease({ version: VERSION, gitSha: env.BETTERFLAG_GIT_SHA, override: env.BETTERFLAG_RELEASE }),
     });
 
     try {

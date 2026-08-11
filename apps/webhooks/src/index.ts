@@ -1,5 +1,5 @@
 /**
- * ShipOS webhooks worker, receives Polar billing webhooks and syncs each
+ * Betterflag webhooks worker, receives Polar billing webhooks and syncs each
  * subscription's state onto its org.
  *
  * Flow:
@@ -8,7 +8,7 @@
  *      what Polar's SDK `validateEvent` does, implemented here with Web Crypto
  *      so no Node compat / SDK bloat is pulled into the edge).
  *   2. Parse the event; only `subscription.*` events change billing state.
- *   3. Resolve the ShipOS org (subscription metadata `org_id`, else the Polar
+ *   3. Resolve the Betterflag org (subscription metadata `org_id`, else the Polar
  *      customer's `external_id`, else a stored `polar_customer_id`).
  *   4. Persist status + plan + `past_due_since` (set on first past_due, cleared
  *      otherwise). Access on non-payment is DERIVED from this state by
@@ -18,7 +18,7 @@
  * Pure functions are exported and unit-tested; the handler only wires I/O.
  */
 import { createClient } from "@supabase/supabase-js";
-import { formatRelease, readObservability } from "@shipos/observability";
+import { formatRelease, readObservability } from "@betterflag/observability";
 import { VERSION } from "./version.gen";
 import { z } from "zod";
 
@@ -48,11 +48,11 @@ export interface WebhookEnv {
   BETTER_STACK_LOGS_ENDPOINT?: string;
   OTEL_EXPORTER_OTLP_ENDPOINT?: string;
   OTEL_EXPORTER_OTLP_HEADERS?: string;
-  SHIPOS_ENV?: string;
+  BETTERFLAG_ENV?: string;
   /** Deploy-time git commit; appended to VERSION as the release. */
-  SHIPOS_GIT_SHA?: string;
+  BETTERFLAG_GIT_SHA?: string;
   /** Fully-formed release override (wins over VERSION + git sha) if set. */
-  SHIPOS_RELEASE?: string;
+  BETTERFLAG_RELEASE?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -189,7 +189,7 @@ export interface NormalizedSubscription {
   subId: string;
   status: string;
   customerId?: string;
-  /** ShipOS org id from subscription metadata / customer external_id. */
+  /** Betterflag org id from subscription metadata / customer external_id. */
   orgId?: string;
   /** Validated tier from product/subscription metadata, else undefined. */
   planKey?: PaidPlan;
@@ -405,9 +405,9 @@ const handler = {
       return new Response("method not allowed", { status: 405 });
     }
 
-    const obs = readObservability(env as unknown as Record<string, unknown>, "shipos-webhooks", {
-      environment: env.SHIPOS_ENV,
-      release: formatRelease({ version: VERSION, gitSha: env.SHIPOS_GIT_SHA, override: env.SHIPOS_RELEASE }),
+    const obs = readObservability(env as unknown as Record<string, unknown>, "betterflag-webhooks", {
+      environment: env.BETTERFLAG_ENV,
+      release: formatRelease({ version: VERSION, gitSha: env.BETTERFLAG_GIT_SHA, override: env.BETTERFLAG_RELEASE }),
     });
 
     try {

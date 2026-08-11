@@ -141,7 +141,7 @@ async function guardTargetUser(userId: string): Promise<{ email: string | null }
   if (error) throw error;
   if (!data.user) return { ok: false, error: "User not found." };
   if (isAdminEmail(data.user.email)) {
-    return { ok: false, error: "This user is on the ShipOS admin allowlist and cannot be acted on." };
+    return { ok: false, error: "This user is on the Betterflag admin allowlist and cannot be acted on." };
   }
   return { email: data.user.email ?? null };
 }

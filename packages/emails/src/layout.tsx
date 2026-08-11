@@ -1,5 +1,5 @@
 /**
- * The single branded email shell, as a React Email component. Every ShipOS
+ * The single branded email shell, as a React Email component. Every Betterflag
  * transactional email is this Layout wrapping an editable body (rich HTML
  * produced by the admin React Email editor). The chrome — brand lockup, white
  * card, eyebrow, heading, footer — is code so branding stays consistent; the
@@ -38,7 +38,7 @@ export interface EmailLayoutProps {
 }
 
 const FOOTER_NOTE =
-  "You're getting this because you created a ShipOS account. It's a short 3-email onboarding series, then I'll leave your inbox alone. Reply any time, it lands in my actual inbox.";
+  "You're getting this because you created a Betterflag account. It's a short 3-email onboarding series, then I'll leave your inbox alone. Reply any time, it lands in my actual inbox.";
 
 /**
  * Org logo slot uses merge tags so the pre-compiled HTML can show a customer
@@ -81,7 +81,7 @@ export function EmailLayout({ preview, eyebrow, heading, bodyHtml }: EmailLayout
                     color: TOKENS.ink,
                   }}
                 >
-                  ShipOS
+                  Betterflag
                 </span>
               </Column>
               <Column style={{ width: 44, paddingLeft: 14, textAlign: "right" }}>
@@ -147,7 +147,7 @@ export function EmailLayout({ preview, eyebrow, heading, bodyHtml }: EmailLayout
               {FOOTER_NOTE}
             </Text>
             <Text style={{ margin: 0, fontFamily: FONT, fontSize: 12, lineHeight: 1.6, color: TOKENS.faint }}>
-              ShipOS · Feature flags with no seat tax and no MAU bill.
+              Betterflag · Feature flags with no seat tax and no MAU bill.
             </Text>
           </Section>
         </Container>

@@ -1,7 +1,13 @@
 # Copy to `.dev.vars` for local `wrangler dev`; `wrangler secret put` in prod.
 # Logs + OTLP traces share this one source token (→ log↔trace correlation).
-SHIPOS_ENV="development"
-# Better Stack "shipos-ingest" source ingest token (used for BOTH logs and traces)
+BETTERFLAG_ENV="development"
+# Better Stack "betterflag-ingest" source ingest token (used for BOTH logs and traces)
 BETTER_STACK_SOURCE_TOKEN=""
+# Required for config-sync snapshot rebuilds (must match wrangler SUPABASE_URL project)
+SUPABASE_SERVICE_ROLE_KEY=""
+# ClickHouse writes for evaluation analytics
+CLICKHOUSE_URL=""
+CLICKHOUSE_USER=""
+CLICKHOUSE_PASSWORD=""
 # Optional OTEL_EXPORTER_OTLP_ENDPOINT + _HEADERS override routes traces elsewhere
 # (gives up correlation).

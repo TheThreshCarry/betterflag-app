@@ -1,5 +1,5 @@
 /**
- * Admit users to the ShipOS private alpha (public.alpha_allowlist).
+ * Admit users to the Betterflag private alpha (public.alpha_allowlist).
  *
  * Usage (from apps/dashboard):
  *   bun run alpha:admit someone@example.com another@example.com

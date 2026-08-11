@@ -57,7 +57,7 @@ export function Logo({
   );
 
   const icon = asLink ? (
-    <Link href={href} className={cn(logoVariants({ size }))} aria-label="ShipOS home">
+    <Link href={href} className={cn(logoVariants({ size }))} aria-label="Betterflag home">
       {svg}
     </Link>
   ) : (
@@ -79,7 +79,7 @@ export function Logo({
             textClassName,
           )}
         >
-          ShipOS
+          Betterflag
         </span>
       ) : null}
     </div>

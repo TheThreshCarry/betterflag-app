@@ -186,7 +186,7 @@ export function OnboardingFlow({ userEmail }: { userEmail: string | null }) {
       </main>
 
       <footer className="py-8 text-center text-[12px] text-ink-muted">
-        ShipOS @ 2026
+        Betterflag @ 2026
       </footer>
     </div>
   );
@@ -555,10 +555,10 @@ function Checklist({
   );
 
   const elapsed = (firstFlagAtRef.current ?? now) - orgCreatedAt;
-  const edgeUrl = process.env.NEXT_PUBLIC_EDGE_URL ?? "https://edge.shipos.app";
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "https://api.betterflag.app";
   const flagKeyForSnippet = firstFlag?.key ?? (slugifyFlagKey(flagName) || "myfirstflag");
-  const snippet = `curl -X POST ${edgeUrl}/v1/evaluate \\
-  -H "Authorization: Bearer ${sdkKey ?? "sos_sdk_YOUR_KEY"}" \\
+  const snippet = `curl -X POST ${apiUrl}/v1/evaluate \\
+  -H "Authorization: Bearer ${sdkKey ?? "bf_sdk_YOUR_KEY"}" \\
   -H "Content-Type: application/json" \\
   -d '{"key":"${flagKeyForSnippet}","context":{"userId":"u_123"}}'`;
 

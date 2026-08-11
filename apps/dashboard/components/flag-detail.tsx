@@ -5,7 +5,7 @@ import {
   type JsonValue,
   type RuleOperator,
   type TargetingRule,
-} from "@shipos/core";
+} from "@betterflag/core";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQueryStates } from "nuqs";

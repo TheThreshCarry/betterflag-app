@@ -1,8 +1,8 @@
 export {
   createClient,
-  ShipOSClient,
+  BetterFlagClient,
   SDK_VERSION,
-  type ShipOSClientOptions,
+  type BetterFlagClientOptions,
   type FlagOptions,
   type FlagDetailOptions,
 } from "./client";

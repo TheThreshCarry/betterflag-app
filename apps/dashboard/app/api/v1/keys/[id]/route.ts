@@ -1,5 +1,5 @@
-import type { SdkKeyKvEntry } from "@shipos/core";
-import type { ApiKeyRow, EnvironmentRow } from "@shipos/db";
+import type { SdkKeyKvEntry } from "@betterflag/core";
+import type { ApiKeyRow, EnvironmentRow } from "@betterflag/db";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { toApiApiKey } from "@/lib/api-types";

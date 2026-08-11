@@ -1,4 +1,4 @@
--- Billing state synced from Polar webhooks (apps/webhooks → shipos-webhooks).
+-- Billing state synced from Polar webhooks (apps/webhooks → betterflag-webhooks).
 --
 -- `plan` continues to hold the last SUBSCRIBED tier; access on non-payment is
 -- DERIVED at read time from `subscription_status` + `past_due_since` by the

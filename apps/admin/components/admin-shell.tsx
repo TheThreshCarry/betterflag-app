@@ -26,7 +26,7 @@ export function AdminShell({ userEmail, children }: { userEmail: string; childre
     <div className="flex min-h-screen">
       <aside className="fixed inset-y-0 left-0 flex w-60 flex-col border-r border-line bg-surface px-4 py-6">
         <div className="mb-8 flex items-center gap-2 px-2">
-          <span className="text-[17px] font-semibold tracking-[-0.02em]">ShipOS</span>
+          <span className="text-[17px] font-semibold tracking-[-0.02em]">Betterflag</span>
           <span className="h-2 w-2 rounded-full bg-chip-orange" aria-hidden />
           <span className="rounded-full bg-ink px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-white">
             Admin

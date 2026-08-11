@@ -1,5 +1,5 @@
-import { formatApiKey, keyPrefixOf, sha256Hex, type SdkKeyKvEntry } from "@shipos/core";
-import { PLAN_LIMITS, type ApiKeyRow } from "@shipos/db";
+import { formatApiKey, keyPrefixOf, sha256Hex, type SdkKeyKvEntry } from "@betterflag/core";
+import { PLAN_LIMITS, type ApiKeyRow } from "@betterflag/db";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 

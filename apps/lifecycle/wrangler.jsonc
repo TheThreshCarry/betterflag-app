@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "shipos-lifecycle",
+  "name": "betterflag-lifecycle",
   "main": "src/index.ts",
   "compatibility_date": "2026-06-01",
   "observability": {
@@ -14,12 +14,12 @@
   // Welcome email sequence, one instance per org (id `welcome-{orgId}`).
   "workflows": [
     {
-      "name": "shipos-welcome-sequence",
+      "name": "betterflag-welcome-sequence",
       "binding": "WELCOME_SEQUENCE",
       "class_name": "WelcomeSequence"
     }
   ],
-  // Cloudflare Email Service. The shipos.app domain must be onboarded in
+  // Cloudflare Email Service. The betterflag.app domain must be onboarded in
   // dash → Email Sending before deploying (adds SPF/DKIM/DMARC on cf-bounce).
   "send_email": [
     {
@@ -40,7 +40,7 @@
   //   echo <clickhouse password>       | wrangler secret put CLICKHOUSE_PASSWORD
   "vars": {
     "SUPABASE_URL": "https://tnlbktwyrctrxmpoafwb.supabase.co",
-    "SHIPOS_ENV": "production",
+    "BETTERFLAG_ENV": "production",
     "BETTER_STACK_LOGS_ENDPOINT": "https://s2578180.eu-fsn-3.betterstackdata.com"
   }
 }

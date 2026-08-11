@@ -8,7 +8,7 @@
  * `reportServer*`, it mirrors to console and ships to Better Stack without
  * blocking the caller.
  *
- * Env read (see @shipos/observability `readObservability`):
+ * Env read (see @betterflag/observability `readObservability`):
  *   BETTER_STACK_SOURCE_TOKEN, BETTER_STACK_LOGS_ENDPOINT   (logs)
  *   OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_EXPORTER_OTLP_HEADERS  (traces)
  */
@@ -17,14 +17,14 @@ import {
   readObservability,
   type Fields,
   type Observability,
-} from "@shipos/observability";
+} from "@betterflag/observability";
 import { VERSION } from "./version.gen";
 
-const SERVICE = "shipos-dashboard";
+const SERVICE = "betterflag-dashboard";
 
 function environment(): string {
   return (
-    process.env.SHIPOS_ENV ??
+    process.env.BETTERFLAG_ENV ??
     process.env.VERCEL_ENV ??
     process.env.NODE_ENV ??
     "development"
@@ -34,11 +34,11 @@ function environment(): string {
 function release(): string {
   // VERSION (this app's committed semver) + the deploy's git commit, so every
   // log/error/trace traces back to exact code. On Vercel the commit comes from
-  // VERCEL_GIT_COMMIT_SHA; SHIPOS_RELEASE, if set, is used verbatim.
+  // VERCEL_GIT_COMMIT_SHA; BETTERFLAG_RELEASE, if set, is used verbatim.
   return formatRelease({
     version: VERSION,
-    gitSha: process.env.SHIPOS_GIT_SHA ?? process.env.VERCEL_GIT_COMMIT_SHA,
-    override: process.env.SHIPOS_RELEASE,
+    gitSha: process.env.BETTERFLAG_GIT_SHA ?? process.env.VERCEL_GIT_COMMIT_SHA,
+    override: process.env.BETTERFLAG_RELEASE,
   });
 }
 

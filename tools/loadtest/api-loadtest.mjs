@@ -3,7 +3,7 @@
  *
  * Drives POST /v1/evaluate at a series of target RPS stages and records the
  * exact UTC window of each stage so server-side latency can be sliced out of
- * Better Stack afterwards (source `shipos-edge`, field `duration_ms`).
+ * Better Stack afterwards (source `betterflag-api`, field `duration_ms`).
  *
  * Why two latency numbers:
  * - CLIENT latency (measured here) = network RTT from this machine to the
@@ -21,14 +21,14 @@
  * time window in Better Stack.
  *
  * Usage (from repo root):
- *   node --env-file=apps/edge/.dev.vars tools/loadtest/edge-loadtest.mjs
- *   node --env-file=apps/edge/.dev.vars tools/loadtest/edge-loadtest.mjs \
+ *   node --env-file=apps/api/.dev.vars tools/loadtest/api-loadtest.mjs
+ *   node --env-file=apps/api/.dev.vars tools/loadtest/api-loadtest.mjs \
  *     --stages 25:60,50:60,100:60,200:60 --gap 5 --out tools/loadtest/results
  *
  * Env:
- *   SHIPOS_BENCH_SDK_KEY (or SHIPOS_LOADTEST_SDK_KEY / SHIPOS_PROD_SDK_KEY)
- *   SHIPOS_EDGE_URL   default https://edge.shipos.app
- *   SHIPOS_LOADTEST_FLAG_KEY  optional; omit for an all-flags evaluation
+ *   BETTERFLAG_BENCH_SDK_KEY (or BETTERFLAG_LOADTEST_SDK_KEY / BETTERFLAG_PROD_SDK_KEY)
+ *   BETTERFLAG_PUBLIC_API_URL   default https://api.betterflag.app
+ *   BETTERFLAG_LOADTEST_FLAG_KEY  optional; omit for an all-flags evaluation
  *
  * WARNING: this hits PRODUCTION. Every request is a real evaluation: it counts
  * on the billing meter (once per flag returned), emits a ClickHouse event and
@@ -62,11 +62,11 @@ function parseArgs(argv) {
 const args = parseArgs(process.argv.slice(2));
 
 const SDK_KEY =
-  process.env.SHIPOS_LOADTEST_SDK_KEY ??
-  process.env.SHIPOS_BENCH_SDK_KEY ??
-  process.env.SHIPOS_PROD_SDK_KEY;
-const EDGE_URL = process.env.SHIPOS_EDGE_URL ?? "https://edge.shipos.app";
-const FLAG_KEY = process.env.SHIPOS_LOADTEST_FLAG_KEY;
+  process.env.BETTERFLAG_LOADTEST_SDK_KEY ??
+  process.env.BETTERFLAG_BENCH_SDK_KEY ??
+  process.env.BETTERFLAG_PROD_SDK_KEY;
+const EDGE_URL = process.env.BETTERFLAG_PUBLIC_API_URL ?? "https://api.betterflag.app";
+const FLAG_KEY = process.env.BETTERFLAG_LOADTEST_FLAG_KEY;
 const OUT_DIR = args.out ?? "tools/loadtest/results";
 const GAP_SECONDS = Number(args.gap ?? 5);
 /** Per-request timeout. A hung connection must never stall the whole run. */
@@ -94,12 +94,12 @@ function parseStages(spec) {
 const STAGES = parseStages(args.stages ?? "25:60,50:60,100:60,200:60");
 
 if (SDK_KEY === undefined || SDK_KEY === "") {
-  console.error("missing SDK key: set SHIPOS_BENCH_SDK_KEY (or SHIPOS_LOADTEST_SDK_KEY)");
+  console.error("missing SDK key: set BETTERFLAG_BENCH_SDK_KEY (or BETTERFLAG_LOADTEST_SDK_KEY)");
   process.exit(1);
 }
 
 // ---------------------------------------------------------------------------
-// Percentiles (nearest-rank, matches apps/edge/test-prod/prod-latency.test.ts)
+// Percentiles (nearest-rank, matches apps/api/test-prod/prod-latency.test.ts)
 // ---------------------------------------------------------------------------
 
 export function percentile(sortedMs, q) {
@@ -142,7 +142,7 @@ async function evaluateOnce(userId, stage, state) {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${SDK_KEY}`,
-        "X-ShipOS-SDK": "loadtest/1.0",
+        "X-Betterflag-SDK": "loadtest/1.0",
       },
       body: BODY.replace("__USER__", userId),
       // Without this, one connection that never settles pins in-flight above
@@ -192,7 +192,7 @@ async function main() {
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${SDK_KEY}`,
-      "X-ShipOS-SDK": "loadtest/1.0",
+      "X-Betterflag-SDK": "loadtest/1.0",
     },
     body: JSON.stringify({ context: { userId: "smoke" } }),
   });
@@ -303,10 +303,10 @@ async function main() {
   const flagsPerRequest = state.flagsPerRequest ?? 0;
 
   const report = {
-    tool: "edge-loadtest",
+    tool: "api-loadtest",
     generatedAt: runEndedAt,
     target: {
-      edge_url: EDGE_URL,
+      api_url: EDGE_URL,
       flag_key: FLAG_KEY ?? null,
       mode: FLAG_KEY === undefined ? "all-flags" : "single-flag",
       flags_per_request: flagsPerRequest,

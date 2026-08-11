@@ -5,7 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * ShipOS design tokens (DESIGN.md): warm paper canvas, charcoal ink,
+ * Betterflag design tokens (DESIGN.md): warm paper canvas, charcoal ink,
  * color only via chips. Same palette as the dashboard app.
  */
 @theme {
@@ -50,7 +50,7 @@
     @apply bg-background text-foreground;
   }
 
-  /* Scrollbars — ShipOS line / line-strong (light + dark). */
+  /* Scrollbars — Betterflag line / line-strong (light + dark). */
   *::-webkit-scrollbar {
     width: 10px;
     height: 10px;
@@ -147,7 +147,7 @@
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
-  /* Chart hues map to the ShipOS chips: blue is the workhorse series color,
+  /* Chart hues map to the Betterflag chips: blue is the workhorse series color,
      green/orange/pink appear only with visible labels beside them. */
   --chart-1: #0067f4;
   --chart-2: #00bc72;

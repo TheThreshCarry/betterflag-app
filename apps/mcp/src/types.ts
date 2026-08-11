@@ -1,5 +1,5 @@
 /**
- * Shared types for the ShipOS MCP server.
+ * Shared types for the Betterflag MCP server.
  *
  * The control-plane response shapes are documented at the endpoint level in
  * docs/CONTRACTS.md but not field-by-field, so the API-side interfaces below
@@ -7,15 +7,15 @@
  * through the accessor helpers in api.ts.
  */
 import type { OAuthHelpers } from "@cloudflare/workers-oauth-provider";
-import type { JsonValue, TargetingRule } from "@shipos/core";
-import type { Observability } from "@shipos/observability";
+import type { JsonValue, TargetingRule } from "@betterflag/core";
+import type { Observability } from "@betterflag/observability";
 
 /** Worker environment (bindings + vars from wrangler.jsonc). */
 export interface Env {
-  /** Control-plane origin, e.g. https://app.shipos.app (no trailing slash). */
-  SHIPOS_API_URL: string;
+  /** Control-plane origin, e.g. https://app.betterflag.app (no trailing slash). */
+  BETTERFLAG_API_URL: string;
   /** Dashboard origin hosting the OAuth consent screen (no trailing slash). */
-  SHIPOS_DASHBOARD_URL: string;
+  BETTERFLAG_DASHBOARD_URL: string;
   MCP_OBJECT: DurableObjectNamespace;
   /** Token/grant/client storage for @cloudflare/workers-oauth-provider. */
   OAUTH_KV: KVNamespace;
@@ -35,18 +35,18 @@ export interface Env {
   BETTER_STACK_LOGS_ENDPOINT?: string;
   OTEL_EXPORTER_OTLP_ENDPOINT?: string;
   OTEL_EXPORTER_OTLP_HEADERS?: string;
-  SHIPOS_ENV?: string;
+  BETTERFLAG_ENV?: string;
   /** Deploy-time git commit; appended to VERSION as the release. */
-  SHIPOS_GIT_SHA?: string;
+  BETTERFLAG_GIT_SHA?: string;
   /** Fully-formed release override (wins over VERSION + git sha) if set. */
-  SHIPOS_RELEASE?: string;
+  BETTERFLAG_RELEASE?: string;
 }
 
 /**
  * Per-session props handed to the McpAgent via `ctx.props`, set directly by
  * the Worker fetch handler on the legacy bearer path, or decrypted from the
- * OAuth grant by workers-oauth-provider. Holds the caller's ShipOS key
- * (for OAuth grants, the per-connection sos_agt_ key minted at consent);
+ * OAuth grant by workers-oauth-provider. Holds the caller's Betterflag key
+ * (for OAuth grants, the per-connection bf_agt_ key minted at consent);
  * never logged.
  */
 export type SessionProps = {

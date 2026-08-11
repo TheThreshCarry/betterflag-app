@@ -1,5 +1,5 @@
 /**
- * ShipOS email design tokens. Mirrors apps/dashboard/app/globals.css and the
+ * Betterflag email design tokens. Mirrors apps/dashboard/app/globals.css and the
  * original hand-rolled templates so the React Email output stays pixel-faithful
  * to what customers already receive.
  */
@@ -22,9 +22,9 @@ export const FONT =
 export const MONO =
   "ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace";
 
-export const APP_URL = "https://app.shipos.app";
+export const APP_URL = "https://app.betterflag.app";
 
 export const FROM_ADDRESS = {
-  email: "hi@shipos.app",
-  name: "Mehdi from ShipOS",
+  email: "hi@betterflag.app",
+  name: "Mehdi from Betterflag",
 } as const;

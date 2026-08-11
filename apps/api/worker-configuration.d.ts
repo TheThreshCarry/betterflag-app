@@ -7,11 +7,11 @@ interface __BaseEnv_Env {
 	EVENTS: Queue;
 	BETTER_STACK_LOGS_ENDPOINT: "https://s2578178.eu-fsn-3.betterstackdata.com";
 	ANALYTICS_AE_ENABLED: "true";
-	SHIPOS_ENV: string;
+	BETTERFLAG_ENV: string;
 	BETTER_STACK_SOURCE_TOKEN: string;
-	SHIPOS_PROD_SDK_KEY: string;
-	SHIPOS_BENCH_FLAG_KEY: string;
-	SHIPOS_EDGE_URL: string;
+	BETTERFLAG_PROD_SDK_KEY: string;
+	BETTERFLAG_BENCH_FLAG_KEY: string;
+	BETTERFLAG_PUBLIC_API_URL: string;
 }
 declare namespace Cloudflare {
 	interface GlobalProps {

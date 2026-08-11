@@ -1,5 +1,5 @@
 /**
- * @shipos/emails — the single source of truth for ShipOS transactional email.
+ * @betterflag/emails — the single source of truth for Betterflag transactional email.
  *
  * - <EmailLayout/>: the branded React Email shell (design system as code).
  * - templates: default (seed) content for each transactional email, with an
@@ -8,7 +8,7 @@
  * - vars: merge-tag substitution shared with the workers.
  *
  * Node consumers (admin, seed script) import from here. Workers import the
- * lean, React-free surface from "@shipos/emails/runtime".
+ * lean, React-free surface from "@betterflag/emails/runtime".
  */
 export { EmailLayout, type EmailLayoutProps } from "./layout";
 export * from "./blocks";

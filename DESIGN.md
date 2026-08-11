@@ -1,8 +1,8 @@
-# ShipOS Design System
+# Betterflag Design System
 
 ## Overview
 
-ShipOS's marketing surface is a **warm paper canvas**, white page background with large warm-gray panels (`{colors.surface-warm}` #F6F5F3) that carry sections, mockups, and the closing CTA. Ink is near-black charcoal (`{colors.ink}` #171717); the primary CTA is a **dark charcoal button**, not a colored one.
+Betterflag's marketing surface is a **warm paper canvas**, white page background with large warm-gray panels (`{colors.surface-warm}` #F6F5F3) that carry sections, mockups, and the closing CTA. Ink is near-black charcoal (`{colors.ink}` #171717); the primary CTA is a **dark charcoal button**, not a colored one.
 
 Color arrives through **small multicolor category chips**, pill badges with pastel tinted backgrounds and saturated text (blue, pink, green, orange, gray) used to tag capabilities in the hero and feature rows. Semantic green (`{colors.success}` #00BC72) marks checkmarks and "Included" cells; semantic red/pink (`{colors.error}` #FF2C5F) marks X-marks and "Before" pains. Brand orange (`{colors.brand}` #FF5A1A) is reserved for brand moments: live-status dots, the "Most popular" pricing accent, alpha-discount callouts.
 
@@ -125,7 +125,7 @@ Squircle corner-shape + antialiased smoothing applied globally in `globals.css`.
 
 **`before-after-card`**, Paired cards: red ✕ list ("Before") and green ✓ list ("After") with red/green heading labels.
 
-**`comparison-table`**, Feature rows with chip-tagged feature names; ShipOS column green "Included" checks; competitor column muted gray text/prices.
+**`comparison-table`**, Feature rows with chip-tagged feature names; Betterflag column green "Included" checks; competitor column muted gray text/prices.
 
 **`step-list`**, Numbered circle + title + body rows, used beside a mockup panel.
 

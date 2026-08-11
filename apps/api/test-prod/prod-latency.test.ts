@@ -1,20 +1,20 @@
 /**
- * Production smoke + latency test for the edge evaluation API.
+ * Production smoke + latency test for the evaluation API.
  *
- * Hits the REAL production edge (or SHIPOS_EDGE_URL) with a REAL SDK key,
+ * Hits the REAL production edge (or BETTERFLAG_PUBLIC_API_URL) with a REAL SDK key,
  * verifies the response contract, and reports latency percentiles (P50
  * highlighted) for POST /v1/evaluate as observed from this machine.
  *
- *   SHIPOS_PROD_SDK_KEY=sos_sdk_... bun run test:prod
+ *   BETTERFLAG_PROD_SDK_KEY=bf_sdk_... bun run test:prod
  *
  * Environment:
- * - SHIPOS_PROD_SDK_KEY   required, suite is skipped without it (so this
+ * - BETTERFLAG_PROD_SDK_KEY   required, suite is skipped without it (so this
  *                         never runs accidentally in CI or `vitest run`)
- * - SHIPOS_EDGE_URL       default https://edge.shipos.app
- * - SHIPOS_BENCH_FLAG_KEY optional; a single flag key to evaluate.
+ * - BETTERFLAG_PUBLIC_API_URL       default https://api.betterflag.app
+ * - BETTERFLAG_BENCH_FLAG_KEY optional; a single flag key to evaluate.
  *                         Omitted = all-flags evaluation.
- * - SHIPOS_BENCH_SAMPLES  default 100 measured requests (after 5 warmups)
- * - SHIPOS_P50_BUDGET_MS  optional; when set, the test FAILS if P50 exceeds
+ * - BETTERFLAG_BENCH_SAMPLES  default 100 measured requests (after 5 warmups)
+ * - BETTERFLAG_P50_BUDGET_MS  optional; when set, the test FAILS if P50 exceeds
  *                         it. Unset = report-only (network distance from the
  *                         machine running this dominates, so a hard default
  *                         would be flaky across locations).
@@ -31,20 +31,20 @@
 
 import { describe, expect, it } from "vitest";
 import dotenv from "dotenv";
-// Local .env (apps/edge/.env) first, monorepo root .env as fallback.
+// Local .env (apps/api/.env) first, monorepo root .env as fallback.
 // dotenv never overrides variables that are already set, so an inline
-// SHIPOS_PROD_SDK_KEY=... on the command line always wins.
+// BETTERFLAG_PROD_SDK_KEY=... on the command line always wins.
 
 dotenv.config({ path: new URL("../.dev.vars", import.meta.url).pathname });
 
-const SDK_KEY = process.env.SHIPOS_PROD_SDK_KEY;
-const EDGE_URL = process.env.SHIPOS_EDGE_URL ?? "https://edge.shipos.app";
-const FLAG_KEY = process.env.SHIPOS_BENCH_FLAG_KEY;
-const SAMPLES = Number(process.env.SHIPOS_BENCH_SAMPLES ?? 100);
+const SDK_KEY = process.env.BETTERFLAG_PROD_SDK_KEY;
+const EDGE_URL = process.env.BETTERFLAG_PUBLIC_API_URL ?? "https://api.betterflag.app";
+const FLAG_KEY = process.env.BETTERFLAG_BENCH_FLAG_KEY;
+const SAMPLES = Number(process.env.BETTERFLAG_BENCH_SAMPLES ?? 100);
 const WARMUPS = 5;
 const P50_BUDGET_MS =
-  process.env.SHIPOS_P50_BUDGET_MS !== undefined
-    ? Number(process.env.SHIPOS_P50_BUDGET_MS)
+  process.env.BETTERFLAG_P50_BUDGET_MS !== undefined
+    ? Number(process.env.BETTERFLAG_P50_BUDGET_MS)
     : undefined;
 
 interface EvaluationResultShape {
@@ -82,7 +82,7 @@ async function evaluateOnce(userId: string): Promise<{
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${SDK_KEY}`,
-      "X-ShipOS-SDK": "bench/1.0",
+      "X-Betterflag-SDK": "bench/1.0",
     },
     body: JSON.stringify(payload),
   });

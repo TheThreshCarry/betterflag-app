@@ -2,7 +2,7 @@
  * Human/agent-readable rendering of control-plane resources.
  * Compact, deterministic text, no markdown tables, no giant JSON dumps.
  */
-import type { TargetingRule } from "@shipos/core";
+import type { TargetingRule } from "@betterflag/core";
 import { configsOf, isKilled, rolloutPctOf } from "./api";
 import type { AuditEntry, Flag, FlagConfig, StatsRow } from "./types";
 

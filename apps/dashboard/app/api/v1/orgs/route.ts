@@ -4,7 +4,7 @@
  * org insert + owner membership + audit with the service client.
  */
 
-import type { OrgMemberRow, OrgRow } from "@shipos/db";
+import type { OrgMemberRow, OrgRow } from "@betterflag/db";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
@@ -96,7 +96,7 @@ export const POST = withErrors(async (request: NextRequest) => {
     throw new HttpError(
       403,
       "alpha_access_required",
-      "ShipOS is in private alpha; this email hasn't been admitted yet",
+      "Betterflag is in private alpha; this email hasn't been admitted yet",
     );
   }
 

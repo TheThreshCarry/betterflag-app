@@ -103,7 +103,7 @@ class LoggerImpl implements Logger {
     if (LEVEL_ORDER[level] < this.sink.minLevel) return;
     const merged: Fields = { ...this.sink.base, ...this.fields, ...normalizeFields(fields) };
     if (this.sink.console) {
-      consoleFor(level)(`[${String(merged["service"] ?? "shipos")}] ${message}`, merged);
+      consoleFor(level)(`[${String(merged["service"] ?? "betterflag")}] ${message}`, merged);
     }
     if (this.sink.enabled) {
       this.sink.buffer.push({ dt: new Date().toISOString(), level, message, ...merged });

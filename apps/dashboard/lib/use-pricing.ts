@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import type { OrgPlan } from "@shipos/db";
+import type { OrgPlan } from "@betterflag/db";
 
 import type { PlanKey, PricingTier } from "@/lib/pricing-config";
 

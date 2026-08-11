@@ -1,8 +1,8 @@
 # Observability (Better Stack)
 
-ShipOS ships **structured logs**, **error capture**, and **OTLP performance
+Betterflag ships **structured logs**, **error capture**, and **OTLP performance
 traces** from every service to [Better Stack](https://betterstack.com). All of
-it goes through one small, dependency-free package, `@shipos/observability` -
+it goes through one small, dependency-free package, `@betterflag/observability` -
 that runs unchanged in Cloudflare Workers and in the Node (Next.js) dashboard.
 
 Telemetry is **always best-effort**: every log is also mirrored to `console.*`
@@ -20,10 +20,10 @@ needs for **one-click log↔trace correlation**.
 
 | Service | Better Stack source | ID | Ingest host (logs + `/v1/traces`) |
 |---|---|---|---|
-| Edge worker | `shipos-edge` | 2578178 | `s2578178.eu-fsn-3.betterstackdata.com` |
-| Ingest worker | `shipos-ingest` | 2578180 | `s2578180.eu-fsn-3.betterstackdata.com` |
-| MCP worker | `shipos-mcp` | 2578182 | `s2578182.eu-fsn-3.betterstackdata.com` |
-| Dashboard | `shipos-dashboard` | 2578184 | `s2578184.eu-fsn-3.betterstackdata.com` |
+| API worker | `betterflag-api` | 2578178 | `s2578178.eu-fsn-3.betterstackdata.com` |
+| Ingest worker | `betterflag-ingest` | 2578180 | `s2578180.eu-fsn-3.betterstackdata.com` |
+| MCP worker | `betterflag-mcp` | 2578182 | `s2578182.eu-fsn-3.betterstackdata.com` |
+| Dashboard | `betterflag-dashboard` | 2578184 | `s2578184.eu-fsn-3.betterstackdata.com` |
 
 Each source has one ingest token used for **both** logs and traces. Tokens are
 **not** committed, they live in each worker's `.dev.vars` (gitignored) for local
@@ -44,12 +44,12 @@ dashboard.
 > and ingest workers communicate asynchronously over queues, there's no
 > cross-service trace context to preserve, so per-service is the right default.
 
-## The package: `@shipos/observability`
+## The package: `@betterflag/observability`
 
 ```ts
-import { readObservability } from "@shipos/observability";
+import { readObservability } from "@betterflag/observability";
 
-const obs = readObservability(env, "shipos-edge"); // reads BETTER_STACK_* / OTEL_*
+const obs = readObservability(env, "betterflag-api"); // reads BETTER_STACK_* / OTEL_*
 const log = obs.logger.child({ request_id });
 const span = obs.tracer.startSpan("GET /v1/evaluate", { kind: "server" });
 
@@ -75,7 +75,7 @@ obs.flushTo(ctx.waitUntil.bind(ctx)); // Workers: ship without blocking
 
 ## What's instrumented
 
-- **Edge worker** (`apps/edge`), root server span per request with child spans
+- **API worker** (`apps/api`), root server span per request with child spans
   for `authenticate`, `load_snapshot`, `evaluate`; structured request log with
   status + `duration_ms`; warnings for unauthorized, bad body, and snapshot
   misses; errors for event-publish failures. Logs/spans flush via `waitUntil`.
@@ -103,20 +103,20 @@ Env keys (see `.env.example` and `apps/*/.dev.vars.example`):
 |---|---|---|
 | `BETTER_STACK_SOURCE_TOKEN` | per service, used for **logs and traces** | **yes** |
 | `BETTER_STACK_LOGS_ENDPOINT` | per service (ingest host) | no (host only) |
-| `SHIPOS_ENV` | all (`deployment.environment`) | no |
-| `SHIPOS_RELEASE` | all, optional (`service.version`) | no |
+| `BETTERFLAG_ENV` | all (`deployment.environment`) | no |
+| `BETTERFLAG_RELEASE` | all, optional (`service.version`) | no |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` / `_HEADERS` | optional trace-routing override only |, |
 
 Workers: non-secret endpoints are committed in each `wrangler.jsonc` `vars`.
 Set the one secret per worker in production:
 
 ```sh
-# from apps/edge (repeat in apps/ingest, apps/mcp with each source's token)
-echo "<shipos-edge source token>" | wrangler secret put BETTER_STACK_SOURCE_TOKEN
+# from apps/api (repeat in apps/ingest, apps/mcp with each source's token)
+echo "<betterflag-api source token>" | wrangler secret put BETTER_STACK_SOURCE_TOKEN
 ```
 
 Dashboard: set `BETTER_STACK_SOURCE_TOKEN`, `BETTER_STACK_LOGS_ENDPOINT`, and
-`SHIPOS_ENV` in the Vercel project (already in local `.env`).
+`BETTERFLAG_ENV` in the Vercel project (already in local `.env`).
 
 Local dev reads `apps/*/.dev.vars` (workers) and `.env` (dashboard). With none
 of it set, everything logs to the console only. Do **not** set `OTEL_*` unless

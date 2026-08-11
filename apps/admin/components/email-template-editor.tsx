@@ -1,7 +1,7 @@
 "use client";
 
 import { EmailEditor, type EmailEditorRef } from "@react-email/editor";
-import type { EmailTemplateKey, EmailVariable } from "@shipos/emails";
+import type { EmailTemplateKey, EmailVariable } from "@betterflag/emails";
 import { useRef, useState, useTransition } from "react";
 
 import { previewEmailTemplate, saveEmailTemplate } from "@/lib/email-actions";

@@ -68,7 +68,7 @@ describe("mapPolarProductToTier edge cases", () => {
     ],
   };
 
-  it("skips products without a ShipOS plan_key", () => {
+  it("skips products without a Betterflag plan_key", () => {
     expect(mapPolarProductToTier({ id: "x", name: "Random", metadata: {} })).toBeNull();
     expect(
       mapPolarProductToTier({ id: "x", name: "Random", metadata: { plan_key: "enterprise" } }),

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { hashUserId } from "@shipos/core";
-import type { EvaluationEvent, EvaluationResult } from "@shipos/core";
+import { hashUserId } from "@betterflag/core";
+import type { EvaluationEvent, EvaluationResult } from "@betterflag/core";
 import {
   AE_MAX_POINTS_PER_INVOCATION,
   AE_ROLLUP_FLAG_KEY,
@@ -75,7 +75,7 @@ describe("POST /v1/evaluate, auth", () => {
   it("rejects an unknown key (no KV entry)", async () => {
     const kv = await standardKv();
     const res = await handleRequest(
-      evaluateRequest({ token: `sos_sdk_${"f".repeat(40)}`, body: {} }),
+      evaluateRequest({ token: `bf_sdk_${"f".repeat(40)}`, body: {} }),
       { CONFIG_KV: kv, EVENTS: fakeQueue() },
       fakeCtx(),
     );
@@ -467,7 +467,7 @@ describe("POST /v1/evaluate, Analytics Engine dual-write (ITR-62)", () => {
 describe("CORS and routing", () => {
   it("answers OPTIONS preflight with full CORS headers", async () => {
     const res = await handleRequest(
-      new Request("https://edge.shipos.app/v1/evaluate", { method: "OPTIONS" }),
+      new Request("https://api.betterflag.app/v1/evaluate", { method: "OPTIONS" }),
       { CONFIG_KV: await standardKv(), EVENTS: fakeQueue() },
       fakeCtx(),
     );
@@ -475,14 +475,14 @@ describe("CORS and routing", () => {
     expect(res.headers.get("Access-Control-Allow-Origin")).toBe("*");
     expect(res.headers.get("Access-Control-Allow-Methods")).toBe("GET, POST, OPTIONS");
     expect(res.headers.get("Access-Control-Allow-Headers")).toBe(
-      "authorization, content-type, x-shipos-sdk",
+      "authorization, content-type, x-betterflag-sdk",
     );
     expect(res.headers.get("Access-Control-Max-Age")).toBe("86400");
   });
 
   it("returns 404 JSON for unknown routes", async () => {
     const res = await handleRequest(
-      new Request("https://edge.shipos.app/nope", { method: "GET" }),
+      new Request("https://api.betterflag.app/nope", { method: "GET" }),
       { CONFIG_KV: await standardKv(), EVENTS: fakeQueue() },
       fakeCtx(),
     );

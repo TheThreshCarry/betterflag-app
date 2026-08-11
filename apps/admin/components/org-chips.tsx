@@ -1,4 +1,4 @@
-import type { OrgPlan, OrgRow } from "@shipos/db";
+import type { OrgPlan, OrgRow } from "@betterflag/db";
 
 import { Chip, type ChipColor } from "@/components/ui";
 

@@ -1,6 +1,6 @@
-# @shipos/db
+# @betterflag/db
 
-Supabase migrations + row types for the ShipOS control plane.
+Supabase migrations + row types for the Betterflag control plane.
 
 ## Apply
 

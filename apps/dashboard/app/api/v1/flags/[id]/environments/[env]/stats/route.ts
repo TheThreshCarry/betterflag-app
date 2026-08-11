@@ -1,4 +1,4 @@
-import { ANALYTICS_RETENTION_DAYS } from "@shipos/db";
+import { ANALYTICS_RETENTION_DAYS } from "@betterflag/db";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 

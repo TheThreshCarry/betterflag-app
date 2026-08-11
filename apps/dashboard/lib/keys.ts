@@ -1,4 +1,4 @@
-import type { ApiKeyRow } from "@shipos/db";
+import type { ApiKeyRow } from "@betterflag/db";
 import type { NextRequest } from "next/server";
 
 import { toApiApiKey, type ApiApiKey } from "@/lib/api-types";

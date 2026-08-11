@@ -2,7 +2,7 @@
 
 import { CountryFlagRounded } from "@appica/country-flags-react";
 import { useTheme } from "@appica/ui-react/hooks/use-theme";
-import { ANALYTICS_RETENTION_DAYS } from "@shipos/db";
+import { ANALYTICS_RETENTION_DAYS } from "@betterflag/db";
 import { ArrowLeft, ChevronDown } from "lucide-react";
 import { useQueryStates } from "nuqs";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";

@@ -1,0 +1,10 @@
+# Copy to `.dev.vars` for local `wrangler dev`; `wrangler secret put` in prod.
+BETTERFLAG_ENV="development"
+LIFECYCLE_SECRET=""
+SUPABASE_SERVICE_ROLE_KEY=""
+# Optional Better Stack "betterflag-lifecycle" source token (logs + traces).
+BETTER_STACK_SOURCE_TOKEN=""
+# Optional ClickHouse (day-10 upsell email); omit to use generic trial copy.
+# CLICKHOUSE_URL=
+# CLICKHOUSE_USER=
+# CLICKHOUSE_PASSWORD=

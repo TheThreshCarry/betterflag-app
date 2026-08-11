@@ -73,8 +73,8 @@ describe("template registry", () => {
 describe("compile (React Email layout)", () => {
   it("wraps the body in the branded layout and preserves merge tags", async () => {
     const compiled = await compileTemplate(TEMPLATE_SEEDS.welcome);
-    expect(compiled.subject).toContain("Welcome to ShipOS");
-    expect(compiled.html).toContain("ShipOS"); // brand lockup + footer
+    expect(compiled.subject).toContain("Welcome to Betterflag");
+    expect(compiled.html).toContain("Betterflag"); // brand lockup + footer
     expect(compiled.html).toContain("{{orgName}}"); // tag survives rendering
     expect(compiled.html).toContain("{{orgLogoUrl}}");
     expect(compiled.html).toContain("{{orgLogoDisplay}}");

@@ -3,7 +3,7 @@
  * DELETE /api/v1/projects/:id/picture — clear project picture.
  * Session-only; owner/admin + assertOrgWritable.
  */
-import type { OrgMemberRow, ProjectRow } from "@shipos/db";
+import type { OrgMemberRow, ProjectRow } from "@betterflag/db";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { toApiProject } from "@/lib/api-types";

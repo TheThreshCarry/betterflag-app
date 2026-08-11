@@ -4,7 +4,7 @@
  * Config version history for one flag + env, derived from audit_log
  * (flag.config.update / flag.kill — each bumps version).
  */
-import type { AuditLogRow } from "@shipos/db";
+import type { AuditLogRow } from "@betterflag/db";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 

@@ -1,4 +1,4 @@
-import type { AuditLogRow } from "@shipos/db";
+import type { AuditLogRow } from "@betterflag/db";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 

@@ -3,7 +3,7 @@
  * DELETE /api/v1/orgs/:id/logo — clear org logo.
  * Session-only; owner/admin + assertOrgWritable.
  */
-import type { OrgMemberRow, OrgRow } from "@shipos/db";
+import type { OrgMemberRow, OrgRow } from "@betterflag/db";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { toApiOrg } from "@/lib/api-types";

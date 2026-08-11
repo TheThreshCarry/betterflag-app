@@ -1,5 +1,5 @@
-import { flagKeySchema } from "@shipos/core";
-import type { FlagRow } from "@shipos/db";
+import { flagKeySchema } from "@betterflag/core";
+import type { FlagRow } from "@betterflag/db";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 

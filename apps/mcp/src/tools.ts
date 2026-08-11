@@ -1,5 +1,5 @@
 /**
- * The ShipOS MCP tool surface. Tool names are PUBLIC PRODUCT API, do not
+ * The Betterflag MCP tool surface. Tool names are PUBLIC PRODUCT API, do not
  * rename. Every tool is a thin wrapper over the control-plane REST API
  * (docs/CONTRACTS.md); a valid agent/admin key executes mutations directly.
  */
@@ -83,7 +83,7 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
     {
       title: "List feature flags",
       description:
-        "List every feature flag in a ShipOS project with its per-environment state " +
+        "List every feature flag in a Betterflag project with its per-environment state " +
         "(✅ on / ⬜ off / 🔴 killed) and rollout percentage.",
       inputSchema: { projectSlug: projectSlugParam },
     },
@@ -174,7 +174,7 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
           "All environments start OFF, toggle_flag turns it on, set_rollout ramps it gradually.",
           "",
           "Ready to paste into your code:",
-          `  const on = await shipos.flag("${key}", { userId, default: false });`,
+          `  const on = await betterflag.flag("${key}", { userId, default: false });`,
         ].join("\n");
       }),
   );
@@ -328,7 +328,7 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
     },
     async ({ projectSlug, key, env, rules }) =>
       run(async () => {
-        // Belt-and-braces: mirror @shipos/core validation so agents get
+        // Belt-and-braces: mirror @betterflag/core validation so agents get
         // instant, precise feedback before anything hits the API.
         const parsed = targetingRulesSchema.safeParse(rules);
         if (!parsed.success) {
@@ -440,7 +440,7 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
           return `Stats for "${key}" in ${env} (${p}), raw response:\n${JSON.stringify(payload, null, 2)}`;
         }
         if (rows.length === 0) {
-          return `No evaluations recorded for "${key}" in ${env} over the last ${p}. Is the SDK deployed and calling shipos.flag("${key}", …)?`;
+          return `No evaluations recorded for "${key}" in ${env} over the last ${p}. Is the SDK deployed and calling betterflag.flag("${key}", …)?`;
         }
         const lines = [`Evaluations for "${key}" in ${env}, last ${p}:`, "", statsTable(rows)];
         const countries = pluckArray<{ country?: string; evaluations?: number }>(payload, [

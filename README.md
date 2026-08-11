@@ -1,4 +1,4 @@
-# ShipOS
+# Betterflag
 
 Feature flags with **no seat tax and no MAU bill**, unlimited flags, seats
 and environments, one meter (flag evaluations), served from Cloudflare's edge
@@ -12,14 +12,14 @@ interface; the dashboard is the observation layer.
 | Workspace | What it is |
 |---|---|
 | [apps/dashboard](apps/dashboard) | Next.js control plane, auth, dashboard UI, and the `/api/v1` REST API every surface (UI, MCP, agents) goes through |
-| [apps/edge](apps/edge) | Cloudflare Worker at `edge.shipos.app`, flag evaluation from KV snapshots, no DB on the hot path |
+| [apps/api](apps/api) | Cloudflare Worker at `api.betterflag.app`, flag evaluation from KV snapshots, no DB on the hot path |
 | [apps/ingest](apps/ingest) | Cloudflare Worker, Queues consumers: evaluation events → ClickHouse, config-sync → KV snapshots |
-| [apps/mcp](apps/mcp) | Cloudflare Worker at `mcp.shipos.app`, MCP server wrapping the REST API with agent-scoped keys |
+| [apps/mcp](apps/mcp) | Cloudflare Worker at `mcp.betterflag.app`, MCP server wrapping the REST API with agent-scoped keys |
 | [apps/lifecycle](apps/lifecycle) | Cloudflare Worker, welcome email sequence on Workflows + Email Service (day 0 / 3 / 10) |
 | [packages/core](packages/core) | Pure evaluation engine (murmur3 bucketing, targeting rules) shared by edge + SDKs, never forked |
 | [packages/db](packages/db) | Supabase migrations, RLS, audit function, atomic RPCs, row types |
-| [packages/sdk-js](packages/sdk-js) | `shipos`, Node + browser SDK (MIT) |
-| [packages/sdk-react](packages/sdk-react) | `shipos-react`, provider + `useFlag` (MIT) |
+| [packages/sdk-js](packages/sdk-js) | `betterflag`, Node + browser SDK (MIT) |
+| [packages/sdk-react](packages/sdk-react) | `@betterflag/react`, provider + `useFlag` (MIT) |
 
 ## Architecture
 
@@ -29,7 +29,7 @@ Two planes, strictly separated:
   targeting rules, keys, audit log. Every mutation goes
   through `/api/v1` → an atomic Postgres RPC (mutation + audit in one
   transaction) → a config-sync enqueue. Nothing bypasses audit.
-- **Data plane** (Cloudflare): the edge worker evaluates flags from a
+- **Data plane** (Cloudflare): the API worker evaluates flags from a
   denormalized KV snapshot (`cfg:{projectId}:{env}`) and emits events to
   Queues; the ingest worker lands them in ClickHouse. The same events are
   dual-written to Workers Analytics Engine while the ITR-62 migration is in
@@ -46,7 +46,7 @@ in [docs/openapi.yaml](docs/openapi.yaml).
 pnpm install
 pnpm test          # engine + worker + SDK tests
 pnpm typecheck     # all workspaces
-pnpm --filter @shipos/dashboard dev
+pnpm --filter @betterflag/dashboard dev
 ```
 
 Copy `.env.example` → `apps/dashboard/.env.local` and fill in Supabase +
@@ -59,13 +59,13 @@ supabase db push
 ```
 
 Workers deploy per app with `wrangler deploy` after creating the KV namespace
-(`shipos-config`) and queues (`shipos-events`, `shipos-events-dlq`,
-`shipos-config-sync`); ClickHouse DDL lives in
+(`betterflag-config`) and queues (`betterflag-events`, `betterflag-events-dlq`,
+`betterflag-config-sync`); ClickHouse DDL lives in
 [apps/ingest/clickhouse/schema.sql](apps/ingest/clickhouse/schema.sql).
 
 ## Invariants (do not break)
 
-- The evaluation engine lives in `@shipos/core` only. Edge and SDKs import
+- The evaluation engine lives in `@betterflag/core` only. Edge and SDKs import
   it; nobody reimplements bucketing. Frozen vectors in
   `packages/core/test/` guard cross-surface parity.
 - Every mutation, dashboard, REST, MCP, lands an `audit_log` row with

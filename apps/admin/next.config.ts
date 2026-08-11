@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@shipos/core", "@shipos/db"],
+  transpilePackages: ["@betterflag/core", "@betterflag/db"],
   typedRoutes: false,
 };
 

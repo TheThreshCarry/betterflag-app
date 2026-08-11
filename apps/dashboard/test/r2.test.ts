@@ -30,8 +30,8 @@ describe("media content types", () => {
 
 describe("publicMediaUrl", () => {
   it("joins base + key and adds cache-bust query", () => {
-    expect(publicMediaUrl("https://media.shipos.app/", "orgs/abc/logo.png", 42)).toBe(
-      "https://media.shipos.app/orgs/abc/logo.png?v=42",
+    expect(publicMediaUrl("https://media.betterflag.app/", "orgs/abc/logo.png", 42)).toBe(
+      "https://media.betterflag.app/orgs/abc/logo.png?v=42",
     );
   });
 });
@@ -53,14 +53,14 @@ describe("keyFromPublicUrl", () => {
   });
 
   it("extracts key when URL matches public base", () => {
-    process.env.R2_PUBLIC_BASE_URL = "https://media.shipos.app";
-    expect(keyFromPublicUrl("https://media.shipos.app/orgs/x/logo.png?v=1")).toBe(
+    process.env.R2_PUBLIC_BASE_URL = "https://media.betterflag.app";
+    expect(keyFromPublicUrl("https://media.betterflag.app/orgs/x/logo.png?v=1")).toBe(
       "orgs/x/logo.png",
     );
   });
 
   it("returns null for foreign hosts or empty", () => {
-    process.env.R2_PUBLIC_BASE_URL = "https://media.shipos.app";
+    process.env.R2_PUBLIC_BASE_URL = "https://media.betterflag.app";
     expect(keyFromPublicUrl("https://evil.example/orgs/x/logo.png")).toBeNull();
     expect(keyFromPublicUrl(null)).toBeNull();
   });

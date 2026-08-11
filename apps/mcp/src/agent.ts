@@ -1,29 +1,29 @@
 /**
  * The MCP agent Durable Object. One instance per MCP session; the caller's
- * ShipOS key arrives via props (set on ctx.props by the Worker fetch handler
+ * Betterflag key arrives via props (set on ctx.props by the Worker fetch handler
  * in index.ts) and is read lazily at tool-call time, never logged.
  */
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { McpAgent } from "agents/mcp";
-import { formatRelease, readObservability, type Observability } from "@shipos/observability";
+import { formatRelease, readObservability, type Observability } from "@betterflag/observability";
 import { ToolError } from "./errors";
 import { registerTools } from "./tools";
 import type { ApiCtx, Env, SessionProps } from "./types";
 import { VERSION } from "./version.gen";
 
-const DEFAULT_API_URL = "https://app.shipos.app";
+const DEFAULT_API_URL = "https://app.betterflag.app";
 
-export class ShipOSMcp extends McpAgent<Env, unknown, SessionProps> {
+export class BetterFlagMcp extends McpAgent<Env, unknown, SessionProps> {
   server = new McpServer({
-    name: "shipos",
-    title: "ShipOS",
+    name: "betterflag",
+    title: "Betterflag",
     version: VERSION,
-    websiteUrl: "https://shipos.app",
+    websiteUrl: "https://betterflag.app",
     // MCP spec icons (2025-11+): clients that support them render these;
     // others fall back to fetching /favicon.ico from the worker origin.
     icons: [
-      { src: "https://mcp.shipos.app/icon.png", mimeType: "image/png", sizes: ["256x256"] },
-      { src: "https://mcp.shipos.app/icon.svg", mimeType: "image/svg+xml" },
+      { src: "https://mcp.betterflag.app/icon.png", mimeType: "image/png", sizes: ["256x256"] },
+      { src: "https://mcp.betterflag.app/icon.svg", mimeType: "image/svg+xml" },
     ],
   });
 
@@ -31,12 +31,12 @@ export class ShipOSMcp extends McpAgent<Env, unknown, SessionProps> {
   private obs: Observability | undefined;
 
   async init(): Promise<void> {
-    this.obs = readObservability(this.env as unknown as Record<string, unknown>, "shipos-mcp", {
-      environment: this.env.SHIPOS_ENV,
+    this.obs = readObservability(this.env as unknown as Record<string, unknown>, "betterflag-mcp", {
+      environment: this.env.BETTERFLAG_ENV,
       release: formatRelease({
         version: VERSION,
-        gitSha: this.env.SHIPOS_GIT_SHA,
-        override: this.env.SHIPOS_RELEASE,
+        gitSha: this.env.BETTERFLAG_GIT_SHA,
+        override: this.env.BETTERFLAG_RELEASE,
       }),
     });
 
@@ -44,11 +44,11 @@ export class ShipOSMcp extends McpAgent<Env, unknown, SessionProps> {
       const apiKey = this.props?.apiKey;
       if (typeof apiKey !== "string" || apiKey.length === 0) {
         throw new ToolError(
-          "This MCP session has no ShipOS key attached. Reconnect with an " +
-            "Authorization: Bearer sos_agt_… header (create an agent key in the ShipOS dashboard under Keys).",
+          "This MCP session has no Betterflag key attached. Reconnect with an " +
+            "Authorization: Bearer bf_agt_… header (create an agent key in the Betterflag dashboard under Keys).",
         );
       }
-      const baseUrl = (this.env.SHIPOS_API_URL || DEFAULT_API_URL).replace(/\/+$/, "");
+      const baseUrl = (this.env.BETTERFLAG_API_URL || DEFAULT_API_URL).replace(/\/+$/, "");
       return { baseUrl, apiKey, obs: this.obs };
     });
   }

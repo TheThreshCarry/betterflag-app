@@ -76,7 +76,7 @@ function str(value: unknown): string | undefined {
  *   - with no sha, just the bare `version` → `0.1.2`.
  *
  * `version` is the per-app value baked in at build time (see each app's
- * `version.gen.ts`); `gitSha` is injected at deploy (e.g. `SHIPOS_GIT_SHA`).
+ * `version.gen.ts`); `gitSha` is injected at deploy (e.g. `BETTERFLAG_GIT_SHA`).
  */
 export function formatRelease(opts: {
   version: string;
@@ -120,7 +120,7 @@ export interface ReadObservabilityOptions {
  * Build an Observability from a conventional environment bag. Reads:
  *   BETTER_STACK_SOURCE_TOKEN, BETTER_STACK_LOGS_ENDPOINT   (logs)
  *   OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_EXPORTER_OTLP_HEADERS (traces, optional override)
- *   SHIPOS_ENV / ENVIRONMENT, SHIPOS_RELEASE                (resource attrs)
+ *   BETTERFLAG_ENV / ENVIRONMENT, BETTERFLAG_RELEASE                (resource attrs)
  * Missing values degrade gracefully to console-only / no-op tracing.
  *
  * By default traces are sent to the SAME source as logs (the per-service
@@ -150,8 +150,8 @@ export function readObservability(
 
   return createObservability({
     service,
-    environment: options.environment ?? str(env["SHIPOS_ENV"]) ?? str(env["ENVIRONMENT"]) ?? "production",
-    release: options.release ?? str(env["SHIPOS_RELEASE"]),
+    environment: options.environment ?? str(env["BETTERFLAG_ENV"]) ?? str(env["ENVIRONMENT"]) ?? "production",
+    release: options.release ?? str(env["BETTERFLAG_RELEASE"]),
     logs: {
       sourceToken: logsToken,
       endpoint: logsEndpoint,

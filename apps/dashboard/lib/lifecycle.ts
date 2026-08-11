@@ -1,5 +1,5 @@
 /**
- * Client for the shipos-lifecycle worker (welcome email sequence).
+ * Client for the betterflag-lifecycle worker (welcome email sequence).
  *
  * Best-effort by design: org creation must NEVER fail because an email
  * sequence couldn't start. Unconfigured envs (local dev) log and no-op; the

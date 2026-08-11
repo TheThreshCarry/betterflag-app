@@ -1,4 +1,4 @@
-# ShipOS Product Hunt Alpha Launch Kit
+# Betterflag Product Hunt Alpha Launch Kit
 
 Positioning note for this launch: **lead with agentic-first** (agents create
 flags, stage rollouts, pull kill switches over MCP), supported by edge speed
@@ -13,7 +13,7 @@ images 1270×760, thumbnail 240×240, all assets <3MB.
 
 ## 1. Listing basics
 
-**Name:** ShipOS
+**Name:** Betterflag
 
 **Tagline (pick one, all ≤60):**
 
@@ -25,14 +25,14 @@ images 1270×760, thumbnail 240×240, all assets <3MB.
 
 **Description (≤500 chars, currently 424):**
 
-> ShipOS is a feature flag platform where the MCP server and REST API are the
+> Betterflag is a feature flag platform where the MCP server and REST API are the
 > primary interface. Claude Code or Cursor can create flags, stage percentage
 > rollouts, target beta users, and pull kill switches, with agent-scoped
 > keys, an agent-attributed audit trail, and approval guardrails for prod.
 > Flags evaluate from the edge in under 100ms. One simple meter, from
 > $9.99/mo. Private alpha: 50% off for life.
 
-**Links:** shipos.app (with `?ref=producthunt`), docs.shipos.app
+**Links:** betterflag.app (with `?ref=producthunt`), docs.betterflag.app
 
 ---
 
@@ -40,14 +40,14 @@ images 1270×760, thumbnail 240×240, all assets <3MB.
 
 > Hey Product Hunt 👋
 >
-> I'm Mehdi, and I built ShipOS because of a moment that kept repeating: my
+> I'm Mehdi, and I built Betterflag because of a moment that kept repeating: my
 > coding agent would finish a feature in minutes (code written, PR open)
 > and then everything stopped so a human (me) could log into a flag
 > dashboard and do data entry. Create the flag the agent already named. Wire
 > up three environments. Click the rollout slider. The agent did the
 > engineering; I did the clicking.
 >
-> That's backwards. So ShipOS treats the MCP server and the API as the
+> That's backwards. So Betterflag treats the MCP server and the API as the
 > product, and the dashboard as the observation layer. From Claude Code or
 > Cursor you can create a flag, turn it on in staging, stage a 10% production
 > rollout, pin it on for your beta cohort, watch evaluation stats, and kill
@@ -77,7 +77,7 @@ images 1270×760, thumbnail 240×240, all assets <3MB.
 
 ## 3. Thumbnail (240×240)
 
-**Option A - animated GIF (recommended):** the ShipOS logo mark on the dark
+**Option A - animated GIF (recommended):** the Betterflag logo mark on the dark
 `#222222` rounded tile; a minimal toggle switch below it flips from off to
 on, the knob turning orange `#FF5A1A` on flip; loops every ~2s. Build in
 Figma/After Effects from the real logo. Don't AI-generate the logo.
@@ -174,7 +174,7 @@ then `kill_flag`. No static prompt: real product footage. Captions burned in.
 
 **X thread opener:**
 
-> Today ShipOS is live on Product Hunt 🚢
+> Today Betterflag is live on Product Hunt 🚢
 >
 > It's a feature flag platform where your coding agent is a first-class
 > operator: Claude Code creates the flag, stages the rollout, and pulls the
@@ -182,7 +182,7 @@ then `kill_flag`. No static prompt: real product footage. Captions burned in.
 >
 > 30-second demo below. Alpha users get 50% off for life. 👇
 
-**Show HN title:** `Show HN: ShipOS - feature flags managed by coding agents over MCP`
+**Show HN title:** `Show HN: Betterflag - feature flags managed by coding agents over MCP`
 
 **Show HN text (short, technical, no marketing tone):**
 

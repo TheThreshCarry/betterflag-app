@@ -11,7 +11,7 @@
  *   - anything else        → 500 internal_error
  */
 
-import { type Logger } from "@shipos/observability";
+import { type Logger } from "@betterflag/observability";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { createRequestObservability } from "./observability";

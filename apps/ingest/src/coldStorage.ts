@@ -10,12 +10,12 @@
  *      object per org per day. Idempotent: existing objects are skipped, so
  *      redelivered/overlapping cron runs are safe.
  *   2. SWEEP: deletes R2 objects older than the org's plan retention
- *      (ANALYTICS_RETENTION_DAYS from @shipos/db; plans, not per-org knobs).
+ *      (ANALYTICS_RETENTION_DAYS from @betterflag/db; plans, not per-org knobs).
  *
  * Aggregate MVs (billing meter, chart series) never leave ClickHouse; this
  * file only tiers the raw event rows.
  */
-import { ANALYTICS_HOT_DAYS, ANALYTICS_RETENTION_DAYS, type OrgPlan } from "@shipos/db";
+import { ANALYTICS_HOT_DAYS, ANALYTICS_RETENTION_DAYS, type OrgPlan } from "@betterflag/db";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 

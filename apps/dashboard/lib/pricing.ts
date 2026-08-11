@@ -13,7 +13,7 @@
  * Server-only, do not import from client components.
  */
 
-import { PLAN_LIMITS, type OrgPlan } from "@shipos/db";
+import { PLAN_LIMITS, type OrgPlan } from "@betterflag/db";
 
 import { getPolar } from "@/lib/polar";
 import { PRICING_SPEC, type PlanKey, type PricingTier } from "@/lib/pricing-config";
@@ -54,7 +54,7 @@ export async function getPricingTiers(opts?: { force?: boolean }): Promise<Prici
       memo = { at: Date.now(), tiers };
       return tiers;
     }
-    console.warn("[pricing] Polar returned no ShipOS tiers; using fallback spec.");
+    console.warn("[pricing] Polar returned no Betterflag tiers; using fallback spec.");
   } catch (err) {
     console.error("[pricing] Polar fetch failed; using fallback spec:", (err as Error)?.message);
   }
@@ -68,7 +68,7 @@ function planToTierKey(plan: OrgPlan): PlanKey {
 
 /**
  * Plan limits (projects / agent keys / included evaluations) sourced from Polar,
- * falling back to the `@shipos/db` PLAN_LIMITS enforcement mirror. Use for
+ * falling back to the `@betterflag/db` PLAN_LIMITS enforcement mirror. Use for
  * display so the dashboard reflects whatever is currently configured in Polar.
  */
 export async function limitsForPlan(

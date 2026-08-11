@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { createClient } from "shipos";
+import { createClient } from "@betterflag/sdk";
 import { createFlagStore } from "../src/store";
 
 /**
- * These tests use a REAL shipos client (with a fake fetch) inside a flag
+ * These tests use a REAL betterflag client (with a fake fetch) inside a flag
  * store to prove the end-to-end wiring: an ambient identity set via
  * `client.signIn()` reaches evaluations even though the store passes no
  * explicit context, and a later `signIn`/`signOut` re-evaluates the store via

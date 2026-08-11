@@ -1,43 +1,43 @@
 # Cross-service contracts
 
 Single source of truth for interfaces between the control plane
-(apps/dashboard), the data plane (apps/edge, apps/ingest), the MCP server
+(apps/dashboard), the data plane (apps/api, apps/ingest), the MCP server
 (apps/mcp) and the SDKs. If you change anything here, change every consumer
 in the same PR.
 
 ## API keys
 
-- Full key: `sos_<tag>_<40 lowercase hex>` where tag ∈ `sdk|agt|adm` (48 chars).
-- `prefix` = first 16 chars (`keyPrefixOf` in `@shipos/core`); displayed in UI
+- Full key: `bf_<tag>_<40 lowercase hex>` where tag ∈ `sdk|agt|adm` (48 chars).
+- `prefix` = first 16 chars (`keyPrefixOf` in `@betterflag/core`); displayed in UI
   and stamped on audit rows (`actor_key_prefix`).
 - Postgres stores SHA-256 hex of the full key (`api_keys.hash`); plaintext is
   returned exactly once, at creation.
 - SDK keys additionally get a KV entry so the edge never touches Postgres:
-  - KV key: `key:{prefix}`  → `SdkKeyKvEntry` (see `@shipos/core`):
+  - KV key: `key:{prefix}`  → `SdkKeyKvEntry` (see `@betterflag/core`):
     `{ orgId, projectId, envSlug, hash, revoked }`
   - Written on creation, updated on revoke (set `revoked: true`).
 
 ## KV snapshots
 
-- KV key: `cfg:{projectId}:{envSlug}` → `ProjectSnapshot` (see `@shipos/core`).
+- KV key: `cfg:{projectId}:{envSlug}` → `ProjectSnapshot` (see `@betterflag/core`).
 - `version` is epoch-ms at build time; writers must read-then-skip if the
   existing entry has a NEWER version (queue redelivery protection).
-- Built ONLY via `buildSnapshot()` from `@shipos/core`, never hand-rolled.
+- Built ONLY via `buildSnapshot()` from `@betterflag/core`, never hand-rolled.
 
 ## Queues
 
-- `shipos-config-sync`, producer: control plane (HTTP API). Consumer: ingest.
+- `betterflag-config-sync`, producer: control plane (HTTP API). Consumer: ingest.
   Message: `{ "type": "sync", "projectId": uuid, "environmentId": uuid, "envSlug": string, "orgId": uuid }`
-- `shipos-events`, producer: edge (binding `EVENTS`). Consumer: ingest.
-  Message: one `EvaluationEvent` (see `@shipos/core`), `user_hash` as decimal string.
-- `shipos-events-dlq`, dead letter queue for `shipos-events`.
+- `betterflag-events`, producer: edge (binding `EVENTS`). Consumer: ingest.
+  Message: one `EvaluationEvent` (see `@betterflag/core`), `user_hash` as decimal string.
+- `betterflag-events-dlq`, dead letter queue for `betterflag-events`.
 - Kill-switch fast path: the control plane writes the rebuilt snapshot
   straight to KV via the Cloudflare REST API, then enqueues a sync message
   for reconciliation.
 
-## Control plane REST API (`/api/v1` on app.shipos.app)
+## Control plane REST API (`/api/v1` on app.betterflag.app)
 
-Auth: Supabase session cookie (dashboard) OR `Authorization: Bearer sos_adm_*|sos_agt_*`.
+Auth: Supabase session cookie (dashboard) OR `Authorization: Bearer bf_adm_*|bf_agt_*`.
 A valid key executes mutations directly.
 Errors: `{ "error": { "code": string, "message": string } }` with 400/401/403/404/409/422.
 
@@ -74,13 +74,13 @@ Full schemas: docs/openapi.yaml.
 Every mutation: RPC (mutation+audit atomically) → enqueue
 config-sync for the affected (project, env).
 
-## Edge evaluation API (edge.shipos.app)
+## Edge evaluation API (api.betterflag.app)
 
-- `POST /v1/evaluate`, `Authorization: Bearer sos_sdk_*`;
+- `POST /v1/evaluate`, `Authorization: Bearer bf_sdk_*`;
   body `{ key?: string, keys?: string[], context?: { userId?, attributes? } }`.
   One of key/keys, or neither = all flags.
   Response: `{ version, results: EvaluationResult[] }` (single key still returns array).
-  Headers in: `X-ShipOS-SDK` (e.g. `js/0.1.0`) → event `sdk` field.
+  Headers in: `X-Betterflag-SDK` (e.g. `js/0.1.0`) → event `sdk` field.
   Country fallback: when `context.attributes.country` is absent, the edge
   injects Cloudflare's `request.cf.country` (uppercased; never when
   "unknown") before rule matching, so `country` targeting works without the
@@ -102,8 +102,8 @@ config-sync for the affected (project, env).
 
 ## Analytics Engine dataset (ITR-62 dual-write)
 
-Dataset `shipos_evaluations`, binding `EVALS` on the edge worker
-(analytics_engine_datasets in apps/edge/wrangler.jsonc). One data point per
+Dataset `betterflag_evaluations`, binding `EVALS` on the API worker
+(analytics_engine_datasets in apps/api/wrangler.jsonc). One data point per
 evaluation, written inline (writeDataPoint is fire-and-forget, adds no edge
 latency):
 
@@ -130,24 +130,24 @@ from per-flag charts.
 ## Analytics retention (hot → cold → deleted)
 
 - **Hot**: raw `evaluations` rows live in ClickHouse for 7 days
-  (`ANALYTICS_HOT_DAYS` in `@shipos/db`; table TTL in
+  (`ANALYTICS_HOT_DAYS` in `@betterflag/db`; table TTL in
   apps/ingest/clickhouse/schema.sql). Aggregate MVs (`evals_per_org_day`
   billing meter, `evals_per_flag_hour`, `evals_per_flag_country_hour`) keep
   13 months regardless; retention governs raw event data only.
 - **Cold**: a daily cron in the ingest worker (03:10 UTC) exports the day
   aging out of the hot window to R2 (binding `ANALYTICS_R2`, bucket
-  `shipos-analytics-cold`) as `analytics/{org_id}/{yyyy-mm-dd}.ndjson.gz`,
+  `betterflag-analytics-cold`) as `analytics/{org_id}/{yyyy-mm-dd}.ndjson.gz`,
   one object per org per day, ClickHouse JSONEachRow gzipped (re-importable
   with `INSERT ... FORMAT JSONEachRow`). Idempotent: existing objects are
   skipped.
 - **Deleted**: the same cron removes R2 objects older than the org's plan
-  retention (`ANALYTICS_RETENTION_DAYS` in `@shipos/db`: starter 30d,
+  retention (`ANALYTICS_RETENTION_DAYS` in `@betterflag/db`: starter 30d,
   launch/trial 90d, scale 365d). Retention is a plan feature, not a per-org
   setting; the API rejects periods beyond it with 422 `retention_exceeded`.
 
 ## Plan limits
 
-From `PLAN_LIMITS` in `@shipos/db`, projects and agent keys enforced at
+From `PLAN_LIMITS` in `@betterflag/db`, projects and agent keys enforced at
 creation time in the control plane; evaluations are metered, never blocked
 mid-cycle (except Starter throttle at 3× included volume, Phase 5).
 
@@ -161,7 +161,7 @@ Decided by `billingDecisionForOrg` (apps/dashboard/lib/billing-status.ts):
   and write APIs return 402; **flags keep serving from the edge**.
 - Org WITH a synced status: the July-2026 lifecycle policy (active,
   14-day past_due grace, then read-only `restricted`).
-- Super-admin freeze (`orgs.frozen_at`, set from the shipos-admin app):
+- Super-admin freeze (`orgs.frozen_at`, set from the betterflag-admin app):
   every control-plane write (dashboard, REST, MCP) returns 403 with code
   `org_frozen` until unfrozen; reads and edge serving are unaffected.
 - Onboarding is org → **pick plan** (PATCH /api/v1/orgs/:id, no card) →
@@ -171,7 +171,7 @@ Decided by `billingDecisionForOrg` (apps/dashboard/lib/billing-status.ts):
 ## Lifecycle worker (welcome email sequence)
 
 `apps/lifecycle`, Cloudflare Workflows + Email Service (`send_email` binding,
-sender `hi@shipos.app`; the shipos.app domain must be onboarded in
+sender `hi@betterflag.app`; the betterflag.app domain must be onboarded in
 dash → Email Sending).
 
 - Trigger: `POST {LIFECYCLE_URL}/trigger` with

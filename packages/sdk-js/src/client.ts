@@ -6,18 +6,18 @@ import type {
   JsonValue,
 } from "./types";
 
-/** Version stamped into the `X-ShipOS-SDK` header. Keep in sync with package.json. */
+/** Version stamped into the `X-Betterflag-SDK` header. Keep in sync with package.json. */
 export const SDK_VERSION = "0.1.0";
 
 const SDK_HEADER = `js/${SDK_VERSION}`;
-const DEFAULT_BASE_URL = "https://edge.shipos.app";
+const DEFAULT_BASE_URL = "https://api.betterflag.app";
 const DEFAULT_REFRESH_INTERVAL_MS = 30_000;
 const MIN_CACHE_TTL_MS = 5_000;
 
-export interface ShipOSClientOptions {
-  /** SDK key (`sos_sdk_...`). Publishable, safe to ship to browsers. */
+export interface BetterFlagClientOptions {
+  /** SDK key (`bf_sdk_...`). Publishable, safe to ship to browsers. */
   key: string;
-  /** Edge API origin. Defaults to `https://edge.shipos.app`. */
+  /** API origin. Defaults to `https://api.betterflag.app`. */
   baseUrl?: string;
   /**
    * How often (ms) to poll `GET /v1/snapshot` for config changes, and the
@@ -60,7 +60,7 @@ interface CacheEntry {
 }
 
 /**
- * ShipOS feature-flags client for Node and the browser.
+ * Betterflag feature-flags client for Node and the browser.
  *
  * Guarantees:
  * - `flag()` NEVER throws and never rejects, on any failure it resolves
@@ -69,7 +69,7 @@ interface CacheEntry {
  * - The background poll timer is unref'd in Node, so it never holds the
  *   process open.
  */
-export class ShipOSClient {
+export class BetterFlagClient {
   private readonly key: string;
   private readonly baseUrl: string;
   private readonly refreshInterval: number;
@@ -97,7 +97,7 @@ export class ShipOSClient {
   private resolveReady: () => void = () => {};
   private readySettled = false;
 
-  constructor(options: ShipOSClientOptions) {
+  constructor(options: BetterFlagClientOptions) {
     this.key = options.key;
     this.baseUrl = (options.baseUrl ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
     this.refreshInterval = options.refreshInterval ?? DEFAULT_REFRESH_INTERVAL_MS;
@@ -178,19 +178,19 @@ export class ShipOSClient {
    * you don't repeat the user on each check:
    *
    * ```ts
-   * shipos.signIn("user-123", { plan: "pro", region: "eu" });
-   * await shipos.flag("new-checkout", { default: false }); // evaluated for user-123
+   * betterflag.signIn("user-123", { plan: "pro", region: "eu" });
+   * await betterflag.flag("new-checkout", { default: false }); // evaluated for user-123
    * ```
    *
    * A per-call `userId`/`attributes` always overrides the ambient identity.
    * Each `signIn` replaces the previous identity (it does not merge with it).
-   * Purely local: ShipOS targets users at evaluation time, so there is no
+   * Purely local: Betterflag targets users at evaluation time, so there is no
    * network round-trip here. The evaluation cache is cleared and an
    * `'update'` event is emitted so React hooks re-evaluate for the new user.
    */
   signIn(userId: string, metadata?: Record<string, JsonValue>): void {
     if (typeof userId !== "string" || userId === "") {
-      this.reportError(new Error("ShipOS: signIn(userId) requires a non-empty string"));
+      this.reportError(new Error("Betterflag: signIn(userId) requires a non-empty string"));
       return;
     }
     this.identityUserId = userId;
@@ -301,12 +301,12 @@ export class ShipOSClient {
       headers: {
         Authorization: `Bearer ${this.key}`,
         "Content-Type": "application/json",
-        "X-ShipOS-SDK": SDK_HEADER,
+        "X-Betterflag-SDK": SDK_HEADER,
       },
       body: JSON.stringify(body),
     });
     if (!response.ok) {
-      throw new Error(`ShipOS: POST /v1/evaluate responded ${response.status}`);
+      throw new Error(`Betterflag: POST /v1/evaluate responded ${response.status}`);
     }
     const parsed = (await response.json()) as Partial<EvaluateResponse>;
     return {
@@ -334,7 +334,7 @@ export class ShipOSClient {
     try {
       const headers: Record<string, string> = {
         Authorization: `Bearer ${this.key}`,
-        "X-ShipOS-SDK": SDK_HEADER,
+        "X-Betterflag-SDK": SDK_HEADER,
       };
       if (this.etag !== null) headers["If-None-Match"] = this.etag;
 
@@ -345,7 +345,7 @@ export class ShipOSClient {
 
       if (response.status === 304) return; // unchanged, keep the cache warm
       if (!response.ok) {
-        throw new Error(`ShipOS: GET /v1/snapshot responded ${response.status}`);
+        throw new Error(`Betterflag: GET /v1/snapshot responded ${response.status}`);
       }
 
       const etag = response.headers.get("ETag");
@@ -420,9 +420,9 @@ export class ShipOSClient {
   }
 }
 
-/** Create a ShipOS client. See {@link ShipOSClientOptions}. */
-export function createClient(options: ShipOSClientOptions): ShipOSClient {
-  return new ShipOSClient(options);
+/** Create a Betterflag client. See {@link BetterFlagClientOptions}. */
+export function createClient(options: BetterFlagClientOptions): BetterFlagClient {
+  return new BetterFlagClient(options);
 }
 
 function normalizeContext(context: EvaluationContext): EvaluationContext | undefined {

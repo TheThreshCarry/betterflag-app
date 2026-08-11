@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ShipOS Admin",
-  description: "Internal super-admin console for the ShipOS team.",
+  title: "Betterflag Admin",
+  description: "Internal super-admin console for the Betterflag team.",
   robots: { index: false, follow: false },
 };
 

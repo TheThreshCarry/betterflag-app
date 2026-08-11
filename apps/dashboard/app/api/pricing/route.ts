@@ -1,6 +1,6 @@
 /**
  * Public pricing endpoint, the single source both the dashboard and the
- * marketing landing page read from. Serves the ShipOS tiers as normalized JSON,
+ * marketing landing page read from. Serves the Betterflag tiers as normalized JSON,
  * sourced from Polar (with a safe fallback). CORS-open so the landing site can
  * fetch it cross-origin; cached at the edge with stale-while-revalidate.
  */

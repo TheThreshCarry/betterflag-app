@@ -1,4 +1,4 @@
-import type { FlagConfigRow } from "@shipos/db";
+import type { FlagConfigRow } from "@betterflag/db";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { toApiFlagConfig } from "@/lib/api-types";

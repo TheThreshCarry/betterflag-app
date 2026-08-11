@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@shipos/core", "@shipos/db"],
+  transpilePackages: ["@betterflag/core", "@betterflag/db"],
   // MapLibre 6's dynamic worker `new URL(…, import.meta.url)` breaks Turbopack
   // analysis. Keep the package external to the bundler where possible.
   serverExternalPackages: ["maplibre-gl"],
@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
   // PostHog reverse proxy (EU cloud): first-party path so analytics survive
   // ad-blockers. Deliberately NOT "/ingest", which is PostHog's documented
   // default and is matched by ad-blocker filter lists. Same prefix as
-  // shipos-landing; keep it bland (no analytics/telemetry/track/ingest).
+  // betterflag-landing; keep it bland (no analytics/telemetry/track/ingest).
   async rewrites() {
     return [
       {

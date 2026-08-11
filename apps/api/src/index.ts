@@ -1,5 +1,5 @@
 /**
- * ShipOS edge worker, flag evaluation at the edge (edge.shipos.app).
+ * Betterflag API worker, flag evaluation at the edge (api.betterflag.app).
  *
  * Hot-path budget (p50 < 10 ms): one KV read for the SDK key, one KV read
  * for the snapshot, nothing else. Evaluation events are fire-and-forget
@@ -7,7 +7,7 @@
  * ANALYTICS_AE_ENABLED is set, see ITR-62) and must never block or fail
  * the response.
  *
- * All evaluation logic lives in `@shipos/core`, this worker only does
+ * All evaluation logic lives in `@betterflag/core`, this worker only does
  * routing, auth, and transport. See docs/CONTRACTS.md.
  */
 import {
@@ -23,15 +23,15 @@ import {
   sha256Hex,
   snapshotKvKey,
   timingSafeEqualHex,
-} from "@shipos/core";
+} from "@betterflag/core";
 import type {
   EvaluationContext,
   EvaluationEvent,
   EvaluationResult,
   ProjectSnapshot,
   SdkKeyKvEntry,
-} from "@shipos/core";
-import { formatRelease, readObservability, type Logger, type Observability, type Span } from "@shipos/observability";
+} from "@betterflag/core";
+import { formatRelease, readObservability, type Logger, type Observability, type Span } from "@betterflag/observability";
 import { VERSION } from "./version.gen";
 import { z } from "zod";
 
@@ -62,7 +62,7 @@ export interface EdgeEnv {
   CONFIG_KV: ConfigKvLike;
   EVENTS: EventsQueueLike;
   /**
-   * Workers Analytics Engine dataset `shipos_evaluations` (ITR-62). Optional
+   * Workers Analytics Engine dataset `betterflag_evaluations` (ITR-62). Optional
    * so unit tests can omit it and so the worker keeps serving if the binding
    * is ever removed.
    */
@@ -70,7 +70,7 @@ export interface EdgeEnv {
   /**
    * "true"/"1" turns on the Analytics Engine dual-write (ITR-62 Phase 1,
    * shadow mode: ClickHouse via Queues stays the source of truth). Env var
-   * for now; dogfood via a ShipOS flag once selfhosting works.
+   * for now; dogfood via a Betterflag flag once selfhosting works.
    */
   ANALYTICS_AE_ENABLED?: string;
   // Observability config, all optional so unit tests can pass plain fakes and
@@ -80,11 +80,11 @@ export interface EdgeEnv {
   BETTER_STACK_LOGS_ENDPOINT?: string;
   OTEL_EXPORTER_OTLP_ENDPOINT?: string;
   OTEL_EXPORTER_OTLP_HEADERS?: string;
-  SHIPOS_ENV?: string;
+  BETTERFLAG_ENV?: string;
   /** Deploy-time git commit; appended to VERSION as the release. */
-  SHIPOS_GIT_SHA?: string;
+  BETTERFLAG_GIT_SHA?: string;
   /** Fully-formed release override (wins over VERSION + git sha) if set. */
-  SHIPOS_RELEASE?: string;
+  BETTERFLAG_RELEASE?: string;
 }
 
 /** The slice of ExecutionContext this worker uses. */
@@ -142,7 +142,7 @@ export const evaluateBodySchema = z.object({
 const PREFLIGHT_HEADERS: Readonly<Record<string, string>> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "authorization, content-type, x-shipos-sdk",
+  "Access-Control-Allow-Headers": "authorization, content-type, x-betterflag-sdk",
   "Access-Control-Max-Age": "86400",
 };
 
@@ -176,7 +176,7 @@ export type AuthResult =
 function unauthorized(): { ok: false; response: Response } {
   return {
     ok: false,
-    response: errorResponse(401, "invalid_key", "A valid sos_sdk_* bearer token is required."),
+    response: errorResponse(401, "invalid_key", "A valid bf_sdk_* bearer token is required."),
   };
 }
 
@@ -449,9 +449,9 @@ export async function handleEvaluate(
   }
   const { entry } = auth;
   obs?.span.setAttributes({
-    "shipos.org_id": entry.orgId,
-    "shipos.project_id": entry.projectId,
-    "shipos.env": entry.envSlug,
+    "betterflag.org_id": entry.orgId,
+    "betterflag.project_id": entry.projectId,
+    "betterflag.env": entry.envSlug,
   });
 
   let rawBody: unknown = {};
@@ -511,7 +511,7 @@ export async function handleEvaluate(
 
   // Events must never block or fail the response.
   try {
-    const sdk = request.headers.get("X-ShipOS-SDK") ?? "unknown";
+    const sdk = request.headers.get("X-Betterflag-SDK") ?? "unknown";
     const events = buildEvents(entry, results, context, sdk, clientGeoOf(request));
     if (events.length > 0) {
       // ITR-62 dual-write: Analytics Engine alongside the Queues path.
@@ -580,9 +580,9 @@ export async function handleSnapshot(
   }
   const { entry } = auth;
   obs?.span.setAttributes({
-    "shipos.org_id": entry.orgId,
-    "shipos.project_id": entry.projectId,
-    "shipos.env": entry.envSlug,
+    "betterflag.org_id": entry.orgId,
+    "betterflag.project_id": entry.projectId,
+    "betterflag.env": entry.envSlug,
   });
 
   const snapSpan = obs?.span.startChild("load_snapshot");
@@ -638,9 +638,9 @@ const handler = {
       return new Response(null, { status: 204, headers: { ...PREFLIGHT_HEADERS } });
     }
 
-    const obs = readObservability(env as unknown as Record<string, unknown>, "shipos-edge", {
-      environment: env.SHIPOS_ENV,
-      release: formatRelease({ version: VERSION, gitSha: env.SHIPOS_GIT_SHA, override: env.SHIPOS_RELEASE }),
+    const obs = readObservability(env as unknown as Record<string, unknown>, "betterflag-api", {
+      environment: env.BETTERFLAG_ENV,
+      release: formatRelease({ version: VERSION, gitSha: env.BETTERFLAG_GIT_SHA, override: env.BETTERFLAG_RELEASE }),
     });
     const requestId = request.headers.get("cf-ray") ?? crypto.randomUUID();
     const span = obs.tracer.startSpan(`${request.method} ${url.pathname}`, {
@@ -662,7 +662,7 @@ const handler = {
       // Defensive: the hot path is designed never to throw, but if it does we
       // return a clean 500 and record it rather than leaking a Worker crash.
       span.recordException(error).setAttribute("http.response.status_code", 500).end();
-      log.error("unhandled error in edge worker", { status: 500, error: errText(error) });
+      log.error("unhandled error in API worker", { status: 500, error: errText(error) });
       obs.flushTo(ctx.waitUntil.bind(ctx));
       return errorResponse(500, "internal_error", "Something went wrong");
     }

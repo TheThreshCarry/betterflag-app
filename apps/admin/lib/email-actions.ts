@@ -3,12 +3,12 @@
 /**
  * Super-admin email-template mutations. The admin edits the source fields
  * (subject, headings, body HTML with {{merge tags}}); on save we re-render the
- * branded <EmailLayout/> via @shipos/emails into compiled_html, which is what
+ * branded <EmailLayout/> via @betterflag/emails into compiled_html, which is what
  * the workers send after substituting variables. Every action re-checks
  * requireAdmin().
  */
 
-import { compileTemplate, fillTemplate, TEMPLATE_SEEDS, type EmailTemplateKey } from "@shipos/emails";
+import { compileTemplate, fillTemplate, TEMPLATE_SEEDS, type EmailTemplateKey } from "@betterflag/emails";
 import { revalidatePath } from "next/cache";
 
 import { requireAdmin } from "./admin-auth";

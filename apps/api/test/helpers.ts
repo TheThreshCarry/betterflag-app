@@ -1,13 +1,13 @@
-import { sdkKeyKvKey, sha256Hex, snapshotKvKey } from "@shipos/core";
-import type { EvaluationEvent, ProjectSnapshot, SdkKeyKvEntry } from "@shipos/core";
+import { sdkKeyKvKey, sha256Hex, snapshotKvKey } from "@betterflag/core";
+import type { EvaluationEvent, ProjectSnapshot, SdkKeyKvEntry } from "@betterflag/core";
 import type { ConfigKvLike, EvalsDatasetLike, EventsQueueLike, WaitUntilLike } from "../src/index";
 
-/** A well-formed SDK key: sos_sdk_ + 40 lowercase hex chars. */
-export const SDK_KEY = `sos_sdk_${"a".repeat(40)}`;
+/** A well-formed SDK key: bf_sdk_ + 40 lowercase hex chars. */
+export const SDK_KEY = `bf_sdk_${"a".repeat(40)}`;
 /** Same 16-char prefix as SDK_KEY, different secret, hash must NOT match. */
-export const SDK_KEY_SAME_PREFIX = `sos_sdk_${"a".repeat(8)}${"b".repeat(32)}`;
+export const SDK_KEY_SAME_PREFIX = `bf_sdk_${"a".repeat(8)}${"b".repeat(32)}`;
 /** Valid format but agent kind, must be rejected by the edge. */
-export const AGENT_KEY = `sos_agt_${"c".repeat(40)}`;
+export const AGENT_KEY = `bf_agt_${"c".repeat(40)}`;
 
 export const ORG_ID = "org-11111111";
 export const PROJECT_ID = "proj-22222222";
@@ -140,8 +140,8 @@ export function evaluateRequest(input: {
 }): Request {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (input.token !== undefined) headers["Authorization"] = `Bearer ${input.token}`;
-  if (input.sdkHeader !== undefined) headers["X-ShipOS-SDK"] = input.sdkHeader;
-  const request = new Request("https://edge.shipos.app/v1/evaluate", {
+  if (input.sdkHeader !== undefined) headers["X-Betterflag-SDK"] = input.sdkHeader;
+  const request = new Request("https://api.betterflag.app/v1/evaluate", {
     method: "POST",
     headers,
     body: input.body === undefined ? null : JSON.stringify(input.body),
@@ -156,5 +156,5 @@ export function snapshotRequest(input: { token?: string; ifNoneMatch?: string })
   const headers: Record<string, string> = {};
   if (input.token !== undefined) headers["Authorization"] = `Bearer ${input.token}`;
   if (input.ifNoneMatch !== undefined) headers["If-None-Match"] = input.ifNoneMatch;
-  return new Request("https://edge.shipos.app/v1/snapshot", { method: "GET", headers });
+  return new Request("https://api.betterflag.app/v1/snapshot", { method: "GET", headers });
 }

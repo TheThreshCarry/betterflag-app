@@ -15,7 +15,7 @@ import type {
   OrgPlan,
   OrgRow,
   ProjectRow,
-} from "@shipos/db";
+} from "@betterflag/db";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 
 import { evalsPerDayAll, evalsPerDayOrg, type EvalsDayRow } from "./clickhouse";

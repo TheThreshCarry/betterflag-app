@@ -1,12 +1,12 @@
 name: Deploy Workers
 
-# Deploys the Cloudflare Workers (edge, ingest, mcp, webhooks) with Wrangler.
+# Deploys the Cloudflare Workers (api, ingest, mcp, webhooks) with Wrangler.
 # The Next.js dashboard is deployed separately and is intentionally excluded.
 on:
   push:
     branches: [main]
     paths:
-      - "apps/edge/**"
+      - "apps/api/**"
       - "apps/ingest/**"
       - "apps/mcp/**"
       - "apps/webhooks/**"
@@ -20,7 +20,7 @@ on:
         description: "Which worker to deploy"
         type: choice
         default: all
-        options: [all, edge, ingest, mcp, webhooks]
+        options: [all, api, ingest, mcp, webhooks]
 
 # Never run two deploys of the same ref at once; let an in-flight deploy finish.
 concurrency:
@@ -48,7 +48,7 @@ jobs:
       # Deploy each worker independently; one failure shouldn't block the others.
       fail-fast: false
       matrix:
-        worker: [edge, ingest, mcp, webhooks]
+        worker: [api, ingest, mcp, webhooks]
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -70,7 +70,7 @@ jobs:
 
       - name: Deploy ${{ matrix.worker }}
         if: steps.gate.outputs.run == 'true'
-        run: bun run --filter @shipos/${{ matrix.worker }} deploy
+        run: bun run --filter @betterflag/${{ matrix.worker }} deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

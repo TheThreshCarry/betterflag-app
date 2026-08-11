@@ -14,7 +14,7 @@ export function AccessDenied({ email }: { email: string }) {
       <div className="w-full max-w-sm rounded-3xl border border-line bg-white p-8 text-center shadow-[0_12px_48px_rgba(0,0,0,0.06)]">
         <h1 className="mb-2 text-[20px] font-semibold tracking-[-0.01em]">Access denied</h1>
         <p className="mb-6 text-[14px] text-ink-muted">
-          {email} is not on the ShipOS admin allowlist. This console is for the ShipOS team only.
+          {email} is not on the Betterflag admin allowlist. This console is for the Betterflag team only.
         </p>
         <Button variant="secondary" onClick={() => void signOut()}>
           Sign out

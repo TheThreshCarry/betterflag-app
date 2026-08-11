@@ -108,7 +108,7 @@ describe("readObservability trace routing (correlation)", () => {
         BETTER_STACK_SOURCE_TOKEN: "src-tok",
         BETTER_STACK_LOGS_ENDPOINT: "https://s1.betterstackdata.com",
       },
-      "shipos-edge",
+      "betterflag-api",
       { console: false, fetchImpl: f.fn },
     );
     obs.tracer.startSpan("x").end();
@@ -126,7 +126,7 @@ describe("readObservability trace routing (correlation)", () => {
         OTEL_EXPORTER_OTLP_ENDPOINT: "https://otel.example.com",
         OTEL_EXPORTER_OTLP_HEADERS: "Authorization=Bearer otel-tok",
       },
-      "shipos-edge",
+      "betterflag-api",
       { console: false, fetchImpl: f.fn },
     );
     obs.tracer.startSpan("x").end();

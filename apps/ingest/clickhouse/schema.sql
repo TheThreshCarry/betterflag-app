@@ -1,4 +1,4 @@
--- ShipOS evaluation analytics, the one meter.
+-- Betterflag evaluation analytics, the one meter.
 -- Applied to ClickHouse Cloud manually (or via `clickhouse-client < schema.sql`).
 -- Events arrive from the ingest worker as JSONEachRow inserts.
 --

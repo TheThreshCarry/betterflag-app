@@ -11,7 +11,7 @@ import type {
   OrgRow,
   ProfileRow,
   ProjectRow,
-} from "@shipos/db";
+} from "@betterflag/db";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { AuditActorFields } from "./auth";

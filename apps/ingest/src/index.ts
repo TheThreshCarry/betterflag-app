@@ -1,11 +1,11 @@
 /**
- * ShipOS ingest worker, queue consumers for the data plane.
+ * Betterflag ingest worker, queue consumers for the data plane.
  *
- * - `shipos-events`      → batch INSERT into ClickHouse (`evaluations` table,
+ * - `betterflag-events`      → batch INSERT into ClickHouse (`evaluations` table,
  *                          JSONEachRow). Non-2xx throws so the batch retries
- *                          (max_retries 5, DLQ shipos-events-dlq).
- * - `shipos-config-sync` → rebuild the (project, environment) KV snapshot from
- *                          Supabase via `buildSnapshot()` from @shipos/core.
+ *                          (max_retries 5, DLQ betterflag-events-dlq).
+ * - `betterflag-config-sync` → rebuild the (project, environment) KV snapshot from
+ *                          Supabase via `buildSnapshot()` from @betterflag/core.
  *                          Per-message ack/retry; version read-then-skip
  *                          protects against queue redelivery.
  * - daily cron           → analytics storage tiering: export the day aging
@@ -16,10 +16,10 @@
  * See docs/CONTRACTS.md for message formats, KV keys and R2 objects.
  */
 import { createClient } from "@supabase/supabase-js";
-import { buildSnapshot, flagKindSchema, jsonValueSchema, snapshotKvKey } from "@shipos/core";
-import type { EvaluationEvent, FlagConfigRowLike, FlagRowLike } from "@shipos/core";
-import type { FlagConfigRow, FlagRow } from "@shipos/db";
-import { formatRelease, readObservability, type Observability } from "@shipos/observability";
+import { buildSnapshot, flagKindSchema, jsonValueSchema, snapshotKvKey } from "@betterflag/core";
+import type { EvaluationEvent, FlagConfigRowLike, FlagRowLike } from "@betterflag/core";
+import type { FlagConfigRow, FlagRow } from "@betterflag/db";
+import { formatRelease, readObservability, type Observability } from "@betterflag/observability";
 import { runColdStorageJob, type AnalyticsR2Like } from "./coldStorage";
 import { VERSION } from "./version.gen";
 import { z } from "zod";
@@ -41,7 +41,7 @@ export interface SnapshotKvLike {
 
 export interface IngestEnv {
   CONFIG_KV: SnapshotKvLike;
-  /** Cold storage for raw analytics (bucket `shipos-analytics-cold`). */
+  /** Cold storage for raw analytics (bucket `betterflag-analytics-cold`). */
   ANALYTICS_R2: AnalyticsR2Like;
   SUPABASE_URL: string;
   /** Secret, `wrangler secret put SUPABASE_SERVICE_ROLE_KEY`. */
@@ -56,11 +56,11 @@ export interface IngestEnv {
   BETTER_STACK_LOGS_ENDPOINT?: string;
   OTEL_EXPORTER_OTLP_ENDPOINT?: string;
   OTEL_EXPORTER_OTLP_HEADERS?: string;
-  SHIPOS_ENV?: string;
+  BETTERFLAG_ENV?: string;
   /** Deploy-time git commit; appended to VERSION as the release. */
-  SHIPOS_GIT_SHA?: string;
+  BETTERFLAG_GIT_SHA?: string;
   /** Fully-formed release override (wins over VERSION + git sha) if set. */
-  SHIPOS_RELEASE?: string;
+  BETTERFLAG_RELEASE?: string;
 }
 
 /** The slice of a queue Message this worker uses. */
@@ -79,10 +79,10 @@ export interface MessageBatchLike {
 }
 
 // ---------------------------------------------------------------------------
-// shipos-events → ClickHouse
+// betterflag-events → ClickHouse
 // ---------------------------------------------------------------------------
 
-/** Zod mirror of `EvaluationEvent` from @shipos/core, the queue boundary. */
+/** Zod mirror of `EvaluationEvent` from @betterflag/core, the queue boundary. */
 export const evaluationEventSchema = z.object({
   ts: z
     .string()
@@ -200,7 +200,7 @@ export async function handleEventsBatch(
     if (!parsed.success) {
       dropped += 1;
       console.error(
-        `shipos-events: dropping invalid message ${message.id}: ${parsed.error.message}`,
+        `betterflag-events: dropping invalid message ${message.id}: ${parsed.error.message}`,
       );
       log?.warn("dropping invalid evaluation event", {
         message_id: message.id,
@@ -236,7 +236,7 @@ export async function handleEventsBatch(
 }
 
 // ---------------------------------------------------------------------------
-// shipos-config-sync → KV snapshot rebuild
+// betterflag-config-sync → KV snapshot rebuild
 // ---------------------------------------------------------------------------
 
 /** Queue message from the control plane, see CONTRACTS.md "Queues". */
@@ -363,7 +363,7 @@ export async function syncEnvironment(
   });
   const span = obs?.tracer.startSpan("ingest.config_sync", {
     kind: "internal",
-    attributes: { "shipos.project_id": target.projectId, "shipos.env": target.envSlug },
+    attributes: { "betterflag.project_id": target.projectId, "betterflag.env": target.envSlug },
   });
 
   try {
@@ -422,7 +422,7 @@ export async function syncEnvironment(
     });
     for (const invalid of invalidRules) {
       console.error(
-        `shipos-config-sync: dropped invalid rules for flag "${invalid.flagKey}" ` +
+        `betterflag-config-sync: dropped invalid rules for flag "${invalid.flagKey}" ` +
           `(${target.projectId}/${target.envSlug}): ${invalid.error}`,
       );
       log?.warn("dropped invalid targeting rules while building snapshot", {
@@ -440,7 +440,7 @@ export async function syncEnvironment(
     const existing = await env.CONFIG_KV.get(kvKey, { type: "json" });
     if (!shouldWriteSnapshot(existing, snapshot.version)) {
       console.log(
-        `shipos-config-sync: skipping stale snapshot v${snapshot.version} for ${kvKey} ` +
+        `betterflag-config-sync: skipping stale snapshot v${snapshot.version} for ${kvKey} ` +
           `(existing is newer)`,
       );
       log?.info("skipped stale snapshot (existing KV entry is newer)", {
@@ -473,7 +473,7 @@ export async function handleConfigSyncBatch(
     batch.messages,
     (message) => message.body,
     (message, error) => {
-      console.error(`shipos-config-sync: dropping invalid message ${message.id}: ${error}`);
+      console.error(`betterflag-config-sync: dropping invalid message ${message.id}: ${error}`);
       log?.warn("dropping invalid config-sync message", { message_id: message.id, detail: error });
       message.ack();
     },
@@ -485,7 +485,7 @@ export async function handleConfigSyncBatch(
       for (const message of group.messages) message.ack();
     } catch (error) {
       console.error(
-        `shipos-config-sync: sync failed for ${group.target.projectId}/${group.target.envSlug}`,
+        `betterflag-config-sync: sync failed for ${group.target.projectId}/${group.target.envSlug}`,
         error,
       );
       log?.error("config-sync failed; messages will retry", {
@@ -510,16 +510,16 @@ const handler = {
   },
 
   async queue(batch, env, ctx): Promise<void> {
-    const obs = readObservability(env as unknown as Record<string, unknown>, "shipos-ingest", {
-      environment: env.SHIPOS_ENV,
-      release: formatRelease({ version: VERSION, gitSha: env.SHIPOS_GIT_SHA, override: env.SHIPOS_RELEASE }),
+    const obs = readObservability(env as unknown as Record<string, unknown>, "betterflag-ingest", {
+      environment: env.BETTERFLAG_ENV,
+      release: formatRelease({ version: VERSION, gitSha: env.BETTERFLAG_GIT_SHA, override: env.BETTERFLAG_RELEASE }),
     });
     try {
       switch (batch.queue) {
-        case "shipos-events":
+        case "betterflag-events":
           await handleEventsBatch(batch, env, fetch, obs);
           return;
-        case "shipos-config-sync":
+        case "betterflag-config-sync":
           await handleConfigSyncBatch(batch, env, syncEnvironment, obs);
           return;
         default:
@@ -536,9 +536,9 @@ const handler = {
 
   /** Daily analytics tiering: hot (ClickHouse, 7d) → cold (R2) → deletion. */
   async scheduled(controller, env, ctx): Promise<void> {
-    const obs = readObservability(env as unknown as Record<string, unknown>, "shipos-ingest", {
-      environment: env.SHIPOS_ENV,
-      release: formatRelease({ version: VERSION, gitSha: env.SHIPOS_GIT_SHA, override: env.SHIPOS_RELEASE }),
+    const obs = readObservability(env as unknown as Record<string, unknown>, "betterflag-ingest", {
+      environment: env.BETTERFLAG_ENV,
+      release: formatRelease({ version: VERSION, gitSha: env.BETTERFLAG_GIT_SHA, override: env.BETTERFLAG_RELEASE }),
     });
     const log = obs.logger.child({ cron: controller.cron });
     const span = obs.tracer.startSpan("ingest.cold_storage", { kind: "internal" });

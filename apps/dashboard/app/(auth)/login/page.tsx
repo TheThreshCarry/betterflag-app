@@ -170,7 +170,7 @@ export default function LoginPage() {
             ))}
           </ul>
         </div>
-        <p className="text-[13px] text-ink-muted">shipos.app</p>
+        <p className="text-[13px] text-ink-muted">betterflag.app</p>
       </div>
 
       {/* Sign-in panel */}

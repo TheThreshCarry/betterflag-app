@@ -1,5 +1,5 @@
-import { targetingRulesSchema } from "@shipos/core";
-import type { FlagConfigRow } from "@shipos/db";
+import { targetingRulesSchema } from "@betterflag/core";
+import type { FlagConfigRow } from "@betterflag/db";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 

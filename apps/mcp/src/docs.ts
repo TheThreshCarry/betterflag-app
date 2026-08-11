@@ -24,41 +24,41 @@ export type DocTopic = (typeof DOC_TOPICS)[number];
 
 const DOCS: Record<DocTopic, { title: string; body: string }> = {
   index: {
-    title: "ShipOS docs: available topics",
-    body: `# ShipOS docs
+    title: "Betterflag docs: available topics",
+    body: `# Betterflag docs
 
 Call read_docs with one of these topics:
 
 - quickstart: ship your first flag in 5 minutes (key, install, evaluate)
-- sdk-js: shipos for Node and the browser (API + config reference)
-- sdk-react: shipos-react hooks, Next.js App Router patterns, SSR
+- sdk-js: betterflag for Node and the browser (API + config reference)
+- sdk-react: @betterflag/react hooks, Next.js App Router patterns, SSR
 - mcp-setup: connect this MCP server (OAuth or agent key, .mcp.json)
 - targeting: targeting rule format and operators for set_targeting
 - concepts: environments, rollouts, kill switch, key types, audit log
 
-Full web documentation: https://docs.shipos.app`,
+Full web documentation: https://docs.betterflag.app`,
   },
 
   quickstart: {
     title: "Quickstart: first flag in 5 minutes",
-    body: `# ShipOS quickstart
+    body: `# Betterflag quickstart
 
 1. Grab an SDK key from the dashboard: Project → Environment → API keys.
-   SDK keys (sos_sdk_...) are publishable: they can only evaluate flags,
+   SDK keys (bf_sdk_...) are publishable: they can only evaluate flags,
    so they are safe to ship to browsers.
 
 2. Install and evaluate:
 
 \`\`\`bash
-npm i shipos
+npm i betterflag
 \`\`\`
 
 \`\`\`ts
-import { createClient } from "shipos";
+import { createClient } from "@betterflag/sdk";
 
-const shipos = createClient({ key: "sos_sdk_your_key_here" });
+const betterflag = createClient({ key: "bf_sdk_your_key_here" });
 
-const enabled = await shipos.flag("new-checkout", { userId: "u_42", default: false });
+const enabled = await betterflag.flag("new-checkout", { userId: "u_42", default: false });
 if (enabled) renderNewCheckout();
 \`\`\`
 
@@ -70,25 +70,25 @@ No init ceremony, no waiting. \`flag()\` never throws: on any failure
    at 0% in every environment; enable them once the code is deployed.
 
 Using React? read_docs topic "sdk-react". Details and API reference:
-topic "sdk-js" or https://docs.shipos.app`,
+topic "sdk-js" or https://docs.betterflag.app`,
   },
 
   "sdk-js": {
-    title: "shipos: Node & browser SDK",
-    body: `# shipos
+    title: "betterflag: Node & browser SDK",
+    body: `# betterflag
 
 Feature flags for Node and the browser. Zero dependencies. Never throws.
 Works offline.
 
 \`\`\`bash
-npm i shipos
+npm i betterflag
 \`\`\`
 
 \`\`\`ts
-import { createClient } from "shipos";
+import { createClient } from "@betterflag/sdk";
 
-const shipos = createClient({ key: "sos_sdk_..." });
-const enabled = await shipos.flag("new-checkout", { userId: "u_42", default: false });
+const betterflag = createClient({ key: "bf_sdk_..." });
+const enabled = await betterflag.flag("new-checkout", { userId: "u_42", default: false });
 \`\`\`
 
 ## Guarantees
@@ -101,9 +101,9 @@ const enabled = await shipos.flag("new-checkout", { userId: "u_42", default: fal
 ## Identify a user once with signIn
 
 \`\`\`ts
-shipos.signIn("user-123", { plan: "pro", region: "eu" });
-const checkout = await shipos.flag("new-checkout", { default: false }); // evaluated for user-123
-shipos.signOut();
+betterflag.signIn("user-123", { plan: "pro", region: "eu" });
+const checkout = await betterflag.flag("new-checkout", { default: false }); // evaluated for user-123
+betterflag.signOut();
 \`\`\`
 
 signIn is purely local (targeting happens at evaluation time) and clears
@@ -113,9 +113,9 @@ signed-in identity.
 ## Node
 
 \`\`\`ts
-const shipos = createClient({
-  key: process.env.SHIPOS_SDK_KEY!,
-  onError: (err) => console.warn("[shipos]", err),
+const betterflag = createClient({
+  key: process.env.BETTERFLAG_SDK_KEY!,
+  onError: (err) => console.warn("[betterflag]", err),
 });
 \`\`\`
 
@@ -125,18 +125,18 @@ process open; no close() needed before exit.
 ## Browser
 
 \`\`\`ts
-const shipos = createClient({
-  key: "sos_sdk_...", // publishable
+const betterflag = createClient({
+  key: "bf_sdk_...", // publishable
   defaults: { "new-checkout": false, theme: "light" }, // served when offline
 });
-shipos.on("update", async () => {
-  applyTheme(await shipos.flag("theme", { userId, default: "light" }));
+betterflag.on("update", async () => {
+  applyTheme(await betterflag.flag("theme", { userId, default: "light" }));
 });
 \`\`\`
 
 ## How it works
 
-- Evaluations: POST edge.shipos.app/v1/evaluate, cached in-memory per
+- Evaluations: POST api.betterflag.app/v1/evaluate, cached in-memory per
   (flag, userId, attributes) for refreshInterval (min 5s).
 - country is auto-detected at the edge from the caller's request when not
   passed, so browser-side country targeting needs no setup; explicit
@@ -144,7 +144,7 @@ shipos.on("update", async () => {
   server's location).
 - Background polling: GET /v1/snapshot with If-None-Match; on config
   change the cache clears and 'update' fires.
-- \`await shipos.ready()\` blocks until the first config fetch settles
+- \`await betterflag.ready()\` blocks until the first config fetch settles
   (resolves on failure too, never rejects).
 
 ## API
@@ -158,8 +158,8 @@ shipos.on("update", async () => {
 
 ## Config options
 
-- key (required): SDK key, sos_sdk_...
-- baseUrl: default https://edge.shipos.app
+- key (required): SDK key, bf_sdk_...
+- baseUrl: default https://api.betterflag.app
 - refreshInterval: poll cadence + cache TTL in ms, default 30000, 0 disables
 - defaults: offline fallbacks by flag key
 - fetch: custom fetch (tests, proxies)
@@ -167,24 +167,24 @@ shipos.on("update", async () => {
   },
 
   "sdk-react": {
-    title: "shipos-react: hooks & Next.js",
-    body: `# shipos-react
+    title: "@betterflag/react: hooks & Next.js",
+    body: `# @betterflag/react
 
-React hooks for ShipOS flags. SSR-safe (useSyncExternalStore), live-updating,
-built on shipos. Hooks never throw; they fall back to your defaults.
+React hooks for Betterflag flags. SSR-safe (useSyncExternalStore), live-updating,
+built on betterflag. Hooks never throw; they fall back to your defaults.
 
 \`\`\`bash
-npm i shipos-react
+npm i @betterflag/react
 \`\`\`
 
 \`\`\`tsx
-import { ShipOSProvider, useFlag } from "shipos-react";
+import { BetterFlagProvider, useFlag } from "@betterflag/react";
 
 function App() {
   return (
-    <ShipOSProvider clientKey="sos_sdk_..." user={{ userId: "u_42" }}>
+    <BetterFlagProvider clientKey="bf_sdk_..." user={{ userId: "u_42" }}>
       <Checkout />
-    </ShipOSProvider>
+    </BetterFlagProvider>
   );
 }
 
@@ -205,13 +205,13 @@ The provider owns a browser-side client, so it lives in a client component:
 \`\`\`tsx
 // app/providers.tsx
 "use client";
-import { ShipOSProvider } from "shipos-react";
+import { BetterFlagProvider } from "@betterflag/react";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <ShipOSProvider clientKey={process.env.NEXT_PUBLIC_SHIPOS_SDK_KEY!}>
+    <BetterFlagProvider clientKey={process.env.NEXT_PUBLIC_BETTERFLAG_SDK_KEY!}>
       {children}
-    </ShipOSProvider>
+    </BetterFlagProvider>
   );
 }
 // then wrap {children} with <Providers> in app/layout.tsx
@@ -220,64 +220,64 @@ export function Providers({ children }: { children: React.ReactNode }) {
 ## Identify after login
 
 \`\`\`tsx
-const shipos = useShipOS();
+const betterflag = useBetterFlag();
 useEffect(() => {
-  if (user) shipos.signIn(user.id, { plan: user.plan });
-  else shipos.signOut();
-}, [shipos, user]);
+  if (user) betterflag.signIn(user.id, { plan: user.plan });
+  else betterflag.signOut();
+}, [betterflag, user]);
 \`\`\`
 
 Leave the provider's user prop unset when driving identity this way.
 
 ## Server side (RSC, route handlers, middleware)
 
-Hooks are client-only; use shipos directly:
+Hooks are client-only; use betterflag directly:
 
 \`\`\`tsx
-import { createClient } from "shipos";
-const shipos = createClient({ key: process.env.SHIPOS_SDK_KEY! });
-const enabled = await shipos.flag("new-hero", { default: false });
+import { createClient } from "@betterflag/sdk";
+const betterflag = createClient({ key: process.env.BETTERFLAG_SDK_KEY! });
+const enabled = await betterflag.flag("new-hero", { default: false });
 \`\`\`
 
 Tip: pass server-evaluated values to the provider's \`bootstrap\` prop
-(e.g. from await shipos.allFlags(ctx)) so the first client render shows
+(e.g. from await betterflag.allFlags(ctx)) so the first client render shows
 real values, still hydration-safe.
 
 ## Exports
 
-- ShipOSProvider: { client } or { clientKey, baseUrl?, defaults?, refreshInterval? } plus user?, bootstrap?
+- BetterFlagProvider: { client } or { clientKey, baseUrl?, defaults?, refreshInterval? } plus user?, bootstrap?
 - useFlag(key, defaultValue, overrides?) → value
 - useFlagDetail(key, defaultValue, overrides?) → { value, reason, loading }
-- useShipOS() → underlying client
+- useBetterFlag() → underlying client
 - createFlagStore: advanced/testing`,
   },
 
   "mcp-setup": {
-    title: "Connect the ShipOS MCP server",
-    body: `# Connect the ShipOS MCP server
+    title: "Connect the Betterflag MCP server",
+    body: `# Connect the Betterflag MCP server
 
-The server lives at https://mcp.shipos.app/mcp (streamable HTTP;
+The server lives at https://mcp.betterflag.app/mcp (streamable HTTP;
 legacy SSE at /sse).
 
 ## OAuth (recommended)
 
 Any OAuth-capable MCP client (Claude.ai, Claude Code, Cursor): add
-https://mcp.shipos.app/mcp as a remote server and click Connect. You sign
+https://mcp.betterflag.app/mcp as a remote server and click Connect. You sign
 in, pick which organization the connection may access, and approving mints
 a dedicated agent key for the connection (visible on the Keys page,
 source: oauth). Revoke that key any time to cut access.
 
 ## Manual agent key
 
-Create an agent key (sos_agt_...) in the dashboard under Keys, then:
+Create an agent key (bf_agt_...) in the dashboard under Keys, then:
 
 \`\`\`json
 {
   "mcpServers": {
-    "shipos": {
+    "@betterflag/sdk": {
       "type": "http",
-      "url": "https://mcp.shipos.app/mcp",
-      "headers": { "Authorization": "Bearer sos_agt_..." }
+      "url": "https://mcp.betterflag.app/mcp",
+      "headers": { "Authorization": "Bearer bf_agt_..." }
     }
   }
 }
@@ -286,11 +286,11 @@ Create an agent key (sos_agt_...) in the dashboard under Keys, then:
 Or with the Claude Code CLI:
 
 \`\`\`sh
-claude mcp add --transport http shipos https://mcp.shipos.app/mcp \\
-  --header "Authorization: Bearer sos_agt_..."
+claude mcp add --transport http betterflag https://mcp.betterflag.app/mcp \\
+  --header "Authorization: Bearer bf_agt_..."
 \`\`\`
 
-Admin keys (sos_adm_*) also work. SDK keys (sos_sdk_*) do NOT: those are
+Admin keys (bf_adm_*) also work. SDK keys (bf_sdk_*) do NOT: those are
 publishable evaluation credentials for the edge, not management keys.
 
 ## Notes
@@ -369,7 +369,7 @@ semver_eq, semver_gt, semver_lt
 
   concepts: {
     title: "Core concepts: envs, rollouts, keys, kill switch",
-    body: `# ShipOS core concepts
+    body: `# Betterflag core concepts
 
 ## Environments
 
@@ -394,11 +394,11 @@ clearKill) before re-enabling.
 
 ## Key types
 
-- sos_sdk_* - SDK keys: publishable, evaluation-only, safe in browsers.
-  Used by shipos against edge.shipos.app.
-- sos_agt_* - agent keys: management access for MCP/REST, scoped and
+- bf_sdk_* - SDK keys: publishable, evaluation-only, safe in browsers.
+  Used by betterflag against api.betterflag.app.
+- bf_agt_* - agent keys: management access for MCP/REST, scoped and
   audited by key prefix. What agents should use.
-- sos_adm_* - admin keys: management access for humans/CI.
+- bf_adm_* - admin keys: management access for humans/CI.
 SDK keys are rejected on the control plane; agent/admin keys are rejected
 on the edge evaluation path.
 
@@ -425,9 +425,9 @@ export function registerDocsTool(server: McpServer): void {
   server.registerTool(
     "read_docs",
     {
-      title: "Read ShipOS documentation",
+      title: "Read Betterflag documentation",
       description:
-        "Read built-in ShipOS setup documentation. Topics: quickstart (first flag in 5 min), " +
+        "Read built-in Betterflag setup documentation. Topics: quickstart (first flag in 5 min), " +
         "sdk-js (Node/browser SDK), sdk-react (React hooks + Next.js), mcp-setup (connect this server), " +
         "targeting (rule format & operators for set_targeting), concepts (environments, rollouts, " +
         "kill switch, key types). Call without a topic (or with 'index') to list all topics. " +

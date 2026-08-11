@@ -17,7 +17,7 @@ import {
   DropdownMenuSubContent,
 } from "@appica/ui-react/dropdown-menu";
 
-/** ShipOS call sites use DropdownMenuLabel — alias Appica GroupLabel. */
+/** Betterflag call sites use DropdownMenuLabel — alias Appica GroupLabel. */
 const DropdownMenuLabel = DropdownMenuGroupLabel;
 
 export {

@@ -5,7 +5,7 @@ description: >-
   whenever those packages are available. Use when building or editing UI,
   buttons, dialogs, tables, forms, chips, toasts, theme, reduced-motion,
   country flags, or any component Appica already ships — especially in the
-  ShipOS dashboard.
+  Betterflag dashboard.
 ---
 
 # Appica UI
@@ -19,7 +19,7 @@ Docs / discovery: inspect package exports under `node_modules/@appica/ui-react` 
 1. Check the **current app** `package.json` for `@appica/*`.
 2. If present → use Appica (this skill).
 3. If missing but the task needs a component Appica provides → **install** then use Appica (do not invent a parallel stack).
-4. ShipOS **admin** and other apps without Appica → keep existing stack; do not force Appica there.
+4. Betterflag **admin** and other apps without Appica → keep existing stack; do not force Appica there.
 
 ## Packages
 
@@ -57,9 +57,9 @@ import { CountryFlagRounded } from "@appica/country-flags-react";
 
 Do **not** deep-import random `dist/` files.
 
-## ShipOS dashboard conventions
+## Betterflag dashboard conventions
 
-Dashboard wraps Appica behind ShipOS APIs — prefer those wrappers when they exist:
+Dashboard wraps Appica behind Betterflag APIs — prefer those wrappers when they exist:
 
 | Need | Prefer |
 |------|--------|
@@ -69,7 +69,7 @@ Dashboard wraps Appica behind ShipOS APIs — prefer those wrappers when they ex
 | Theme + animations prefs | `ThemeProvider` + `PreferencesProvider` / `useTheme` / `usePreferences` |
 | Country flags | `CountryFlagRounded` only |
 
-Only import `@appica/*` directly when no ShipOS wrapper covers the component (e.g. `Slider`, `Table`, flags).
+Only import `@appica/*` directly when no Betterflag wrapper covers the component (e.g. `Slider`, `Table`, flags).
 
 ## Country flags
 
@@ -92,11 +92,11 @@ import { CountryFlagRounded } from "@appica/country-flags-react";
 
 ## Rules
 
-1. **Appica first** — if Appica has the primitive, use it (or the ShipOS wrapper).
+1. **Appica first** — if Appica has the primitive, use it (or the Betterflag wrapper).
 2. **No new shadcn stack** in Appica apps for components Appica already exports.
 3. **No emoji / Unicode flags** when `@appica/country-flags-react` is available.
 4. **Rounded flags default** — not circle.
-5. **Match existing ShipOS tokens** (`bg-canvas`, `bg-surface`, `text-ink`, chip colors) when wrapping or styling Appica.
+5. **Match existing Betterflag tokens** (`bg-canvas`, `bg-surface`, `text-ink`, chip colors) when wrapping or styling Appica.
 6. **Keep admin / non-Appica apps** on their current UI unless the user asks to migrate.
 
 ## Quick component map

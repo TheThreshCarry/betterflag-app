@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { EvaluationEvent } from "@shipos/core";
+import type { EvaluationEvent } from "@betterflag/core";
 import {
   buildInsertBody,
   evaluationEventSchema,
@@ -214,7 +214,7 @@ describe("handleEventsBatch", () => {
   it("inserts valid rows, acks invalid ones individually, then acks the batch", async () => {
     const good = fakeMessage(EVENT, "m1");
     const bad = fakeMessage({ nope: true }, "m2");
-    const batch = fakeBatch("shipos-events", [good, bad]);
+    const batch = fakeBatch("betterflag-events", [good, bad]);
 
     const requests: { url: string; auth: string | null; body: string }[] = [];
     const fetchFn = (async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -241,7 +241,7 @@ describe("handleEventsBatch", () => {
   });
 
   it("throws on a non-2xx ClickHouse response so the batch retries", async () => {
-    const batch = fakeBatch("shipos-events", [fakeMessage(EVENT, "m1")]);
+    const batch = fakeBatch("betterflag-events", [fakeMessage(EVENT, "m1")]);
     const fetchFn = (async () => new Response("boom", { status: 500 })) as typeof fetch;
 
     await expect(handleEventsBatch(batch, ENV, fetchFn)).rejects.toThrow(
@@ -252,7 +252,7 @@ describe("handleEventsBatch", () => {
 
   it("skips the insert entirely when no message is valid", async () => {
     const bad = fakeMessage("garbage", "m1");
-    const batch = fakeBatch("shipos-events", [bad]);
+    const batch = fakeBatch("betterflag-events", [bad]);
     const fetchFn = (async () => {
       throw new Error("must not be called");
     }) as typeof fetch;
@@ -376,7 +376,7 @@ describe("handleConfigSyncBatch", () => {
     const m1 = fakeMessage(syncBody(), "m1");
     const m2 = fakeMessage(syncBody(), "m2");
     const m3 = fakeMessage(syncBody({ envSlug: "staging" }), "m3");
-    const batch = fakeBatch("shipos-config-sync", [m1, m2, m3]);
+    const batch = fakeBatch("betterflag-config-sync", [m1, m2, m3]);
 
     const synced: string[] = [];
     await handleConfigSyncBatch(batch, ENV, async (target) => {
@@ -392,7 +392,7 @@ describe("handleConfigSyncBatch", () => {
     const failing = fakeMessage(syncBody(), "m1");
     const failingDup = fakeMessage(syncBody(), "m2");
     const healthy = fakeMessage(syncBody({ envSlug: "staging" }), "m3");
-    const batch = fakeBatch("shipos-config-sync", [failing, failingDup, healthy]);
+    const batch = fakeBatch("betterflag-config-sync", [failing, failingDup, healthy]);
 
     await handleConfigSyncBatch(batch, ENV, async (target) => {
       if (target.envSlug === "prod") throw new Error("supabase down");
@@ -406,7 +406,7 @@ describe("handleConfigSyncBatch", () => {
 
   it("acks invalid messages without syncing anything", async () => {
     const invalid = fakeMessage({ type: "sync" }, "m1");
-    const batch = fakeBatch("shipos-config-sync", [invalid]);
+    const batch = fakeBatch("betterflag-config-sync", [invalid]);
 
     let calls = 0;
     await handleConfigSyncBatch(batch, ENV, async () => {

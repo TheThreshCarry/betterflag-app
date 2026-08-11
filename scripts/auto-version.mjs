@@ -27,7 +27,7 @@ import { fileURLToPath } from "node:url";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 const APPS = [
-  { name: "edge", dir: "apps/edge" },
+  { name: "api", dir: "apps/api" },
   { name: "ingest", dir: "apps/ingest" },
   { name: "mcp", dir: "apps/mcp" },
   { name: "webhooks", dir: "apps/webhooks" },

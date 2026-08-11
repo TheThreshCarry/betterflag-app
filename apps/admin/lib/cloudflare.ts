@@ -6,7 +6,7 @@
  * when the CF_* env vars are unset, mirroring the dashboard app.
  */
 
-import { sdkKeyKvKey, snapshotKvKey } from "@shipos/core";
+import { sdkKeyKvKey, snapshotKvKey } from "@betterflag/core";
 
 import { optionalEnv } from "./env";
 

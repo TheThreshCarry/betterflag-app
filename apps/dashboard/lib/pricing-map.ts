@@ -80,7 +80,7 @@ function productArchived(p: PolarProductLike): boolean {
   return Boolean(p.isArchived ?? p.is_archived);
 }
 
-/** Map a single Polar product to a tier, or null if it isn't a ShipOS tier. */
+/** Map a single Polar product to a tier, or null if it isn't a Betterflag tier. */
 export function mapPolarProductToTier(product: PolarProductLike): PricingTier | null {
   const meta = product.metadata ?? {};
   const key = asString(meta.plan_key) as PlanKey;
@@ -122,7 +122,7 @@ export function mapPolarProductToTier(product: PolarProductLike): PricingTier | 
   };
 }
 
-/** Map + sort a list of Polar products into ShipOS tiers. */
+/** Map + sort a list of Polar products into Betterflag tiers. */
 export function mapPolarProductsToTiers(products: PolarProductLike[]): PricingTier[] {
   const tiers: PricingTier[] = [];
   for (const product of products) {

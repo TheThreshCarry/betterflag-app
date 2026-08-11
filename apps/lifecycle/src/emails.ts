@@ -1,9 +1,9 @@
 /**
  * Welcome-sequence email templates. Pure functions (unit-tested), founder
- * voice per the ShipOS positioning: personal "I", no corporate polish, the
+ * voice per the Betterflag positioning: personal "I", no corporate polish, the
  * product speaks through concrete things you can do.
  *
- * Design: mirrors the ShipOS dashboard system. Warm paper canvas (#f4f3f1),
+ * Design: mirrors the Betterflag dashboard system. Warm paper canvas (#f4f3f1),
  * a white card panel (24px radius, #e8e4de hairline) as the protagonist,
  * charcoal ink (#171717) / muted (#737373) type, and orange (#ff5a1a) used
  * exactly once per email as the CTA. Table-based and inline-styled so it
@@ -21,9 +21,9 @@ export interface EmailContent {
   text: string;
 }
 
-export const FROM_ADDRESS = { email: "hi@shipos.app", name: "Mehdi from ShipOS" } as const;
+export const FROM_ADDRESS = { email: "hi@betterflag.app", name: "Mehdi from Betterflag" } as const;
 
-const APP_URL = "https://app.shipos.app";
+const APP_URL = "https://app.betterflag.app";
 
 // Design tokens (kept in sync with apps/dashboard/app/globals.css).
 const INK = "#171717";
@@ -58,7 +58,7 @@ function brandLockup(orgLogoUrl?: string | null): string {
   return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tr>
     <td width="34" valign="middle" align="center" height="34" bgcolor="${BADGE_DARK}" style="width:34px;height:34px;border-radius:9px;color:#ffffff;font-family:${FONT};font-size:15px;font-weight:700;line-height:34px;text-align:center;">S</td>
     <td width="10" style="width:10px;">&nbsp;</td>
-    <td valign="middle" style="font-family:${FONT};font-size:16px;font-weight:600;letter-spacing:-0.01em;color:${INK};">ShipOS</td>
+    <td valign="middle" style="font-family:${FONT};font-size:16px;font-weight:600;letter-spacing:-0.01em;color:${INK};">Betterflag</td>
     ${orgLogo}
   </tr></table>`;
 }
@@ -147,10 +147,10 @@ function layout(opts: LayoutOpts): string {
             <tr>
               <td style="padding:20px 24px 0;">
                 <p style="margin:0 0 6px;font-family:${FONT};font-size:12px;line-height:1.6;color:${MUTED};">
-                  You're getting this because you created a ShipOS account. It's a short 3-email onboarding series, then I'll leave your inbox alone. Reply any time, it lands in my actual inbox.
+                  You're getting this because you created a Betterflag account. It's a short 3-email onboarding series, then I'll leave your inbox alone. Reply any time, it lands in my actual inbox.
                 </p>
                 <p style="margin:0;font-family:${FONT};font-size:12px;line-height:1.6;color:#a3a3a3;">
-                  ShipOS &middot; Feature flags with no seat tax and no MAU bill.
+                  Betterflag &middot; Feature flags with no seat tax and no MAU bill.
                 </p>
               </td>
             </tr>
@@ -163,13 +163,13 @@ function layout(opts: LayoutOpts): string {
 }
 
 const TEXT_FOOTER =
-  "\n\n---\nYou're getting this because you created a ShipOS account. It's a short 3-email onboarding series, then I'll leave your inbox alone. Reply any time, it lands in my actual inbox.";
+  "\n\n---\nYou're getting this because you created a Betterflag account. It's a short 3-email onboarding series, then I'll leave your inbox alone. Reply any time, it lands in my actual inbox.";
 
 /** Day 0 - welcome, sent right after org creation. */
 export function welcomeEmail(orgName: string, orgLogoUrl?: string | null): EmailContent {
-  const subject = "Welcome to ShipOS: your first flag is 5 minutes away";
+  const subject = "Welcome to Betterflag: your first flag is 5 minutes away";
   const body = `
-    ${para("Hey, Mehdi here. I built ShipOS.")}
+    ${para("Hey, Mehdi here. I built Betterflag.")}
     ${para(`Thanks for creating <strong style="color:${INK};">${escapeHtml(orgName)}</strong>. Here's the whole pitch in one line:`)}
     ${panel(
       `<p style="margin:0 0 10px;font-family:${FONT};font-size:15px;line-height:1.55;font-weight:600;color:${INK};">Unlimited flags, seats and environments. One meter (evaluations). Served from the edge in under 50ms.</p>
@@ -190,7 +190,7 @@ export function welcomeEmail(orgName: string, orgLogoUrl?: string | null): Email
     body,
     orgLogoUrl,
   });
-  const text = `Hey, Mehdi here. I built ShipOS.
+  const text = `Hey, Mehdi here. I built Betterflag.
 
 Thanks for creating ${orgName}. Here's the whole pitch in one line: unlimited flags, seats and environments, one meter (evaluations), served from the edge in under 50ms. No seat tax, no MAU bill.
 
@@ -223,18 +223,18 @@ export function agenticEmail(orgLogoUrl?: string | null): EmailContent {
     )
     .join("");
   const body = `
-    ${para("The thing that makes ShipOS different: your coding agent can drive it.")}
+    ${para("The thing that makes Betterflag different: your coding agent can drive it.")}
     ${para(
-      `Point Claude Code or Cursor at ${code("mcp.shipos.app")} with an agent key and it can create flags, set targeting, stage a 10% rollout, and kill a bad feature, all without you opening the dashboard. Every action lands in the audit log attributed to the agent, not mushed in with human changes.`,
+      `Point Claude Code or Cursor at ${code("mcp.betterflag.app")} with an agent key and it can create flags, set targeting, stage a 10% rollout, and kill a bad feature, all without you opening the dashboard. Every action lands in the audit log attributed to the agent, not mushed in with human changes.`,
     )}
     ${terminal(
       ".mcp.json",
       `<span style="color:#8b949e;">{</span><br />
 &nbsp;&nbsp;<span style="color:#79c0ff;">"mcpServers"</span>: {<br />
-&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#79c0ff;">"shipos"</span>: {<br />
+&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#79c0ff;">"betterflag"</span>: {<br />
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#79c0ff;">"type"</span>: <span style="color:${GREEN};">"http"</span>,<br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#79c0ff;">"url"</span>: <span style="color:${GREEN};">"https://mcp.shipos.app/mcp"</span>,<br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#79c0ff;">"headers"</span>: { <span style="color:#79c0ff;">"Authorization"</span>: <span style="color:${GREEN};">"Bearer sos_agt_..."</span> }<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#79c0ff;">"url"</span>: <span style="color:${GREEN};">"https://mcp.betterflag.app/mcp"</span>,<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#79c0ff;">"headers"</span>: { <span style="color:#79c0ff;">"Authorization"</span>: <span style="color:${GREEN};">"Bearer bf_agt_..."</span> }<br />
 &nbsp;&nbsp;&nbsp;&nbsp;}<br />
 &nbsp;&nbsp;}<br />
 <span style="color:#8b949e;">}</span>`,
@@ -245,15 +245,15 @@ export function agenticEmail(orgLogoUrl?: string | null): EmailContent {
     ${mutedPara("Feature flags made easy, with unlimited seats on every plan.")}
     ${para("- Mehdi")}`;
   const html = layout({
-    preview: "Point Claude Code or Cursor at mcp.shipos.app and let it ship.",
+    preview: "Point Claude Code or Cursor at mcp.betterflag.app and let it ship.",
     eyebrow: "Agentic",
     heading: "Let your agent manage your flags",
     body,
     orgLogoUrl,
   });
-  const text = `The thing that makes ShipOS different: your coding agent can drive it.
+  const text = `The thing that makes Betterflag different: your coding agent can drive it.
 
-Point Claude Code or Cursor at mcp.shipos.app with an agent key and it can create flags, set targeting, stage a 10% rollout, and kill a bad feature, all without you opening the dashboard. Every action lands in the audit log attributed to the agent, not mushed in with human changes.
+Point Claude Code or Cursor at mcp.betterflag.app with an agent key and it can create flags, set targeting, stage a 10% rollout, and kill a bad feature, all without you opening the dashboard. Every action lands in the audit log attributed to the agent, not mushed in with human changes.
 
 Setup is one key and one config block:
 
@@ -271,7 +271,7 @@ Feature flags made easy, with unlimited seats on every plan.
 export function trialEndingEmail(daysLeft: number, orgLogoUrl?: string | null): EmailContent {
   const days = Math.max(daysLeft, 0);
   const when = days === 0 ? "today" : days === 1 ? "tomorrow" : `in ${days} days`;
-  const subject = `Your ShipOS trial ends ${when}`;
+  const subject = `Your Betterflag trial ends ${when}`;
   const body = `
     ${para(`Quick heads-up: your trial ends <strong style="color:${INK};">${when}</strong>.`)}
     ${panel(
@@ -295,7 +295,7 @@ export function trialEndingEmail(daysLeft: number, orgLogoUrl?: string | null): 
     )}
     ${para("- Mehdi")}`;
   const html = layout({
-    preview: `Your ShipOS trial ends ${when}. Your flags keep serving either way.`,
+    preview: `Your Betterflag trial ends ${when}. Your flags keep serving either way.`,
     eyebrow: "Trial",
     heading: `Your trial ends ${when}`,
     body,

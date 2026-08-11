@@ -1,5 +1,5 @@
 /**
- * Canonical ShipOS pricing spec.
+ * Canonical Betterflag pricing spec.
  *
  * This file is the SEED for Polar: `scripts/polar-setup.ts` reads it to create
  * the evaluations meter, the included-unit (meter-credit) benefits and the
@@ -66,7 +66,7 @@ function overageLine(perMillionCents: number): string {
 /**
  * The three tiers. Prices/limits mirror the landing page. Keep `priceCents`,
  * `includedEvaluations`, `overagePerMillionCents`, `projects`, `agentKeys`
- * aligned with `@shipos/db` PLAN_LIMITS (the server-side enforcement mirror).
+ * aligned with `@betterflag/db` PLAN_LIMITS (the server-side enforcement mirror).
  */
 export const PRICING_SPEC: readonly PricingTier[] = [
   {

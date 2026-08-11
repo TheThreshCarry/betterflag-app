@@ -4,7 +4,7 @@
  * linked Supabase project, the shapes must stay identical.
  */
 
-import type { JsonValue } from "@shipos/core";
+import type { JsonValue } from "@betterflag/core";
 
 export type OrgPlan = "trial" | "starter" | "launch" | "scale";
 export type OrgRole = "owner" | "admin" | "member";

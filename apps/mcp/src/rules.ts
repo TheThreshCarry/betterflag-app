@@ -1,7 +1,7 @@
 /**
  * Targeting-rule schemas for the MCP tools.
  *
- * The canonical validation schemas live in @shipos/core and are reused here for
+ * The canonical validation schemas live in @betterflag/core and are reused here for
  * runtime `.safeParse` (mcp and core are both on zod 4, so there's nothing to
  * hand-duplicate anymore).
  *
@@ -13,7 +13,7 @@
  * stays cheap; deep validation still runs at runtime via
  * `targetingRulesSchema.safeParse`.
  */
-import { ruleOperatorSchema, targetingRulesSchema } from "@shipos/core";
+import { ruleOperatorSchema, targetingRulesSchema } from "@betterflag/core";
 import { z } from "zod";
 
 export { targetingRulesSchema };

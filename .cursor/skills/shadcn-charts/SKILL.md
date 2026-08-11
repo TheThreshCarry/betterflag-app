@@ -4,7 +4,7 @@ description: >-
   Build charts with shadcn/ui + Recharts (ui.shadcn.com/charts). Prefer Area
   charts for time series. Use when adding, editing, or migrating any chart,
   graph, sparkline, analytics series, usage meter visualization, or Recharts
-  component in ShipOS or any shadcn project.
+  component in Betterflag or any shadcn project.
 ---
 
 # shadcn/ui Charts
@@ -20,7 +20,7 @@ npx shadcn@latest add chart -y
 # pulls recharts + components/ui/chart.tsx
 ```
 
-Theme tokens (ShipOS chip hues):
+Theme tokens (Betterflag chip hues):
 
 ```css
 :root {
@@ -49,7 +49,7 @@ Also expose `--color-chart-1` … `--color-chart-5` in `@theme` if the app uses 
 3. **No raw `<svg>` / `<rect>` / `<polyline>` charts** for product metrics. Sparklines use `SparklineArea` (or equivalent ChartContainer + Area, axes hidden).
 4. **Single series → no legend box.** Card/section title names the series; tooltip shows exact values.
 5. **Multi series → stacked Area** + `ChartLegend` / labeled chips. Map colors via `ChartConfig`.
-6. **Colors from `var(--chart-N)`** (or ShipOS chip tokens). Never hardcode `#0067F4` in new charts.
+6. **Colors from `var(--chart-N)`** (or Betterflag chip tokens). Never hardcode `#0067F4` in new charts.
 7. **Axes**: `tickLine={false}`, `axisLine={false}`, horizontal grid only (`CartesianGrid vertical={false}`).
 8. **Curve**: `type="natural"` (shadcn area default). `dot={false}`, `activeDot={{ r: 4 }}`.
 9. **Height**: override `aspect-video` with `className="aspect-auto h-44 w-full"` (or similar) so layout stays stable.
@@ -106,7 +106,7 @@ export function ExampleArea({ data }: { data: { label: string; value: number }[]
 
 `ChartContainer` injects `--color-{key}` from `chartConfig`. Use those CSS vars for stroke/fill.
 
-## ShipOS locations
+## Betterflag locations
 
 | App | Primitives | Helpers |
 |-----|------------|---------|
@@ -131,5 +131,5 @@ When touching a hand-rolled SVG chart:
 - Custom SVG bars/lines for metrics
 - Chart.js / Visx / Nivo when shadcn chart already in the app
 - Legend on a single-series chart
-- Purple/indigo default shadcn demo colors — use ShipOS chip hues
+- Purple/indigo default shadcn demo colors — use Betterflag chip hues
 - Inset “card inside card” solely to wrap a chart

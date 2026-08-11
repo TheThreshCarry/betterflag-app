@@ -1,9 +1,9 @@
 /**
  * Billing lifecycle & non-payment policy (pure, unit-testable).
  *
- * ShipOS policy (decided July 2026):
+ * Betterflag policy (decided July 2026):
  *  - A failed renewal moves the subscription to `past_due`. Polar retries the
- *    card (dunning) in parallel; ShipOS grants a **14-day grace period** from
+ *    card (dunning) in parallel; Betterflag grants a **14-day grace period** from
  *    the moment the account went past_due, during which access is unchanged.
  *  - When grace expires (or the subscription is `unpaid` / `canceled`), the org
  *    becomes **restricted**: flag evaluations KEEP SERVING from the edge so the

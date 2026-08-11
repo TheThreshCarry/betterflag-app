@@ -3,7 +3,7 @@
  * DELETE /api/v1/me/avatar — clear profile picture.
  * Session-only; user can only mutate their own profile.
  */
-import type { ProfileRow } from "@shipos/db";
+import type { ProfileRow } from "@betterflag/db";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { toApiProfile } from "@/lib/api-types";

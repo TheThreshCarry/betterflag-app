@@ -13,7 +13,7 @@ For each app the single source of truth is the `version` field in its
 
 | App | package.json | generated file |
 |-----|--------------|----------------|
-| edge | `apps/edge/package.json` | `apps/edge/src/version.gen.ts` |
+| edge | `apps/api/package.json` | `apps/api/src/version.gen.ts` |
 | ingest | `apps/ingest/package.json` | `apps/ingest/src/version.gen.ts` |
 | mcp | `apps/mcp/package.json` | `apps/mcp/src/version.gen.ts` |
 | webhooks | `apps/webhooks/package.json` | `apps/webhooks/src/version.gen.ts` |
@@ -26,18 +26,18 @@ from `package.json`.
 ## How the version reaches logs, errors, and traces
 
 Each service imports its `VERSION` and composes a **release** string via
-`formatRelease` from `@shipos/observability`:
+`formatRelease` from `@betterflag/observability`:
 
 ```ts
-import { formatRelease, readObservability } from "@shipos/observability";
+import { formatRelease, readObservability } from "@betterflag/observability";
 import { VERSION } from "./version.gen";
 
-const obs = readObservability(env, "shipos-edge", {
-  environment: env.SHIPOS_ENV,
+const obs = readObservability(env, "betterflag-api", {
+  environment: env.BETTERFLAG_ENV,
   release: formatRelease({
     version: VERSION,            // e.g. "0.1.2"
-    gitSha: env.SHIPOS_GIT_SHA,  // e.g. "a1b9f3c" (injected at deploy)
-    override: env.SHIPOS_RELEASE // wins verbatim if set
+    gitSha: env.BETTERFLAG_GIT_SHA,  // e.g. "a1b9f3c" (injected at deploy)
+    override: env.BETTERFLAG_RELEASE // wins verbatim if set
   }),
 });
 ```
@@ -48,16 +48,16 @@ exceptions:
 
 - with a git commit → `0.1.2+a1b9f3c`
 - with no commit available → `0.1.2`
-- with `SHIPOS_RELEASE` set → that exact string
+- with `BETTERFLAG_RELEASE` set → that exact string
 
 The git SHA is injected at deploy time. Each Worker's `deploy` script passes it
 to Wrangler:
 
 ```
-wrangler deploy --var SHIPOS_GIT_SHA:$(git rev-parse --short=7 HEAD)
+wrangler deploy --var BETTERFLAG_GIT_SHA:$(git rev-parse --short=7 HEAD)
 ```
 
-The dashboard picks it up from `SHIPOS_GIT_SHA` or Vercel's
+The dashboard picks it up from `BETTERFLAG_GIT_SHA` or Vercel's
 `VERCEL_GIT_COMMIT_SHA`. Even with no SHA and no env at all, the committed
 `VERSION` is always attached, logs are never version-less.
 

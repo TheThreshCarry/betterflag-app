@@ -2,7 +2,7 @@
  * Server-side billing enforcement.
  *
  * Turns the org's synced Polar state (subscription_status + past_due_since,
- * written by the shipos-webhooks worker) into an access decision via the
+ * written by the betterflag-webhooks worker) into an access decision via the
  * billing-lifecycle policy, and blocks WRITES when the account is restricted.
  *
  * Reads are never gated here, and the edge data plane keeps serving flags, a
@@ -28,7 +28,7 @@ export async function assertOrgWritable(service: SupabaseClient, orgId: string):
     throw new HttpError(
       403,
       "org_frozen",
-      "This organization is frozen by ShipOS. Contact support to restore write access.",
+      "This organization is frozen by Betterflag. Contact support to restore write access.",
     );
   }
   const decision = billingDecisionForOrg(org);

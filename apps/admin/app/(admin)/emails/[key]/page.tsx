@@ -1,4 +1,4 @@
-import { TEMPLATE_SEEDS, type EmailTemplateKey, type EmailVariable } from "@shipos/emails";
+import { TEMPLATE_SEEDS, type EmailTemplateKey, type EmailVariable } from "@betterflag/emails";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 

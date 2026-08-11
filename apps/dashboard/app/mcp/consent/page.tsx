@@ -101,7 +101,7 @@ export default async function McpConsentPage({
         </div>
 
         <h1 className="text-[22px] font-semibold leading-snug tracking-[-0.02em]">
-          {clientName} wants to connect to ShipOS
+          {clientName} wants to connect to Betterflag
         </h1>
         <p className="mt-2 text-[14px] leading-relaxed text-ink-muted">
           It will be able to manage feature flags, create flags, change targeting, stage

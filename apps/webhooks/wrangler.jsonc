@@ -1,11 +1,11 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "shipos-webhooks",
+  "name": "betterflag-webhooks",
   "main": "src/index.ts",
   "compatibility_date": "2026-06-01",
-  // Custom domain, Polar posts webhooks to https://payment.shipos.app.
-  // Wrangler provisions the domain + DNS record on the shipos.app zone.
-  "routes": [{ "pattern": "payment.shipos.app", "custom_domain": true }],
+  // Custom domain, Polar posts webhooks to https://payment.betterflag.app.
+  // Wrangler provisions the domain + DNS record on the betterflag.app zone.
+  "routes": [{ "pattern": "payment.betterflag.app", "custom_domain": true }],
   "observability": {
     "enabled": true
   },
@@ -18,11 +18,11 @@
   // SUPABASE_SERVICE_ROLE_KEY, BETTER_STACK_SOURCE_TOKEN) go in
   // apps/webhooks/.dev.vars locally and via `wrangler secret put` in prod:
   //   echo <polar endpoint secret> | wrangler secret put POLAR_WEBHOOK_SECRET
-  // Better Stack "shipos-webhooks" source (id 2578726). Endpoint is non-secret;
+  // Better Stack "betterflag-webhooks" source (id 2578726). Endpoint is non-secret;
   // the ingest token is a SECRET → `wrangler secret put BETTER_STACK_SOURCE_TOKEN`.
   "vars": {
     "SUPABASE_URL": "https://tnlbktwyrctrxmpoafwb.supabase.co",
-    "SHIPOS_ENV": "production",
+    "BETTERFLAG_ENV": "production",
     "BETTER_STACK_LOGS_ENDPOINT": "https://s2578726.eu-fsn-3.betterstackdata.com"
   }
 }

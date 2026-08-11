@@ -33,7 +33,7 @@ async function main() {
     );
   }
 
-  const page = `<!doctype html><html><head><meta charset="utf-8"/><title>ShipOS emails (React Email)</title>
+  const page = `<!doctype html><html><head><meta charset="utf-8"/><title>Betterflag emails (React Email)</title>
 <style>
   body{margin:0;background:#e9e7e3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#171717;}
   header{max-width:720px;margin:0 auto;padding:32px 24px 8px;} h1{font-size:22px;margin:0 0 4px;letter-spacing:-0.02em;}
@@ -46,7 +46,7 @@ async function main() {
   .subj span{color:#a3a3a3;text-transform:uppercase;font-size:11px;letter-spacing:.06em;margin-right:8px;}
   iframe{width:100%;height:900px;border:1px solid #e8e4de;border-radius:14px;background:#f4f3f1;}
 </style></head><body>
-<header><h1>ShipOS transactional emails</h1><p>Rendered from the @shipos/emails React Email templates, sample variables filled.</p></header>
+<header><h1>Betterflag transactional emails</h1><p>Rendered from the @betterflag/emails React Email templates, sample variables filled.</p></header>
 ${sections.join("\n")}
 </body></html>`;
 

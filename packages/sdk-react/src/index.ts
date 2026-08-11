@@ -1,11 +1,11 @@
 export {
-  ShipOSProvider,
-  type ShipOSProviderProps,
-  type ShipOSProviderClientProps,
-  type ShipOSProviderKeyProps,
+  BetterFlagProvider,
+  type BetterFlagProviderProps,
+  type BetterFlagProviderClientProps,
+  type BetterFlagProviderKeyProps,
 } from "./provider";
-export { useFlag, useFlagDetail, useShipOS, type FlagOverrides } from "./hooks";
-export { ShipOSContext, type ShipOSContextValue } from "./context";
+export { useFlag, useFlagDetail, useBetterFlag, type FlagOverrides } from "./hooks";
+export { BetterFlagContext, type BetterFlagContextValue } from "./context";
 export {
   createFlagStore,
   type FlagClient,
@@ -17,10 +17,10 @@ export {
 // import everything from one place.
 export {
   createClient,
-  ShipOSClient,
-  type ShipOSClientOptions,
+  BetterFlagClient,
+  type BetterFlagClientOptions,
   type JsonValue,
   type EvaluationContext,
   type EvaluationReason,
   type EvaluationResult,
-} from "shipos";
+} from "@betterflag/sdk";

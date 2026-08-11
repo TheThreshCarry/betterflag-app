@@ -1,7 +1,7 @@
 {
-  "name": "shipos",
+  "name": "@betterflag/sdk",
   "version": "0.1.1",
-  "description": "ShipOS feature flags SDK for Node and the browser",
+  "description": "Betterflag feature flags SDK for Node and the browser",
   "license": "MIT",
   "type": "module",
   "main": "./src/index.ts",

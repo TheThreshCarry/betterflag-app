@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { PLAN_LIMITS } from "@shipos/db";
+import { PLAN_LIMITS } from "@betterflag/db";
 
 import {
   PRICING_SPEC,
@@ -53,7 +53,7 @@ describe("encodeLimit / decodeLimit", () => {
 });
 
 describe("PRICING_SPEC integrity", () => {
-  it("has exactly the three ShipOS tiers, uniquely keyed and ordered", () => {
+  it("has exactly the three Betterflag tiers, uniquely keyed and ordered", () => {
     expect(PRICING_SPEC.map((t) => t.key)).toEqual(["starter", "launch", "scale"]);
     expect(new Set(PRICING_SPEC.map((t) => t.sort)).size).toBe(3);
     const sorted = [...PRICING_SPEC].sort((a, b) => a.sort - b.sort);
@@ -99,7 +99,7 @@ describe("PRICING_SPEC integrity", () => {
     }
   });
 
-  it("stays in lockstep with the @shipos/db PLAN_LIMITS enforcement mirror", () => {
+  it("stays in lockstep with the @betterflag/db PLAN_LIMITS enforcement mirror", () => {
     // The server enforces limits from PLAN_LIMITS; the spec is the display/seed
     // source. Drift between them would bill or gate customers incorrectly.
     for (const t of PRICING_SPEC) {

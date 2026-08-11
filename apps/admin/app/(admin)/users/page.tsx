@@ -50,7 +50,7 @@ export default async function UsersPage() {
                           {user.email ?? user.id}
                         </span>
                         {banned ? <Chip color="pink">Banned</Chip> : null}
-                        {teamAccount ? <Chip color="orange">ShipOS</Chip> : null}
+                        {teamAccount ? <Chip color="orange">Betterflag</Chip> : null}
                       </div>
                     </td>
                     <td className={TD}>

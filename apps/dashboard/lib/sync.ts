@@ -5,8 +5,8 @@
  * the same `buildSnapshot`, so the two paths cannot drift.
  */
 
-import { buildSnapshot, type FlagConfigRowLike, type FlagRowLike } from "@shipos/core";
-import type { FlagConfigRow, FlagRow } from "@shipos/db";
+import { buildSnapshot, type FlagConfigRowLike, type FlagRowLike } from "@betterflag/core";
+import type { FlagConfigRow, FlagRow } from "@betterflag/db";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { enqueueConfigSync, kvPutSnapshot } from "./cloudflare";

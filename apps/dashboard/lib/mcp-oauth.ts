@@ -1,7 +1,7 @@
 /**
  * Server-side glue for the MCP OAuth consent flow.
  *
- * The MCP worker (mcp.shipos.app) runs the OAuth authorization server via
+ * The MCP worker (mcp.betterflag.app) runs the OAuth authorization server via
  * @cloudflare/workers-oauth-provider; the dashboard owns the human part -
  * the consent screen at /mcp/consent where a signed-in user picks which org
  * the connection may access. These helpers talk to the worker's
@@ -9,8 +9,8 @@
  * per-connection agent key (api_keys.source = 'oauth', exempt from plan
  * agent-key limits) that rides inside the grant.
  */
-import { formatApiKey, keyPrefixOf, sha256Hex } from "@shipos/core";
-import type { ApiKeyRow, OrgPlan, OrgRole } from "@shipos/db";
+import { formatApiKey, keyPrefixOf, sha256Hex } from "@betterflag/core";
+import type { ApiKeyRow, OrgPlan, OrgRole } from "@betterflag/db";
 
 import { recordAudit } from "@/lib/db";
 import { optionalEnv, requiredEnv } from "@/lib/env";
@@ -40,7 +40,7 @@ export interface ConsentOrg {
 }
 
 function mcpBaseUrl(): string {
-  return (optionalEnv("SHIPOS_MCP_URL") ?? "https://mcp.shipos.app").replace(/\/+$/, "");
+  return (optionalEnv("BETTERFLAG_MCP_URL") ?? "https://mcp.betterflag.app").replace(/\/+$/, "");
 }
 
 function sharedSecretHeaders(): HeadersInit {

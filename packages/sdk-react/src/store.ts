@@ -2,14 +2,14 @@ import type {
   EvaluationContext,
   EvaluationReason,
   JsonValue,
-  ShipOSClient,
-} from "shipos";
+  BetterFlagClient,
+} from "@betterflag/sdk";
 
 /**
- * The slice of ShipOSClient the flag store needs. Kept minimal so tests can
+ * The slice of BetterFlagClient the flag store needs. Kept minimal so tests can
  * pass a plain mock object.
  */
-export type FlagClient = Pick<ShipOSClient, "flagDetail" | "on">;
+export type FlagClient = Pick<BetterFlagClient, "flagDetail" | "on">;
 
 export interface FlagState<T extends JsonValue> {
   value: T;

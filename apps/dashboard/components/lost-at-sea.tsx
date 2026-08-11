@@ -10,7 +10,7 @@ const JOKES = [
   "This route walked the plank.",
   "404: coordinates not found. Even the compass gave up.",
   "Ye be lost, matey. This page sailed off the map.",
-  "ShipOS? More like Ship-Oh-No.",
+  "Betterflag? More like Ship-Oh-No.",
   "Captain: we hit a 404. Crew: is that worse than a reef?",
   "All hands on deck — except this page. It jumped ship.",
   "Arrr you looking for something? Wrong latitude.",

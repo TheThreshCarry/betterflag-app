@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * ShipOS version manager, one small, dependency-free CLI that keeps every
+ * Betterflag version manager, one small, dependency-free CLI that keeps every
  * deployable's version in one place and stamps it into the code that ships.
  *
  * Each app (the four Workers + the dashboard) versions INDEPENDENTLY. The
@@ -15,7 +15,7 @@
  *   bun run version:sync                      # rewrite all version.gen.ts from package.json
  *   bun run version:check                     # fail if any version.gen.ts drifted (CI guard)
  *
- * <app> is one of: edge, ingest, mcp, webhooks, lifecycle, dashboard.
+ * <app> is one of: api, ingest, mcp, webhooks, lifecycle, dashboard.
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -25,7 +25,7 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 /** Every independently-versioned deployable and where its generated file lives. */
 const APPS = [
-  { name: "edge", dir: "apps/edge", gen: "src/version.gen.ts" },
+  { name: "api", dir: "apps/api", gen: "src/version.gen.ts" },
   { name: "ingest", dir: "apps/ingest", gen: "src/version.gen.ts" },
   { name: "mcp", dir: "apps/mcp", gen: "src/version.gen.ts" },
   { name: "webhooks", dir: "apps/webhooks", gen: "src/version.gen.ts" },

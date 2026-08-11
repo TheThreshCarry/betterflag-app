@@ -106,22 +106,22 @@ describe("email templates", () => {
     expect(email.subject).toContain("Welcome");
     expect(email.html).toContain("Acme &lt;&amp;&gt; Sons");
     expect(email.text).toContain("Acme <&> Sons");
-    expect(email.html).toContain("app.shipos.app/onboarding");
+    expect(email.html).toContain("app.betterflag.app/onboarding");
   });
 
   it("agentic email points at the keys page and the MCP server", () => {
     const email = agenticEmail();
-    expect(email.html).toContain("mcp.shipos.app");
-    expect(email.html).toContain("app.shipos.app/settings/keys");
-    expect(email.text).toContain("mcp.shipos.app");
+    expect(email.html).toContain("mcp.betterflag.app");
+    expect(email.html).toContain("app.betterflag.app/settings/keys");
+    expect(email.text).toContain("mcp.betterflag.app");
   });
 
   it("trial-ending email renders the day count in words", () => {
-    expect(trialEndingEmail(4).subject).toBe("Your ShipOS trial ends in 4 days");
-    expect(trialEndingEmail(1).subject).toBe("Your ShipOS trial ends tomorrow");
-    expect(trialEndingEmail(0).subject).toBe("Your ShipOS trial ends today");
-    expect(trialEndingEmail(-3).subject).toBe("Your ShipOS trial ends today");
-    expect(trialEndingEmail(4).html).toContain("app.shipos.app/settings");
+    expect(trialEndingEmail(4).subject).toBe("Your Betterflag trial ends in 4 days");
+    expect(trialEndingEmail(1).subject).toBe("Your Betterflag trial ends tomorrow");
+    expect(trialEndingEmail(0).subject).toBe("Your Betterflag trial ends today");
+    expect(trialEndingEmail(-3).subject).toBe("Your Betterflag trial ends today");
+    expect(trialEndingEmail(4).html).toContain("app.betterflag.app/settings");
   });
 
   it("every email has both html and text bodies and the reply-note footer", () => {
@@ -133,8 +133,8 @@ describe("email templates", () => {
     }
   });
 
-  it("sender is the founder address on shipos.app", () => {
-    expect(FROM_ADDRESS.email).toBe("hi@shipos.app");
+  it("sender is the founder address on betterflag.app", () => {
+    expect(FROM_ADDRESS.email).toBe("hi@betterflag.app");
   });
 });
 
@@ -278,7 +278,7 @@ describe("trialEndingUpsellEmail", () => {
     expect(email.subject).toContain("Launch");
     expect(email.html).toContain("7.5M");
     expect(email.html).toContain("$24.99");
-    expect(email.html).toContain("app.shipos.app/settings");
+    expect(email.html).toContain("app.betterflag.app/settings");
     expect(email.text).toContain("7.5M");
     expect(email.html).toContain("Reply any time");
   });

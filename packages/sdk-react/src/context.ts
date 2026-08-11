@@ -1,8 +1,8 @@
 import { createContext } from "react";
-import type { EvaluationContext, JsonValue, ShipOSClient } from "shipos";
+import type { EvaluationContext, JsonValue, BetterFlagClient } from "@betterflag/sdk";
 
-export interface ShipOSContextValue {
-  client: ShipOSClient;
+export interface BetterFlagContextValue {
+  client: BetterFlagClient;
   /** Default evaluation context applied by hooks unless overridden per call. */
   user?: EvaluationContext;
   /** Server-provided initial values by flag key (SSR bootstrap). */
@@ -11,4 +11,4 @@ export interface ShipOSContextValue {
   version: number;
 }
 
-export const ShipOSContext = createContext<ShipOSContextValue | null>(null);
+export const BetterFlagContext = createContext<BetterFlagContextValue | null>(null);

@@ -1,7 +1,7 @@
 /**
  * MurmurHash3 x86 32-bit over the UTF-8 bytes of the input string.
  *
- * This is THE bucketing hash for ShipOS. The edge worker and every SDK must
+ * This is THE bucketing hash for Betterflag. The API worker and every SDK must
  * produce identical values for identical inputs, see test/murmur3.test.ts
  * for the frozen vectors. Do not swap the encoding (UTF-8, not UTF-16 code
  * units) or the seed handling without a coordinated major version bump

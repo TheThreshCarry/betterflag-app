@@ -6,9 +6,9 @@
  * tier drives PLAN_LIMITS and what the trial converts into at checkout.
  *
  * Once a Polar subscription exists, plan changes must go through checkout /
- * Polar (synced back by shipos-webhooks), so this endpoint rejects with 409.
+ * Polar (synced back by betterflag-webhooks), so this endpoint rejects with 409.
  */
-import type { OrgMemberRow, OrgRow } from "@shipos/db";
+import type { OrgMemberRow, OrgRow } from "@betterflag/db";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 

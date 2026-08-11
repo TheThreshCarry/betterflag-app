@@ -2,42 +2,42 @@ import {
   createClient,
   type EvaluationContext,
   type JsonValue,
-  type ShipOSClient,
-} from "shipos";
+  type BetterFlagClient,
+} from "@betterflag/sdk";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ShipOSContext, type ShipOSContextValue } from "./context";
+import { BetterFlagContext, type BetterFlagContextValue } from "./context";
 
-interface ShipOSProviderBaseProps {
+interface BetterFlagProviderBaseProps {
   /** Default evaluation context for all hooks under this provider. */
   user?: EvaluationContext;
   /**
    * Initial values by flag key, rendered on the server AND on the first
    * client render (hydration-safe). Typically produced in an RSC via
-   * `client.allFlags()` from `shipos`.
+   * `client.allFlags()` from `betterflag`.
    */
   bootstrap?: Record<string, JsonValue>;
   children?: ReactNode;
 }
 
 /** Bring your own client, the provider will NOT close it on unmount. */
-export interface ShipOSProviderClientProps extends ShipOSProviderBaseProps {
-  client: ShipOSClient;
+export interface BetterFlagProviderClientProps extends BetterFlagProviderBaseProps {
+  client: BetterFlagClient;
 }
 
 /** Let the provider create (and own) the client, closed on unmount. */
-export interface ShipOSProviderKeyProps extends ShipOSProviderBaseProps {
+export interface BetterFlagProviderKeyProps extends BetterFlagProviderBaseProps {
   clientKey: string;
   baseUrl?: string;
   defaults?: Record<string, JsonValue>;
   refreshInterval?: number;
 }
 
-export type ShipOSProviderProps = ShipOSProviderClientProps | ShipOSProviderKeyProps;
+export type BetterFlagProviderProps = BetterFlagProviderClientProps | BetterFlagProviderKeyProps;
 
-export function ShipOSProvider(props: ShipOSProviderProps) {
-  const owned = useRef<ShipOSClient | null>(null);
+export function BetterFlagProvider(props: BetterFlagProviderProps) {
+  const owned = useRef<BetterFlagClient | null>(null);
 
-  let client: ShipOSClient;
+  let client: BetterFlagClient;
   if ("client" in props) {
     client = props.client;
   } else {
@@ -68,10 +68,10 @@ export function ShipOSProvider(props: ShipOSProviderProps) {
     return client.on("update", () => setVersion((v) => v + 1));
   }, [client]);
 
-  const value = useMemo<ShipOSContextValue>(
+  const value = useMemo<BetterFlagContextValue>(
     () => ({ client, user: props.user, bootstrap: props.bootstrap, version }),
     [client, props.user, props.bootstrap, version],
   );
 
-  return <ShipOSContext.Provider value={value}>{props.children}</ShipOSContext.Provider>;
+  return <BetterFlagContext.Provider value={value}>{props.children}</BetterFlagContext.Provider>;
 }

@@ -1,5 +1,5 @@
 /**
- * Super-admin gate. Any ShipOS team member listed in SHIPOS_ADMIN_EMAILS
+ * Super-admin gate. Any Betterflag team member listed in BETTERFLAG_ADMIN_EMAILS
  * (comma-separated) may use this app. Everyone else gets an access-denied
  * page even with a valid Supabase session. Every server action calls
  * requireAdmin() again: the layout check is UX, this one is the boundary.
@@ -15,7 +15,7 @@ export interface AdminIdentity {
 
 export function adminEmails(): Set<string> {
   return new Set(
-    requiredEnv("SHIPOS_ADMIN_EMAILS")
+    requiredEnv("BETTERFLAG_ADMIN_EMAILS")
       .split(",")
       .map((email) => email.trim().toLowerCase())
       .filter(Boolean),
@@ -41,7 +41,7 @@ export async function currentAdmin(): Promise<AdminIdentity | null> {
 export async function requireAdmin(): Promise<AdminIdentity> {
   const admin = await currentAdmin();
   if (!admin) {
-    throw new Error("Not authorized: this action requires a ShipOS super admin.");
+    throw new Error("Not authorized: this action requires a Betterflag super admin.");
   }
   return admin;
 }

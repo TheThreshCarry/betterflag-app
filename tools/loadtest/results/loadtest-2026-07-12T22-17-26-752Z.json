@@ -1,8 +1,8 @@
 {
-  "tool": "edge-loadtest",
+  "tool": "api-loadtest",
   "generatedAt": "2026-07-12T22:17:26.752Z",
   "target": {
-    "edge_url": "https://shipos-edge.mehdichioukh.workers.dev",
+    "api_url": "https://betterflag-api.mehdichioukh.workers.dev",
     "flag_key": null,
     "mode": "all-flags",
     "flags_per_request": 8,

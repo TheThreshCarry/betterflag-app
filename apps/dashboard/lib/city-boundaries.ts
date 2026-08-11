@@ -79,7 +79,7 @@ async function nominatimCityBoundary(
   const res = await fetch(url.toString(), {
     headers: {
       Accept: "application/json",
-      "User-Agent": "ShipOS-Dashboard/1.0 (analytics; https://shipos.app)",
+      "User-Agent": "Betterflag-Dashboard/1.0 (analytics; https://betterflag.app)",
     },
     next: { revalidate: 60 * 60 * 24 * 30 },
   });

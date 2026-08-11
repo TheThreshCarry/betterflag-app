@@ -27,23 +27,23 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL ?? "https://app.shipos.app",
+    process.env.NEXT_PUBLIC_APP_URL ?? "https://app.betterflag.app",
   ),
-  title: "ShipOS: Feature flags for agentic teams",
+  title: "Betterflag: Feature flags for agentic teams",
   description:
     "Feature flags your agents can ship with. Targeting, percentage rollouts, and instant kill switches via MCP and REST.",
   openGraph: {
     type: "website",
-    siteName: "ShipOS",
-    title: "ShipOS: Feature flags for agentic teams",
+    siteName: "Betterflag",
+    title: "Betterflag: Feature flags for agentic teams",
     description:
       "Feature flags your agents can ship with. Targeting, percentage rollouts, and instant kill switches via MCP and REST.",
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
-    site: "@ShipOS_official",
-    title: "ShipOS: Feature flags for agentic teams",
+    site: "@betterflag",
+    title: "Betterflag: Feature flags for agentic teams",
     description:
       "Feature flags your agents can ship with. Targeting, percentage rollouts, and instant kill switches via MCP and REST.",
   },

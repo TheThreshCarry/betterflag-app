@@ -1,6 +1,6 @@
 /**
  * Session refresh + auth gate for admin pages. Only checks that a session
- * exists; the team allowlist (SHIPOS_ADMIN_EMAILS) is enforced server-side
+ * exists; the team allowlist (BETTERFLAG_ADMIN_EMAILS) is enforced server-side
  * in the (admin) layout and again inside every server action.
  */
 

@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "shipos-edge",
+  "name": "betterflag-api",
   "main": "src/index.ts",
   "compatibility_date": "2026-06-01",
   "observability": {
@@ -22,7 +22,7 @@
     "producers": [
       {
         "binding": "EVENTS",
-        "queue": "shipos-events"
+        "queue": "betterflag-events"
       }
     ]
   },
@@ -32,20 +32,20 @@
   "analytics_engine_datasets": [
     {
       "binding": "EVALS",
-      "dataset": "shipos_evaluations"
+      "dataset": "betterflag_evaluations"
     }
   ],
   // Observability (Better Stack). Logs AND OTLP traces both go to the
-  // "shipos-edge" source (same endpoint + token) for one-click log↔trace
+  // "betterflag-api" source (same endpoint + token) for one-click log↔trace
   // correlation. The endpoint is non-secret; the ingest token is a SECRET:
-  //   echo <shipos-edge source token> | wrangler secret put BETTER_STACK_SOURCE_TOKEN
-  // For `wrangler dev` the token comes from apps/edge/.dev.vars (gitignored).
+  //   echo <betterflag-api source token> | wrangler secret put BETTER_STACK_SOURCE_TOKEN
+  // For `wrangler dev` the token comes from apps/api/.dev.vars (gitignored).
   "vars": {
-    "SHIPOS_ENV": "production",
+    "BETTERFLAG_ENV": "production",
     "BETTER_STACK_LOGS_ENDPOINT": "https://s2578178.eu-fsn-3.betterstackdata.com",
     // Kill switch for the ITR-62 AE dual-write (flip to "false" + redeploy).
     "ANALYTICS_AE_ENABLED": "true"
   }
-  // Production route, enable once DNS for edge.shipos.app is on this zone:
-  // "routes": [{ "pattern": "edge.shipos.app", "custom_domain": true }]
+  // Production route, enable once DNS for api.betterflag.app is on this zone:
+  // "routes": [{ "pattern": "api.betterflag.app", "custom_domain": true }]
 }

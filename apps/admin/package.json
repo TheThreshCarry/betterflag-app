@@ -1,5 +1,5 @@
 {
-  "name": "@shipos/admin",
+  "name": "@betterflag/admin",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -10,9 +10,9 @@
   },
   "dependencies": {
     "@react-email/editor": "^1.6.10",
-    "@shipos/core": "workspace:*",
-    "@shipos/db": "workspace:*",
-    "@shipos/emails": "workspace:*",
+    "@betterflag/core": "workspace:*",
+    "@betterflag/db": "workspace:*",
+    "@betterflag/emails": "workspace:*",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.110.0",
     "clsx": "^2.1.1",

@@ -1,5 +1,5 @@
 /**
- * OAuth authorization flow for the ShipOS MCP server.
+ * OAuth authorization flow for the Betterflag MCP server.
  *
  * This module is the OAuthProvider `defaultHandler`: it owns every route the
  * provider does not (the provider itself serves /token, /register and the
@@ -8,12 +8,12 @@
  *   1. Claude (or any MCP client) hits GET /authorize after dynamic client
  *      registration. We parse the request, park it in OAUTH_KV under a
  *      one-time transaction id, and redirect the browser to the dashboard
- *      consent screen (SHIPOS_DASHBOARD_URL/mcp/consent?txn=…) where the
+ *      consent screen (BETTERFLAG_DASHBOARD_URL/mcp/consent?txn=…) where the
  *      Supabase session lives.
  *   2. The dashboard fetches txn details server-to-server
  *      (GET /internal/oauth/txn/:id) authenticated by MCP_OAUTH_SHARED_SECRET.
  *   3. The user picks an org and approves. The dashboard mints a
- *      per-connection sos_agt_ key (source 'oauth') and posts the decision
+ *      per-connection bf_agt_ key (source 'oauth') and posts the decision
  *      (POST /internal/oauth/decision). We complete the authorization -
  *      the key rides inside the grant props, encrypted by the provider -
  *      and hand back the client redirect URL for the browser.
@@ -22,12 +22,12 @@
  * inside encrypted grant props; it never appears in a browser URL or a log.
  */
 import type { AuthRequest, OAuthHelpers } from "@cloudflare/workers-oauth-provider";
-import { API_KEY_RE, timingSafeEqualHex } from "@shipos/core";
+import { API_KEY_RE, timingSafeEqualHex } from "@betterflag/core";
 import { ICON_PNG, ICON_SVG } from "./icon";
 import type { Env } from "./types";
 
 export const CONSENT_PATH = "/mcp/consent";
-export const SCOPE_MANAGE = "shipos:manage";
+export const SCOPE_MANAGE = "betterflag:manage";
 
 /** Consent transactions expire after 10 minutes. */
 const TXN_TTL_SECONDS = 600;
@@ -121,7 +121,7 @@ async function handleAuthorize(request: Request, env: Env): Promise<Response> {
     expirationTtl: TXN_TTL_SECONDS,
   });
 
-  const consent = new URL(CONSENT_PATH, env.SHIPOS_DASHBOARD_URL);
+  const consent = new URL(CONSENT_PATH, env.BETTERFLAG_DASHBOARD_URL);
   consent.searchParams.set("txn", txnId);
   return Response.redirect(consent.toString(), 302);
 }
@@ -151,7 +151,7 @@ interface DecisionBody {
   userId?: string;
   orgId?: string;
   orgName?: string;
-  /** The per-connection sos_agt_ key minted by the dashboard. */
+  /** The per-connection bf_agt_ key minted by the dashboard. */
   apiKey?: string;
   keyPrefix?: string;
 }
@@ -224,11 +224,11 @@ export const oauthDefaultHandler = {
 
     if (pathname === "/" || pathname === "/health") {
       return json(200, {
-        name: "shipos-mcp",
+        name: "betterflag-mcp",
         status: "ok",
         transport: { streamableHttp: "/mcp", sse: "/sse" },
         oauth: { authorize: "/authorize", token: "/token", register: "/register" },
-        docs: "https://shipos.app/docs/mcp",
+        docs: "https://betterflag.app/docs/mcp",
       });
     }
 

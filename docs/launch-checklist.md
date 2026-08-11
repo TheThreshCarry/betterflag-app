@@ -1,8 +1,8 @@
-# ShipOS Alpha Launch - Master Checklist
+# Betterflag Alpha Launch - Master Checklist
 
 Target: **Thursday, July 23, 2026, 12:01 AM PT** (T-0). Today = T-14.
 Companion docs: `product-hunt-alpha-launch.md` (assets & copy),
-blog drafts in `shipos-landing/content/blog/` (ITR-58).
+blog drafts in `betterflag-landing/content/blog/` (ITR-58).
 
 Rule of thumb: everything in "Product & Dev" and "Billing" must be done by
 **T-7** so the last week is only polish, assets, and dry runs.
@@ -24,10 +24,10 @@ create flag → evaluate from SDK → connect MCP → upgrade to paid.**
 - [ ] Trial expiry path: what happens on day 15 without a card? (Grace
       state, not data loss.)
 - [ ] **Deploy pending work from this week:**
-  - [ ] shipos-landing: PostHog `/dock` proxy + instrumentation fix (ITR-55)
-  - [ ] shipos-app dashboard: PostHog wiring - `bun install`, env var, deploy (ITR-57)
-  - [ ] shipos-docs: OG image (ITR-56)
-- [ ] SDKs published to npm (`@shipos/sdk-js`, `@shipos/sdk-react`) with
+  - [ ] betterflag-landing: PostHog `/dock` proxy + instrumentation fix (ITR-55)
+  - [ ] betterflag-app dashboard: PostHog wiring - `bun install`, env var, deploy (ITR-57)
+  - [ ] betterflag-docs: OG image (ITR-56)
+- [ ] SDKs published to npm (`@betterflag/sdk-js`, `@betterflag/sdk-react`) with
       correct READMEs; `npm install` from a clean machine works.
 - [ ] Error tracking on all surfaces (dashboard, edge, ingest, mcp,
       webhooks workers); you want stack traces at 12:05 AM, not logs.
@@ -41,7 +41,7 @@ create flag → evaluate from SDK → connect MCP → upgrade to paid.**
 ## 2. Infra & Ops (deadline T-5)
 
 - [ ] **Status page live** (Better Stack, already connected): monitors on
-      app.shipos.app, edge, mcp.shipos.app, docs; status.shipos.app CNAME.
+      app.betterflag.app, edge, mcp.betterflag.app, docs; status.betterflag.app CNAME.
 - [ ] Uptime alerts → phone/Slack, not email. On-call = you; write down the
       escalation ritual anyway (what you check first, in order).
 - [ ] Cloudflare: confirm Workers limits/plan headroom for a traffic spike;
@@ -49,7 +49,7 @@ create flag → evaluate from SDK → connect MCP → upgrade to paid.**
 - [ ] Supabase: connection pooling verified, plan headroom, PITR/backups
       enabled and a restore actually tested once.
 - [ ] DNS + TLS on all subdomains (www, app, edge, mcp, docs, status, t).
-- [ ] Domain email deliverability: SPF/DKIM/DMARC for shipos.app (lifecycle
+- [ ] Domain email deliverability: SPF/DKIM/DMARC for betterflag.app (lifecycle
       emails + waitlist blast will tank without it); test with
       mail-tester.com.
 - [ ] Secrets audit: no keys in repos, prod env vars documented, personal
@@ -83,7 +83,7 @@ create flag → evaluate from SDK → connect MCP → upgrade to paid.**
 - [ ] Refund policy page (`/refund` exists) matches what Polar actually
       does; terms + privacy reviewed once with fresh eyes (Supabase,
       Cloudflare, PostHog EU, Polar as subprocessors).
-- [ ] Support routing: hi@shipos.app (Spark) tested inbound + outbound;
+- [ ] Support routing: hi@betterflag.app (Spark) tested inbound + outbound;
       saved replies for the obvious five (pricing, trial, migration from
       LaunchDarkly, self-host?, SSO?).
 - [ ] Decide the launch-week support SLA for yourself (e.g., <2h during
@@ -113,7 +113,7 @@ create flag → evaluate from SDK → connect MCP → upgrade to paid.**
 
 ## 6. Docs & Onboarding (deadline T-3)
 
-- [ ] docs.shipos.app covers: 5-min quickstart, JS + React SDK, MCP setup
+- [ ] docs.betterflag.app covers: 5-min quickstart, JS + React SDK, MCP setup
       (OAuth + agent key), targeting/rollouts, kill switch, pricing/limits
       FAQ. Every code sample copy-paste tested.
 - [ ] `llms.txt` current (it exists; verify content matches the pivot).

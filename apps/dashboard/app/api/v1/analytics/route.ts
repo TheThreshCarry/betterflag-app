@@ -12,8 +12,8 @@
  * rejected with 422 `retention_exceeded`; the response always carries
  * `retentionDays` + `availablePeriods` so the UI can disable options.
  */
-import { flagKeySchema } from "@shipos/core";
-import { ANALYTICS_RETENTION_DAYS } from "@shipos/db";
+import { flagKeySchema } from "@betterflag/core";
+import { ANALYTICS_RETENTION_DAYS } from "@betterflag/db";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 

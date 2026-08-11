@@ -1,5 +1,5 @@
 /**
- * Idempotent Polar setup for ShipOS pricing.
+ * Idempotent Polar setup for Betterflag pricing.
  *
  * Creates (or reuses) in the Polar organization tied to POLAR_ACCESS_TOKEN:
  *   1. the "Flag Evaluations" usage meter (count of `evaluation` events),
@@ -86,7 +86,7 @@ async function collect<T>(
 async function ensureMeter(): Promise<string> {
   const meters = await collect(await polar.meters.list({}));
   const existing = meters.find(
-    (m) => m.metadata?.shipos_meter === "evaluations" || m.name === EVALUATION_METER_NAME,
+    (m) => m.metadata?.betterflag_meter === "evaluations" || m.name === EVALUATION_METER_NAME,
   );
   if (existing) {
     console.log(`• meter "${existing.name}" already exists → ${existing.id}`);
@@ -99,7 +99,7 @@ async function ensureMeter(): Promise<string> {
       clauses: [{ property: "name", operator: "eq", value: EVALUATION_EVENT_NAME }],
     },
     aggregation: { func: "count" },
-    metadata: { shipos_meter: "evaluations" },
+    metadata: { betterflag_meter: "evaluations" },
   });
   console.log(`✓ created meter "${meter.name}" → ${meter.id}`);
   return meter.id;
@@ -108,7 +108,7 @@ async function ensureMeter(): Promise<string> {
 async function ensureBenefit(tier: PricingTier, meterId: string): Promise<string> {
   const benefits = await collect(await polar.benefits.list({}));
   const existing = benefits.find(
-    (b) => b.metadata?.shipos_plan === tier.key && b.metadata?.shipos_kind === "included_evaluations",
+    (b) => b.metadata?.betterflag_plan === tier.key && b.metadata?.betterflag_kind === "included_evaluations",
   );
   if (existing) {
     console.log(`  • benefit for ${tier.key} already exists → ${existing.id}`);
@@ -123,7 +123,7 @@ async function ensureBenefit(tier: PricingTier, meterId: string): Promise<string
       units: tier.includedEvaluations,
       rollover: false,
     },
-    metadata: { shipos_plan: tier.key, shipos_kind: "included_evaluations" },
+    metadata: { betterflag_plan: tier.key, betterflag_kind: "included_evaluations" },
   });
   console.log(`  ✓ created included-evaluations benefit for ${tier.key} → ${benefit.id}`);
   return benefit.id;
@@ -193,7 +193,7 @@ async function ensureProduct(tier: PricingTier, meterId: string, benefitId: stri
 }
 
 async function main() {
-  console.log(`\nShipOS · Polar pricing setup  [server: ${server}]\n`);
+  console.log(`\nBetterFlag · Polar pricing setup  [server: ${server}]\n`);
 
   const meterId = await ensureMeter();
   console.log("");

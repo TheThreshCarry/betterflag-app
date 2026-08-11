@@ -4,7 +4,7 @@
  * never serialized.
  */
 
-import type { JsonValue } from "@shipos/core";
+import type { JsonValue } from "@betterflag/core";
 
 import { billingDecisionForOrg } from "@/lib/billing-status";
 import type {
@@ -22,7 +22,7 @@ import type {
   OrgRow,
   ProfileRow,
   ProjectRow,
-} from "@shipos/db";
+} from "@betterflag/db";
 
 export interface ApiEnvironment {
   id: string;

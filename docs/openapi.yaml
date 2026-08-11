@@ -1,21 +1,21 @@
 openapi: 3.1.0
 info:
-  title: ShipOS Control Plane API
+  title: Betterflag Control Plane API
   version: 1.0.0
   description: |
-    REST API for the ShipOS control plane (`app.shipos.app/api/v1`).
+    REST API for the Betterflag control plane (`app.betterflag.app/api/v1`).
 
     ## Auth
     Two modes:
     - **Supabase session cookie**, dashboard users. Session users may pass
       `?orgId=<uuid>` on any endpoint to act in another org they are a
       member of (defaults to their first membership).
-    - **`Authorization: Bearer sos_agt_*` or `sos_adm_*`**, machine keys.
-      SDK keys (`sos_sdk_*`) are rejected on the control plane; they only
+    - **`Authorization: Bearer bf_agt_*` or `bf_adm_*`**, machine keys.
+      SDK keys (`bf_sdk_*`) are rejected on the control plane; they only
       evaluate flags at the edge.
 
     ## Guardrails
-    Agent keys (`sos_agt_*`) are guardrail-checked; session users and admin
+    Agent keys (`bf_agt_*`) are guardrail-checked; session users and admin
     keys are not. When a guardrail matching (org, environment-or-null,
     action) requires approval, the mutation is NOT executed. An approval row
     is staged and the endpoint replies **202** with
@@ -33,10 +33,10 @@ info:
     with status 400/401/402/403/404/409/422. Version conflicts from optimistic
     concurrency (`expectedVersion`) return 409 with code `version_conflict`.
     Org-level write blocks: 402 `billing_restricted` (trial expired or
-    subscription lapsed) and 403 `org_frozen` (org frozen by ShipOS support);
+    subscription lapsed) and 403 `org_frozen` (org frozen by Betterflag support);
     reads and edge flag serving keep working in both cases.
 servers:
-  - url: https://app.shipos.app
+  - url: https://app.betterflag.app
     description: Production
   - url: http://localhost:3000
     description: Local development
@@ -745,8 +745,8 @@ components:
       type: http
       scheme: bearer
       description: |
-        `sos_agt_*` (agent, guardrail-checked) or `sos_adm_*` (admin) key.
-        `sos_sdk_*` keys are rejected.
+        `bf_agt_*` (agent, guardrail-checked) or `bf_adm_*` (admin) key.
+        `bf_sdk_*` keys are rejected.
     cookieAuth:
       type: apiKey
       in: cookie
@@ -991,7 +991,7 @@ components:
         name: { type: string }
         prefix:
           type: string
-          description: First 16 chars of the key (e.g. `sos_agt_ab12cd34`), safe to display.
+          description: First 16 chars of the key (e.g. `bf_agt_ab12cd34`), safe to display.
         scopes:
           type: array
           items: { type: string }
@@ -1076,7 +1076,7 @@ components:
           description: e.g. `flag.create`, `flag.config.update`, `flag.kill`, `flag.archive`, `key.create`, `key.revoke`, `approval.request`, `approval.approve`, `approval.reject`, `project.create`, `org.create`.
         subject:
           type: string
-          description: e.g. `flag:checkout-v2`, `key:sos_agt_ab12cd34`, `approval:<uuid>`.
+          description: e.g. `flag:checkout-v2`, `key:bf_agt_ab12cd34`, `approval:<uuid>`.
         before: { $ref: "#/components/schemas/JsonValue" }
         after: { $ref: "#/components/schemas/JsonValue" }
         createdAt: { type: string, format: date-time }

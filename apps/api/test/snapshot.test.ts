@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ProjectSnapshot } from "@shipos/core";
+import type { ProjectSnapshot } from "@betterflag/core";
 import { handleRequest } from "../src/index";
 import {
   ENV_SLUG,

@@ -3,9 +3,9 @@
  *
  * Two auth modes:
  *  - Supabase session cookie (dashboard users)      → { type: 'user', ... }
- *  - `Authorization: Bearer sos_agt_*` / `sos_adm_*` → machine actors
+ *  - `Authorization: Bearer bf_agt_*` / `bf_adm_*` → machine actors
  *
- * SDK keys (`sos_sdk_*`) are rejected on the control plane: they are
+ * SDK keys (`bf_sdk_*`) are rejected on the control plane: they are
  * publishable evaluation credentials for the edge, never management keys.
  *
  * Audit attribution: session users audit as actor_type 'user'; agent AND
@@ -13,8 +13,8 @@
  * key prefix.
  */
 
-import { API_KEY_RE, keyPrefixOf, sha256Hex, timingSafeEqualHex } from "@shipos/core";
-import type { ApiKeyRow, OrgRole } from "@shipos/db";
+import { API_KEY_RE, keyPrefixOf, sha256Hex, timingSafeEqualHex } from "@betterflag/core";
+import type { ApiKeyRow, OrgRole } from "@betterflag/db";
 
 import { HttpError } from "./errors";
 import { createServiceClient, createSessionClient } from "./supabase/server";
@@ -47,11 +47,11 @@ async function resolveBearerActor(token: string): Promise<Actor> {
   if (!API_KEY_RE.test(token)) {
     throw new HttpError(401, "invalid_api_key", "Malformed API key");
   }
-  if (token.startsWith("sos_sdk_")) {
+  if (token.startsWith("bf_sdk_")) {
     throw new HttpError(
       401,
       "sdk_key_rejected",
-      "SDK keys evaluate flags at the edge; use an agent (sos_agt_*) or admin (sos_adm_*) key on the control plane API",
+      "SDK keys evaluate flags at the edge; use an agent (bf_agt_*) or admin (bf_adm_*) key on the control plane API",
     );
   }
 

@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 export const alt =
-  "ShipOS Dashboard: feature flags for agentic teams. Targeting, rollouts, and kill switches via MCP and REST.";
+  "Betterflag Dashboard: feature flags for agentic teams. Targeting, rollouts, and kill switches via MCP and REST.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -88,7 +88,7 @@ export default async function Image() {
                 color: INK,
               }}
             >
-              ShipOS
+              Betterflag
             </div>
           </div>
           <div
@@ -99,7 +99,7 @@ export default async function Image() {
               color: INK_MUTED,
             }}
           >
-            shipos.app
+            betterflag.app
           </div>
         </div>
 
@@ -124,7 +124,7 @@ export default async function Image() {
                 color: ORANGE,
               }}
             >
-              SHIPOS DASHBOARD
+              BETTERFLAG DASHBOARD
             </div>
           </div>
           <div

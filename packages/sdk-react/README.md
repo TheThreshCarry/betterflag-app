@@ -1,24 +1,24 @@
-# shipos-react
+# @betterflag/react
 
-React hooks for [ShipOS](https://shipos.app) feature flags. SSR-safe,
+React hooks for [Betterflag](https://betterflag.app) feature flags. SSR-safe,
 `useSyncExternalStore`-based, live-updating. Built on
-[`shipos`](https://www.npmjs.com/package/shipos), same guarantee:
+[`betterflag`](https://www.npmjs.com/package/betterflag), same guarantee:
 hooks never throw on network failure, they fall back to your defaults.
 
 ```bash
-npm i shipos-react
+npm i @betterflag/react
 ```
 
 ## Quickstart
 
 ```tsx
-import { ShipOSProvider, useFlag } from "shipos-react";
+import { BetterFlagProvider, useFlag } from "@betterflag/react";
 
 function App() {
   return (
-    <ShipOSProvider clientKey="sos_sdk_..." user={{ userId: "u_42" }}>
+    <BetterFlagProvider clientKey="bf_sdk_..." user={{ userId: "u_42" }}>
       <Checkout />
-    </ShipOSProvider>
+    </BetterFlagProvider>
   );
 }
 
@@ -40,16 +40,16 @@ The provider owns a browser-side client, so it lives in a client component:
 // app/providers.tsx
 "use client";
 
-import { ShipOSProvider } from "shipos-react";
+import { BetterFlagProvider } from "@betterflag/react";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <ShipOSProvider
-      clientKey={process.env.NEXT_PUBLIC_SHIPOS_SDK_KEY!} // publishable
+    <BetterFlagProvider
+      clientKey={process.env.NEXT_PUBLIC_BETTERFLAG_SDK_KEY!} // publishable
       user={{ userId: "u_42", attributes: { plan: "pro" } }}
     >
       {children}
-    </ShipOSProvider>
+    </BetterFlagProvider>
   );
 }
 ```
@@ -73,7 +73,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 // app/checkout/banner.tsx
 "use client";
 
-import { useFlag } from "shipos-react";
+import { useFlag } from "@betterflag/react";
 
 export function PromoBanner() {
   const promo = useFlag("summer-promo", false);
@@ -85,21 +85,21 @@ export function PromoBanner() {
 ### Identify the user after login
 
 When the user isn't known at provider-mount time (they log in later), call
-`signIn` on the client from `useShipOS()`. Every hook under the provider
+`signIn` on the client from `useBetterFlag()`. Every hook under the provider
 re-evaluates for the new user automatically:
 
 ```tsx
 "use client";
 
 import { useEffect } from "react";
-import { useShipOS } from "shipos-react";
+import { useBetterFlag } from "@betterflag/react";
 
-export function useSyncShipOSIdentity(user: { id: string; plan: string } | null) {
-  const shipos = useShipOS();
+export function useSyncBetterFlagIdentity(user: { id: string; plan: string } | null) {
+  const betterflag = useBetterFlag();
   useEffect(() => {
-    if (user) shipos.signIn(user.id, { plan: user.plan });
-    else shipos.signOut();
-  }, [shipos, user]);
+    if (user) betterflag.signIn(user.id, { plan: user.plan });
+    else betterflag.signOut();
+  }, [betterflag, user]);
 }
 ```
 
@@ -109,39 +109,39 @@ per-hook `overrides` argument still wins over the signed-in user.
 ### Server-side usage (RSC, route handlers, middleware)
 
 Hooks are client-only. In React Server Components, route handlers, and
-server actions, use `shipos` directly:
+server actions, use `betterflag` directly:
 
 ```tsx
 // app/page.tsx (server component)
-import { createClient } from "shipos";
+import { createClient } from "@betterflag/sdk";
 
-const shipos = createClient({ key: process.env.SHIPOS_SDK_KEY! });
+const betterflag = createClient({ key: process.env.BETTERFLAG_SDK_KEY! });
 
 export default async function Page() {
-  const enabled = await shipos.flag("new-hero", { default: false });
+  const enabled = await betterflag.flag("new-hero", { default: false });
   return enabled ? <NewHero /> : <Hero />;
 }
 ```
 
 Tip: pass server-evaluated values to the provider's `bootstrap` prop
-(e.g. from `await shipos.allFlags(ctx)`) so the first client render already
+(e.g. from `await betterflag.allFlags(ctx)`) so the first client render already
 shows real values instead of defaults, still hydration-safe.
 
 ## API
 
 | Export | Signature | Notes |
 | --- | --- | --- |
-| `ShipOSProvider` | `{ client } \| { clientKey, baseUrl?, defaults?, refreshInterval? }` plus `user?`, `bootstrap?` | Creates and owns the client when given `clientKey` (closed on unmount); never closes a caller-supplied `client`. |
+| `BetterFlagProvider` | `{ client } \| { clientKey, baseUrl?, defaults?, refreshInterval? }` plus `user?`, `bootstrap?` | Creates and owns the client when given `clientKey` (closed on unmount); never closes a caller-supplied `client`. |
 | `useFlag` | `(key, defaultValue, overrides?) => T` | Value only. `overrides: { userId?, attributes? }` replaces the provider `user` for this call. |
 | `useFlagDetail` | `(key, defaultValue, overrides?) => { value, reason, loading }` | `loading` is `true` until the first evaluation settles. |
-| `useShipOS` | `() => ShipOSClient` | Escape hatch to the underlying client. Throws a helpful error outside the provider. |
+| `useBetterFlag` | `() => BetterFlagClient` | Escape hatch to the underlying client. Throws a helpful error outside the provider. |
 | `createFlagStore` | `(client, key, default, context?, bootstrap?)` | The pure subscription store behind the hooks (advanced/testing). |
 
-`createClient`, `ShipOSClient`, and the wire types are re-exported from
-`shipos` for convenience.
+`createClient`, `BetterFlagClient`, and the wire types are re-exported from
+`betterflag` for convenience.
 
 ## Docs
 
-Full documentation at [docs.shipos.app](https://docs.shipos.app).
+Full documentation at [docs.betterflag.app](https://docs.betterflag.app).
 
-MIT © 2026 ShipOS
+MIT © 2026 Betterflag

@@ -2,10 +2,10 @@ import {
   stableStringify,
   type EvaluationContext,
   type JsonValue,
-  type ShipOSClient,
-} from "shipos";
+  type BetterFlagClient,
+} from "@betterflag/sdk";
 import { useContext, useMemo, useSyncExternalStore } from "react";
-import { ShipOSContext, type ShipOSContextValue } from "./context";
+import { BetterFlagContext, type BetterFlagContextValue } from "./context";
 import { createFlagStore, type FlagState } from "./store";
 
 /** Per-call evaluation context, taking precedence over the provider's `user`. */
@@ -14,21 +14,21 @@ export interface FlagOverrides {
   attributes?: Record<string, JsonValue>;
 }
 
-function useShipOSContext(): ShipOSContextValue {
-  const ctx = useContext(ShipOSContext);
+function useBetterFlagContext(): BetterFlagContextValue {
+  const ctx = useContext(BetterFlagContext);
   if (ctx === null) {
     throw new Error(
-      "ShipOS hooks must be used within <ShipOSProvider>. Wrap your tree in " +
-        '<ShipOSProvider clientKey="sos_sdk_...">...</ShipOSProvider> or pass ' +
+      "Betterflag hooks must be used within <BetterFlagProvider>. Wrap your tree in " +
+        '<BetterFlagProvider clientKey="bf_sdk_...">...</BetterFlagProvider> or pass ' +
         "an existing client via the `client` prop.",
     );
   }
   return ctx;
 }
 
-/** The underlying ShipOSClient. Throws a helpful error outside the provider. */
-export function useShipOS(): ShipOSClient {
-  return useShipOSContext().client;
+/** The underlying BetterFlagClient. Throws a helpful error outside the provider. */
+export function useBetterFlag(): BetterFlagClient {
+  return useBetterFlagContext().client;
 }
 
 /**
@@ -43,7 +43,7 @@ export function useFlagDetail<T extends JsonValue>(
   defaultValue: T,
   overrides?: FlagOverrides,
 ): FlagState<T> {
-  const { client, user, bootstrap } = useShipOSContext();
+  const { client, user, bootstrap } = useBetterFlagContext();
   const context: EvaluationContext = overrides ?? user ?? {};
 
   // Serialized identities: callers pass fresh object literals every render;

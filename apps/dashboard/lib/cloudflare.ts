@@ -1,6 +1,6 @@
 /**
  * Cloudflare REST helpers used by the control plane:
- *  - enqueueConfigSync  → shipos-config-sync queue (fire-and-forget)
+ *  - enqueueConfigSync  → betterflag-config-sync queue (fire-and-forget)
  *  - kvPutSnapshot      → cfg:{projectId}:{envSlug} (kill-switch fast path)
  *  - kvPutSdkKey / kvDeleteSdkKey → key:{prefix}
  *
@@ -8,7 +8,7 @@
  * unset, so the dashboard works end-to-end without a Cloudflare account.
  */
 
-import { sdkKeyKvKey, snapshotKvKey, type SdkKeyKvEntry } from "@shipos/core";
+import { sdkKeyKvKey, snapshotKvKey, type SdkKeyKvEntry } from "@betterflag/core";
 
 import { optionalEnv } from "./env";
 import { reportServerError } from "./observability";

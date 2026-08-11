@@ -150,7 +150,7 @@ describe("conditionMatches operators", () => {
       age: 33,
       score: "88",
       tags: ["beta", "eu"],
-      email: "mehdi@shipos.app",
+      email: "mehdi@betterflag.app",
     },
   };
 
@@ -165,7 +165,7 @@ describe("conditionMatches operators", () => {
     ["in miss", false, { attribute: "plan", op: "in", value: ["launch"] }],
     ["not_in", true, { attribute: "plan", op: "not_in", value: ["starter"] }],
     ["not_in missing attribute is false", false, { attribute: "ghost", op: "not_in", value: ["x"] }],
-    ["contains substring", true, { attribute: "email", op: "contains", value: "@shipos" }],
+    ["contains substring", true, { attribute: "email", op: "contains", value: "@betterflag" }],
     ["contains array member", true, { attribute: "tags", op: "contains", value: "beta" }],
     ["contains miss", false, { attribute: "tags", op: "contains", value: "alpha" }],
     ["gt", true, { attribute: "age", op: "gt", value: 30 }],

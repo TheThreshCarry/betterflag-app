@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "shipos-ingest",
+  "name": "betterflag-ingest",
   "main": "src/index.ts",
   "compatibility_date": "2026-06-01",
   "observability": {
@@ -18,11 +18,11 @@
       "id": "1ddc8e69bb1b491e85da5fa9b9fcc7bc"
     }
   ],
-  // Cold storage for raw analytics: `wrangler r2 bucket create shipos-analytics-cold`.
+  // Cold storage for raw analytics: `wrangler r2 bucket create betterflag-analytics-cold`.
   "r2_buckets": [
     {
       "binding": "ANALYTICS_R2",
-      "bucket_name": "shipos-analytics-cold"
+      "bucket_name": "betterflag-analytics-cold"
     }
   ],
   // Daily analytics tiering at 03:10 UTC (hot ClickHouse day → R2, retention
@@ -33,14 +33,14 @@
   "queues": {
     "consumers": [
       {
-        "queue": "shipos-events",
+        "queue": "betterflag-events",
         "max_batch_size": 100,
         "max_batch_timeout": 5,
         "max_retries": 5,
-        "dead_letter_queue": "shipos-events-dlq"
+        "dead_letter_queue": "betterflag-events-dlq"
       },
       {
-        "queue": "shipos-config-sync",
+        "queue": "betterflag-config-sync",
         "max_batch_size": 10,
         "max_batch_timeout": 2,
         "max_retries": 10
@@ -48,12 +48,12 @@
     ]
   },
   // Observability (Better Stack). Logs AND OTLP traces both go to the
-  // "shipos-ingest" source for one-click log↔trace correlation. Endpoint is
+  // "betterflag-ingest" source for one-click log↔trace correlation. Endpoint is
   // non-secret; ingest token is a SECRET (apps/ingest/.dev.vars / secret put):
-  //   echo <shipos-ingest source token> | wrangler secret put BETTER_STACK_SOURCE_TOKEN
+  //   echo <betterflag-ingest source token> | wrangler secret put BETTER_STACK_SOURCE_TOKEN
   "vars": {
     "SUPABASE_URL": "https://tnlbktwyrctrxmpoafwb.supabase.co",
-    "SHIPOS_ENV": "production",
+    "BETTERFLAG_ENV": "production",
     "BETTER_STACK_LOGS_ENDPOINT": "https://s2578180.eu-fsn-3.betterstackdata.com"
   }
 }

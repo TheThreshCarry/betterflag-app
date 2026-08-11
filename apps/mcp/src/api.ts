@@ -1,5 +1,5 @@
 /**
- * Thin client over the ShipOS control-plane REST API (docs/CONTRACTS.md).
+ * Thin client over the Betterflag control-plane REST API (docs/CONTRACTS.md).
  *
  * Every call authenticates with the session's agent/admin key. A valid key
  * executes mutations directly. HTTP errors are mapped to agent-actionable
@@ -56,13 +56,13 @@ export async function apiFetch<T = unknown>(ctx: ApiCtx, req: ApiRequest): Promi
     ...(req.flagKey ? { flag_key: req.flagKey } : {}),
     ...(req.projectSlug ? { project_slug: req.projectSlug } : {}),
   });
-  const span = ctx.obs?.tracer.startSpan(`ShipOS API ${req.method} ${req.path}`, {
+  const span = ctx.obs?.tracer.startSpan(`Betterflag API ${req.method} ${req.path}`, {
     kind: "client",
     attributes: {
       "http.request.method": req.method,
       "url.path": req.path,
-      ...(req.flagKey ? { "shipos.flag_key": req.flagKey } : {}),
-      ...(req.projectSlug ? { "shipos.project_slug": req.projectSlug } : {}),
+      ...(req.flagKey ? { "betterflag.flag_key": req.flagKey } : {}),
+      ...(req.projectSlug ? { "betterflag.project_slug": req.projectSlug } : {}),
     },
   });
 
@@ -75,10 +75,10 @@ export async function apiFetch<T = unknown>(ctx: ApiCtx, req: ApiRequest): Promi
     });
   } catch (e) {
     span?.recordException(e).end();
-    log?.error("ShipOS API request could not connect", { error: errText(e) });
+    log?.error("Betterflag API request could not connect", { error: errText(e) });
     void ctx.obs?.flush();
     throw new ToolError(
-      `Could not reach the ShipOS API at ${ctx.baseUrl}: ${e instanceof Error ? e.message : String(e)}. Try again in a moment.`,
+      `Could not reach the Betterflag API at ${ctx.baseUrl}: ${e instanceof Error ? e.message : String(e)}. Try again in a moment.`,
     );
   }
   span?.setAttribute("http.response.status_code", res.status);
@@ -87,7 +87,7 @@ export async function apiFetch<T = unknown>(ctx: ApiCtx, req: ApiRequest): Promi
 
   if (!res.ok) {
     span?.setStatus("error").end();
-    log?.warn("ShipOS API returned an error status", { status: res.status });
+    log?.warn("Betterflag API returned an error status", { status: res.status });
     void ctx.obs?.flush();
     throw mapError(res.status, payload, req);
   }
@@ -105,14 +105,14 @@ function mapError(status: number, payload: unknown, req: ApiRequest): ToolError 
   switch (status) {
     case 401:
       return new ToolError(
-        "ShipOS rejected this agent key, it is invalid or has been revoked. " +
-          "Create a new agent key in the ShipOS dashboard under Keys and reconnect the MCP server with it.",
+        "Betterflag rejected this agent key, it is invalid or has been revoked. " +
+          "Create a new agent key in the Betterflag dashboard under Keys and reconnect the MCP server with it.",
       );
     case 403:
       if (code.includes("plan_limit") || /plan/i.test(message)) {
         return new ToolError(
           `Plan limit reached: ${message} ` +
-            "Upgrade your ShipOS plan in the dashboard (Settings → Billing) to raise this limit.",
+            "Upgrade your Betterflag plan in the dashboard (Settings → Billing) to raise this limit.",
         );
       }
       return new ToolError(`Forbidden (${code}): ${message}`);
@@ -132,7 +132,7 @@ function mapError(status: number, payload: unknown, req: ApiRequest): ToolError 
           "Re-read the current state with get_flag and retry.",
       );
     default:
-      return new ToolError(`ShipOS API error ${status} (${code}): ${message}`);
+      return new ToolError(`Betterflag API error ${status} (${code}): ${message}`);
   }
 }
 
@@ -232,7 +232,7 @@ export async function resolveProject(ctx: ApiCtx, projectSlug: string | undefine
 
   if (projects.length === 0) {
     throw new ToolError(
-      "This organization has no projects yet. Create one in the ShipOS dashboard (or via the API) first.",
+      "This organization has no projects yet. Create one in the Betterflag dashboard (or via the API) first.",
     );
   }
 

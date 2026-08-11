@@ -1,6 +1,6 @@
 /** localStorage keys for client-only appearance prefs. */
-export const THEME_STORAGE_KEY = "shipos.theme";
-export const DISABLE_ANIMATIONS_KEY = "shipos.disableAnimations";
+export const THEME_STORAGE_KEY = "betterflag.theme";
+export const DISABLE_ANIMATIONS_KEY = "betterflag.disableAnimations";
 
 export type ThemePreference = "light" | "dark" | "system";
 

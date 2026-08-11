@@ -45,7 +45,7 @@ export const ORG_LOGO_VARS: EmailVariable[] = [
   {
     name: "orgLogoUrl",
     label: "Organization logo URL",
-    sample: "https://media.shipos.app/orgs/example/logo.png",
+    sample: "https://media.betterflag.app/orgs/example/logo.png",
   },
   {
     name: "orgLogoDisplay",
@@ -66,18 +66,18 @@ export function orgLogoMergeVars(logoUrl: string | null | undefined): {
 }
 
 const TEXT_FOOTER =
-  "\n\n---\nYou're getting this because you created a ShipOS account. It's a short 3-email onboarding series, then I'll leave your inbox alone. Reply any time, it lands in my actual inbox.";
+  "\n\n---\nYou're getting this because you created a Betterflag account. It's a short 3-email onboarding series, then I'll leave your inbox alone. Reply any time, it lands in my actual inbox.";
 
 const welcome: EmailTemplateSeed = {
   key: "welcome",
   name: "Welcome",
   description: "Day 0 — sent right after an org is created.",
-  subject: "Welcome to ShipOS: your first flag is 5 minutes away",
+  subject: "Welcome to Betterflag: your first flag is 5 minutes away",
   preview: "Create a flag, curl the edge, watch it flip. About 5 minutes.",
   eyebrow: "Welcome",
   heading: "Your first flag is 5 minutes away",
   bodyHtml: [
-    para("Hey, Mehdi here. I built ShipOS."),
+    para("Hey, Mehdi here. I built Betterflag."),
     para(`Thanks for creating ${strong("{{orgName}}")}. Here's the whole pitch in one line:`),
     panel(
       `<p style="margin:0 0 10px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.55;font-weight:600;color:#171717;">Unlimited flags, seats and environments. One meter (evaluations). Served from the edge in under 50ms.</p><p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.55;color:#737373;">No seat tax. No MAU bill.</p>`,
@@ -91,7 +91,7 @@ const welcome: EmailTemplateSeed = {
     ),
     para("- Mehdi"),
   ].join("\n"),
-  text: `Hey, Mehdi here. I built ShipOS.
+  text: `Hey, Mehdi here. I built Betterflag.
 
 Thanks for creating {{orgName}}. Here's the whole pitch in one line: unlimited flags, seats and environments, one meter (evaluations), served from the edge in under 50ms. No seat tax, no MAU bill.
 
@@ -113,17 +113,17 @@ const agentic: EmailTemplateSeed = {
   name: "Agentic setup",
   description: "Day 3 — the MCP / agent-key angle.",
   subject: "Let your agent manage your flags (this is the good part)",
-  preview: "Point Claude Code or Cursor at mcp.shipos.app and let it ship.",
+  preview: "Point Claude Code or Cursor at mcp.betterflag.app and let it ship.",
   eyebrow: "Agentic",
   heading: "Let your agent manage your flags",
   bodyHtml: [
-    para("The thing that makes ShipOS different: your coding agent can drive it."),
+    para("The thing that makes Betterflag different: your coding agent can drive it."),
     para(
-      `Point Claude Code or Cursor at ${code("mcp.shipos.app")} with an agent key and it can create flags, set targeting, stage a 10% rollout, and kill a bad feature, all without you opening the dashboard. Every action lands in the audit log attributed to the agent, not mushed in with human changes.`,
+      `Point Claude Code or Cursor at ${code("mcp.betterflag.app")} with an agent key and it can create flags, set targeting, stage a 10% rollout, and kill a bad feature, all without you opening the dashboard. Every action lands in the audit log attributed to the agent, not mushed in with human changes.`,
     ),
     terminal(
       ".mcp.json",
-      `<span style="color:#8b949e;">{</span><br />&nbsp;&nbsp;<span style="color:#79c0ff;">"mcpServers"</span>: {<br />&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#79c0ff;">"shipos"</span>: {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#79c0ff;">"type"</span>: <span style="color:#00bc72;">"http"</span>,<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#79c0ff;">"url"</span>: <span style="color:#00bc72;">"https://mcp.shipos.app/mcp"</span>,<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#79c0ff;">"headers"</span>: { <span style="color:#79c0ff;">"Authorization"</span>: <span style="color:#00bc72;">"Bearer sos_agt_..."</span> }<br />&nbsp;&nbsp;&nbsp;&nbsp;}<br />&nbsp;&nbsp;}<br /><span style="color:#8b949e;">}</span>`,
+      `<span style="color:#8b949e;">{</span><br />&nbsp;&nbsp;<span style="color:#79c0ff;">"mcpServers"</span>: {<br />&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#79c0ff;">"betterflag"</span>: {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#79c0ff;">"type"</span>: <span style="color:#00bc72;">"http"</span>,<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#79c0ff;">"url"</span>: <span style="color:#00bc72;">"https://mcp.betterflag.app/mcp"</span>,<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#79c0ff;">"headers"</span>: { <span style="color:#79c0ff;">"Authorization"</span>: <span style="color:#00bc72;">"Bearer bf_agt_..."</span> }<br />&nbsp;&nbsp;&nbsp;&nbsp;}<br />&nbsp;&nbsp;}<br /><span style="color:#8b949e;">}</span>`,
     ),
     para(strong("Setup is one key and one config block:")),
     numberedSteps([
@@ -135,9 +135,9 @@ const agentic: EmailTemplateSeed = {
     mutedPara("Feature flags made easy, with unlimited seats on every plan."),
     para("- Mehdi"),
   ].join("\n"),
-  text: `The thing that makes ShipOS different: your coding agent can drive it.
+  text: `The thing that makes Betterflag different: your coding agent can drive it.
 
-Point Claude Code or Cursor at mcp.shipos.app with an agent key and it can create flags, set targeting, stage a 10% rollout, and kill a bad feature, all without you opening the dashboard. Every action lands in the audit log attributed to the agent, not mushed in with human changes.
+Point Claude Code or Cursor at mcp.betterflag.app with an agent key and it can create flags, set targeting, stage a 10% rollout, and kill a bad feature, all without you opening the dashboard. Every action lands in the audit log attributed to the agent, not mushed in with human changes.
 
 Setup is one key and one config block:
 
@@ -155,8 +155,8 @@ const trialEnding: EmailTemplateSeed = {
   key: "trial-ending",
   name: "Trial ending",
   description: "Day 10 — only sent when the org has no active subscription.",
-  subject: "Your ShipOS trial ends {{when}}",
-  preview: "Your ShipOS trial ends {{when}}. Your flags keep serving either way.",
+  subject: "Your Betterflag trial ends {{when}}",
+  preview: "Your Betterflag trial ends {{when}}. Your flags keep serving either way.",
   eyebrow: "Trial",
   heading: "Your trial ends {{when}}",
   bodyHtml: [

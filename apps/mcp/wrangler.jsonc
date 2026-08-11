@@ -1,20 +1,20 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "shipos-mcp",
+  "name": "betterflag-mcp",
   "main": "src/index.ts",
   "compatibility_date": "2026-06-01",
   "compatibility_flags": ["nodejs_compat"],
 
   // Control-plane origin the tools proxy to. Override for local dev:
-  //   wrangler dev --var SHIPOS_API_URL:http://localhost:3000
+  //   wrangler dev --var BETTERFLAG_API_URL:http://localhost:3000
   // Observability (Better Stack). Logs AND OTLP traces both go to the
-  // "shipos-mcp" source for one-click log↔trace correlation. Endpoint is
+  // "betterflag-mcp" source for one-click log↔trace correlation. Endpoint is
   // non-secret; ingest token is a SECRET (apps/mcp/.dev.vars / secret put):
-  //   echo <shipos-mcp source token> | wrangler secret put BETTER_STACK_SOURCE_TOKEN
+  //   echo <betterflag-mcp source token> | wrangler secret put BETTER_STACK_SOURCE_TOKEN
   "vars": {
-    "SHIPOS_API_URL": "https://app.shipos.app",
-    "SHIPOS_DASHBOARD_URL": "https://app.shipos.app",
-    "SHIPOS_ENV": "production",
+    "BETTERFLAG_API_URL": "https://app.betterflag.app",
+    "BETTERFLAG_DASHBOARD_URL": "https://app.betterflag.app",
+    "BETTERFLAG_ENV": "production",
     "BETTER_STACK_LOGS_ENDPOINT": "https://s2578182.eu-fsn-3.betterstackdata.com"
   },
 
@@ -37,21 +37,21 @@
     "bindings": [
       {
         "name": "MCP_OBJECT",
-        "class_name": "ShipOSMcp"
+        "class_name": "BetterFlagMcp"
       }
     ]
   },
   "migrations": [
     {
       "tag": "v1",
-      "new_sqlite_classes": ["ShipOSMcp"]
+      "new_sqlite_classes": ["BetterFlagMcp"]
     }
   ],
 
-  // Production custom domain, enable once the shipos.app zone is on this
+  // Production custom domain, enable once the betterflag.app zone is on this
   // account. For the test deploy the worker is reachable at its workers.dev URL.
   // "routes": [
-  //   { "pattern": "mcp.shipos.app", "custom_domain": true }
+  //   { "pattern": "mcp.betterflag.app", "custom_domain": true }
   // ],
 
   "observability": {

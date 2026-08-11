@@ -3,7 +3,7 @@
  *
  * Resolves the product for a plan from Polar (the pricing source of truth),
  * then opens a hosted checkout. The org link is carried two ways so the
- * shipos-webhooks worker can always resolve the org from the resulting
+ * betterflag-webhooks worker can always resolve the org from the resulting
  * subscription:
  *   - `metadata.org_id` (Polar copies checkout metadata onto the subscription)
  *   - `externalCustomerId = orgId` (sets the Polar customer's external_id)
@@ -17,7 +17,7 @@ export interface CheckoutRequestInput {
   orgId: string;
   productId: string;
   planKey: PlanKey;
-  /** Dashboard origin, e.g. https://app.shipos.app */
+  /** Dashboard origin, e.g. https://app.betterflag.app */
   origin: string;
   customerEmail?: string | null;
 }

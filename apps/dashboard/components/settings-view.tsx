@@ -1,6 +1,6 @@
 "use client";
 
-import { ANALYTICS_HOT_DAYS, ANALYTICS_RETENTION_DAYS, PLAN_LIMITS } from "@shipos/db";
+import { ANALYTICS_HOT_DAYS, ANALYTICS_RETENTION_DAYS, PLAN_LIMITS } from "@betterflag/db";
 import {
   BarChart3Icon,
   Building2Icon,

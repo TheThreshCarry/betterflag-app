@@ -74,7 +74,7 @@ describe("flag()", () => {
     const fetch = mockFetch({
       evaluate: () => evaluateResponse([result("checkout", true)]),
     });
-    const client = createClient({ key: "sos_sdk_test", fetch, refreshInterval: 0 });
+    const client = createClient({ key: "bf_sdk_test", fetch, refreshInterval: 0 });
 
     const value = await client.flag("checkout", {
       userId: "u1",
@@ -85,10 +85,10 @@ describe("flag()", () => {
     expect(value).toBe(true);
     expect(fetch).toHaveBeenCalledTimes(1);
     const [url, init] = fetch.mock.calls[0]!;
-    expect(String(url)).toBe("https://edge.shipos.app/v1/evaluate");
+    expect(String(url)).toBe("https://api.betterflag.app/v1/evaluate");
     expect(init?.method).toBe("POST");
-    expect(headerOf(init, "Authorization")).toBe("Bearer sos_sdk_test");
-    expect(headerOf(init, "X-ShipOS-SDK")).toBe("js/0.1.0");
+    expect(headerOf(init, "Authorization")).toBe("Bearer bf_sdk_test");
+    expect(headerOf(init, "X-Betterflag-SDK")).toBe("js/0.1.0");
     expect(bodyOf(init)).toEqual({
       key: "checkout",
       context: { userId: "u1", attributes: { plan: "pro" } },

@@ -5,7 +5,7 @@
  *   session auth (which team member is signed in).
  * - `createServiceClient`: service-role client for every admin read and
  *   mutation. The whole app is super-admin surface, so all data access
- *   goes through the service role; the SHIPOS_ADMIN_EMAILS gate decides
+ *   goes through the service role; the BETTERFLAG_ADMIN_EMAILS gate decides
  *   who may reach it.
  */
 

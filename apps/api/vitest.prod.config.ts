@@ -1,6 +1,6 @@
 import { defineConfig } from "vitest/config";
 
-// Production smoke + latency suite. Requires SHIPOS_PROD_SDK_KEY.
+// Production smoke + latency suite. Requires BETTERFLAG_PROD_SDK_KEY.
 // Run with: bun run test:prod
 export default defineConfig({
   test: {

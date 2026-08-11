@@ -1,12 +1,12 @@
 /**
- * @shipos/observability, one small, dependency-free toolkit for structured
+ * @betterflag/observability, one small, dependency-free toolkit for structured
  * logging, error capture, and OTLP performance tracing that runs unchanged in
  * Cloudflare Workers and Node. Telemetry is always best-effort: it mirrors to
  * console and never throws into, blocks, or fails the calling code.
  *
  * Typical Worker usage:
  *
- *   const obs = readObservability(env, "shipos-edge");
+ *   const obs = readObservability(env, "betterflag-api");
  *   const log = obs.logger.child({ request_id });
  *   const span = obs.tracer.startSpan("GET /v1/evaluate", { kind: "server" });
  *   // ... work, span.startChild(...), log.info(...) ...

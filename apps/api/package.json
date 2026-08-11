@@ -1,18 +1,18 @@
 {
-  "name": "@shipos/edge",
+  "name": "@betterflag/api",
   "version": "0.6.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy --var SHIPOS_GIT_SHA:$(git rev-parse --short=7 HEAD 2>/dev/null || echo unknown)",
+    "deploy": "wrangler deploy --var BETTERFLAG_GIT_SHA:$(git rev-parse --short=7 HEAD 2>/dev/null || echo unknown)",
     "test": "vitest run",
     "test:prod": "vitest run --config vitest.prod.config.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@shipos/core": "workspace:*",
-    "@shipos/observability": "workspace:*",
+    "@betterflag/core": "workspace:*",
+    "@betterflag/observability": "workspace:*",
     "zod": "^4.4.3"
   },
   "devDependencies": {

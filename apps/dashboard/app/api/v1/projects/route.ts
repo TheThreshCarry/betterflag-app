@@ -1,4 +1,4 @@
-import { PLAN_LIMITS, type EnvironmentRow, type ProjectRow } from "@shipos/db";
+import { PLAN_LIMITS, type EnvironmentRow, type ProjectRow } from "@betterflag/db";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 

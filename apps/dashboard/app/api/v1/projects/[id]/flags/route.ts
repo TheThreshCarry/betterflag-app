@@ -1,5 +1,5 @@
-import { flagKeyCreateSchema, flagKindSchema, jsonValueSchema, type JsonValue } from "@shipos/core";
-import type { FlagConfigRow, FlagRow } from "@shipos/db";
+import { flagKeyCreateSchema, flagKindSchema, jsonValueSchema, type JsonValue } from "@betterflag/core";
+import type { FlagConfigRow, FlagRow } from "@betterflag/db";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 

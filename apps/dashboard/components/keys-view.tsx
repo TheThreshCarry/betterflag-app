@@ -1,6 +1,6 @@
 "use client";
 
-import { PLAN_LIMITS } from "@shipos/db";
+import { PLAN_LIMITS } from "@betterflag/db";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
