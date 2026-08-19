@@ -3,4 +3,4 @@
 // (and every log line, error, and trace it emits) carries its own version.
 // Update with:  bun run version:bump webhooks <patch|minor|major|x.y.z>
 //         or:   bun run version:sync   (after editing package.json directly)
-export const VERSION = "0.1.2";
+export const VERSION = "0.1.3";
