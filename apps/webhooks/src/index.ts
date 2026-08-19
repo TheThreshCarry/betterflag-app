@@ -18,7 +18,7 @@
  * Pure functions are exported and unit-tested; the handler only wires I/O.
  */
 import { createClient } from "@supabase/supabase-js";
-import { formatRelease, readObservability } from "@betterflag/observability";
+import { attachWorkerTracing, formatRelease, readObservability, type Observability } from "@betterflag/observability";
 import { VERSION } from "./version.gen";
 import { z } from "zod";
 
@@ -316,34 +316,67 @@ export async function processPolarWebhook(args: {
   secret: string;
   store: BillingStore;
   now?: Date;
+  obs?: Observability;
 }): Promise<WebhookResult> {
   const now = args.now ?? new Date();
+  const span = args.obs?.tracer.startSpan("webhooks.polar", { kind: "server" });
 
-  const verification = await verifyPolarSignature(args.rawBody, args.headers, args.secret, { now });
-  if (!verification.ok) return { status: 401, body: `invalid signature: ${verification.reason}` };
-
-  let json: unknown;
   try {
-    json = JSON.parse(args.rawBody);
-  } catch {
-    return { status: 400, body: "invalid json" };
+    const verifySpan = span?.startChild("verify_signature");
+    const verification = await verifyPolarSignature(args.rawBody, args.headers, args.secret, { now });
+    verifySpan?.setAttribute("ok", verification.ok).end();
+    if (!verification.ok) {
+      span?.setAttribute("event.outcome", "client_error").end();
+      return { status: 401, body: `invalid signature: ${verification.reason}` };
+    }
+
+    let json: unknown;
+    try {
+      json = JSON.parse(args.rawBody);
+    } catch {
+      span?.setAttribute("event.outcome", "client_error").end();
+      return { status: 400, body: "invalid json" };
+    }
+
+    const eventParse = webhookEventSchema.safeParse(json);
+    if (!eventParse.success) {
+      span?.setAttribute("event.outcome", "client_error").end();
+      return { status: 400, body: "unrecognized event" };
+    }
+
+    const norm = normalizeSubscriptionEvent(eventParse.data);
+    if (!norm) {
+      span?.setAttribute("event.outcome", "ok").end();
+      return { status: 200, body: "ignored (non-subscription event)" };
+    }
+    if (!norm.orgId && !norm.customerId) {
+      span?.setAttribute("event.outcome", "ok").end();
+      return { status: 202, body: "no org reference on event" };
+    }
+
+    const resolveSpan = span?.startChild("resolve_org");
+    const org = await args.store.findOrg({ orgId: norm.orgId, polarCustomerId: norm.customerId });
+    resolveSpan?.setAttribute("found", org !== null).end();
+    if (!org) {
+      span?.setAttribute("event.outcome", "ok").end();
+      return { status: 202, body: "org not found" };
+    }
+
+    const result = computeBillingPatch(norm, org, now.toISOString());
+    if ("skip" in result) {
+      span?.setAttributes({ "event.outcome": "ok", stale: true }).end();
+      return { status: 200, body: result.skip };
+    }
+
+    const updateSpan = span?.startChild("supabase.update", { kind: "client" });
+    await args.store.updateOrg(org.id, result.patch);
+    updateSpan?.end();
+    span?.setAttributes({ "event.outcome": "ok", org_id: org.id }).end();
+    return { status: 200, body: "ok" };
+  } catch (error) {
+    span?.recordException(error).end();
+    throw error;
   }
-
-  const eventParse = webhookEventSchema.safeParse(json);
-  if (!eventParse.success) return { status: 400, body: "unrecognized event" };
-
-  const norm = normalizeSubscriptionEvent(eventParse.data);
-  if (!norm) return { status: 200, body: "ignored (non-subscription event)" };
-  if (!norm.orgId && !norm.customerId) return { status: 202, body: "no org reference on event" };
-
-  const org = await args.store.findOrg({ orgId: norm.orgId, polarCustomerId: norm.customerId });
-  if (!org) return { status: 202, body: "org not found" };
-
-  const result = computeBillingPatch(norm, org, now.toISOString());
-  if ("skip" in result) return { status: 200, body: result.skip };
-
-  await args.store.updateOrg(org.id, result.patch);
-  return { status: 200, body: "ok" };
 }
 
 // ---------------------------------------------------------------------------
@@ -405,9 +438,11 @@ const handler = {
       return new Response("method not allowed", { status: 405 });
     }
 
+    attachWorkerTracing(ctx);
     const obs = readObservability(env as unknown as Record<string, unknown>, "betterflag-webhooks", {
       environment: env.BETTERFLAG_ENV,
       release: formatRelease({ version: VERSION, gitSha: env.BETTERFLAG_GIT_SHA, override: env.BETTERFLAG_RELEASE }),
+      runtime: "worker",
     });
 
     try {
@@ -418,17 +453,27 @@ const handler = {
         headers: request.headers,
         secret: env.POLAR_WEBHOOK_SECRET,
         store,
+        obs,
       });
 
+      const fields = {
+        status: result.status,
+        detail: result.body,
+        "event.name": "webhooks.polar",
+        "event.outcome": result.status >= 500 ? "error" : result.status >= 400 ? "client_error" : "ok",
+      };
       if (result.status >= 400) {
-        obs.logger.warn("polar webhook rejected", { status: result.status, detail: result.body });
+        obs.logger.warn("polar webhook rejected", fields);
       } else {
-        obs.logger.info("polar webhook handled", { status: result.status, detail: result.body });
+        obs.logger.info("polar webhook handled", fields);
       }
       return new Response(result.body, { status: result.status });
     } catch (error) {
-      // Thrown = infrastructure error (e.g. Supabase down). 5xx → Polar retries.
-      obs.logger.error("polar webhook failed; Polar will retry", { error: errText(error) });
+      obs.logger.error("polar webhook failed; Polar will retry", {
+        error: errText(error),
+        "event.name": "webhooks.polar",
+        "event.outcome": "error",
+      });
       return new Response("internal error", { status: 500 });
     } finally {
       ctx.waitUntil(obs.flush());

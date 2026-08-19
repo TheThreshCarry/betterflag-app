@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@betterflag/core", "@betterflag/db"],
+  transpilePackages: ["@betterflag/core", "@betterflag/db", "@betterflag/observability"],
   // MapLibre 6's dynamic worker `new URL(…, import.meta.url)` breaks Turbopack
   // analysis. Keep the package external to the bundler where possible.
   serverExternalPackages: ["maplibre-gl"],

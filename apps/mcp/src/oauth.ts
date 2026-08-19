@@ -23,8 +23,10 @@
  */
 import type { AuthRequest, OAuthHelpers } from "@cloudflare/workers-oauth-provider";
 import { API_KEY_RE, timingSafeEqualHex } from "@betterflag/core";
+import { formatRelease, readObservability } from "@betterflag/observability";
 import { ICON_PNG, ICON_SVG } from "./icon";
 import type { Env } from "./types";
+import { VERSION } from "./version.gen";
 
 export const CONSENT_PATH = "/mcp/consent";
 export const SCOPE_MANAGE = "betterflag:manage";
@@ -49,6 +51,18 @@ function json(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: { "content-type": "application/json" },
+  });
+}
+
+function oauthObs(env: Env) {
+  return readObservability(env as unknown as Record<string, unknown>, "betterflag-mcp", {
+    environment: env.BETTERFLAG_ENV,
+    release: formatRelease({
+      version: VERSION,
+      gitSha: env.BETTERFLAG_GIT_SHA,
+      override: env.BETTERFLAG_RELEASE,
+    }),
+    runtime: "worker",
   });
 }
 
@@ -123,6 +137,11 @@ async function handleAuthorize(request: Request, env: Env): Promise<Response> {
 
   const consent = new URL(CONSENT_PATH, env.BETTERFLAG_DASHBOARD_URL);
   consent.searchParams.set("txn", txnId);
+  oauthObs(env).logger.info("oauth authorize parked", {
+    "event.name": "mcp.oauth.authorize",
+    "event.outcome": "ok",
+    client_id: txn.client.clientId,
+  });
   return Response.redirect(consent.toString(), 302);
 }
 
@@ -185,6 +204,12 @@ async function handleDecision(request: Request, env: Env): Promise<Response> {
     denied.searchParams.set("error", "access_denied");
     denied.searchParams.set("error_description", "The user denied the request.");
     if (txn.oauthReqInfo.state) denied.searchParams.set("state", txn.oauthReqInfo.state);
+    oauthObs(env).logger.info("oauth decision denied", {
+      "event.name": "mcp.oauth.decision",
+      "event.outcome": "ok",
+      approved: false,
+      org_id: body.orgId,
+    });
     return json(200, { redirectTo: denied.toString() });
   }
 
@@ -211,6 +236,14 @@ async function handleDecision(request: Request, env: Env): Promise<Response> {
       keyPrefix: body.keyPrefix,
       via: "oauth" as const,
     },
+  });
+
+  oauthObs(env).logger.info("oauth decision approved", {
+    "event.name": "mcp.oauth.decision",
+    "event.outcome": "ok",
+    approved: true,
+    org_id: body.orgId,
+    key_prefix: body.keyPrefix,
   });
 
   return json(200, { redirectTo });

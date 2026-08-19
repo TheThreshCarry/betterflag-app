@@ -15,6 +15,7 @@
 
 import { PLAN_LIMITS, type OrgPlan } from "@betterflag/db";
 
+import { reportServerError, reportServerWarn, withBusinessSpan } from "@/lib/observability";
 import { getPolar } from "@/lib/polar";
 import { PRICING_SPEC, type PlanKey, type PricingTier } from "@/lib/pricing-config";
 import { mapPolarProductsToTiers, type PolarProductLike } from "@/lib/pricing-map";
@@ -49,13 +50,22 @@ function fallbackTiers(): PricingTier[] {
 export async function getPricingTiers(opts?: { force?: boolean }): Promise<PricingTier[]> {
   if (!opts?.force && memo && Date.now() - memo.at < TTL_MS) return memo.tiers;
   try {
-    const tiers = await fetchFromPolar();
+    const tiers = await withBusinessSpan("polar.products.list", () => fetchFromPolar());
     if (tiers.length > 0) {
       memo = { at: Date.now(), tiers };
       return tiers;
     }
+    reportServerWarn("pricing polar empty, using fallback", {
+      "event.name": "polar.pricing",
+      "event.outcome": "ok",
+    });
     console.warn("[pricing] Polar returned no Betterflag tiers; using fallback spec.");
   } catch (err) {
+    reportServerError("pricing polar fetch failed", {
+      "event.name": "polar.pricing",
+      "event.outcome": "error",
+      error: (err as Error)?.message,
+    });
     console.error("[pricing] Polar fetch failed; using fallback spec:", (err as Error)?.message);
   }
   return fallbackTiers();

@@ -7,8 +7,20 @@
   // Wrangler provisions the domain + DNS record on the betterflag.app zone.
   "routes": [{ "pattern": "payment.betterflag.app", "custom_domain": true }],
   "observability": {
-    "enabled": true
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "destinations": ["betterflag-otel"],
+      "head_sampling_rate": 1,
+      "invocation_logs": true
+    },
+    "traces": {
+      "enabled": true,
+      "destinations": ["betterflag-otel"],
+      "head_sampling_rate": 1
+    }
   },
+  "tail_consumers": [{ "service": "betterflag-tail" }],
   // Distinct dev ports so parallel `wrangler dev` instances don't collide.
   "dev": {
     "port": 8790,
@@ -18,11 +30,11 @@
   // SUPABASE_SERVICE_ROLE_KEY, BETTER_STACK_SOURCE_TOKEN) go in
   // apps/webhooks/.dev.vars locally and via `wrangler secret put` in prod:
   //   echo <polar endpoint secret> | wrangler secret put POLAR_WEBHOOK_SECRET
-  // Better Stack "betterflag-webhooks" source (id 2578726). Endpoint is non-secret;
-  // the ingest token is a SECRET → `wrangler secret put BETTER_STACK_SOURCE_TOKEN`.
+  // Native Worker logs/traces export through Cloudflare destination
+  // `betterflag-otel` (Betterflag OTel source). Direct HTTP POST unused.
   "vars": {
     "SUPABASE_URL": "https://tnlbktwyrctrxmpoafwb.supabase.co",
     "BETTERFLAG_ENV": "production",
-    "BETTER_STACK_LOGS_ENDPOINT": "https://s2578726.eu-fsn-3.betterstackdata.com"
+    "BETTER_STACK_LOGS_ENDPOINT": "https://s2692129.eu-central-1a.betterstackdata.com"
   }
 }

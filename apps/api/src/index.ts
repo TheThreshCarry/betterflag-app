@@ -31,7 +31,16 @@ import type {
   ProjectSnapshot,
   SdkKeyKvEntry,
 } from "@betterflag/core";
-import { formatRelease, readObservability, type Logger, type Observability, type Span } from "@betterflag/observability";
+import {
+  attachWorkerTracing,
+  eventOutcomeFromStatus,
+  formatRelease,
+  readObservability,
+  routeTemplate,
+  type Logger,
+  type Observability,
+  type Span,
+} from "@betterflag/observability";
 import { VERSION } from "./version.gen";
 import { z } from "zod";
 
@@ -90,6 +99,7 @@ export interface EdgeEnv {
 /** The slice of ExecutionContext this worker uses. */
 export interface WaitUntilLike {
   waitUntil(promise: Promise<unknown>): void;
+  tracing?: import("@betterflag/observability").NativeTracing;
 }
 
 // ---------------------------------------------------------------------------
@@ -208,6 +218,7 @@ export async function loadSnapshot(
   kv: ConfigKvLike,
   projectId: string,
   envSlug: string,
+  log?: Logger,
 ): Promise<ProjectSnapshot | null> {
   // Cloudflare KV enforces a minimum cacheTtl of 60s; snapshot freshness is
   // driven by explicit KV.put on config change, not by TTL expiry.
@@ -216,7 +227,12 @@ export async function loadSnapshot(
   const parsed = projectSnapshotSchema.safeParse(raw);
   if (!parsed.success) {
     // Corrupt snapshot fails open to not_found/defaults, never a 500.
-    console.error(`invalid snapshot in KV for ${projectId}/${envSlug}: ${parsed.error.message}`);
+    log?.error("snapshot corrupt", {
+      "event.name": "snapshot.corrupt",
+      "event.outcome": "error",
+      project_id: projectId,
+      env: envSlug,
+    });
     return null;
   }
   return parsed.data;
@@ -481,7 +497,7 @@ export async function handleEvaluate(
   const requestedKeys = body.key !== undefined ? [body.key] : body.keys;
 
   const snapSpan = obs?.span.startChild("load_snapshot");
-  const snapshot = await loadSnapshot(env.CONFIG_KV, entry.projectId, entry.envSlug);
+  const snapshot = await loadSnapshot(env.CONFIG_KV, entry.projectId, entry.envSlug, obs?.log);
   snapSpan?.setAttribute("snapshot.hit", snapshot !== null);
   if (snapshot !== null) snapSpan?.setAttribute("snapshot.version", snapshot.version);
   snapSpan?.end();
@@ -492,6 +508,8 @@ export async function handleEvaluate(
   if (snapshot === null) {
     // Missing snapshot: SDKs fall back to their defaults, never a 500.
     obs?.log.warn("evaluate: snapshot miss, returning SDK defaults", {
+      "event.name": "snapshot.miss",
+      "event.outcome": "client_error",
       project_id: entry.projectId,
       env: entry.envSlug,
     });
@@ -518,23 +536,35 @@ export async function handleEvaluate(
       // writeDataPoint is synchronous fire-and-forget; its own try so an AE
       // failure can never take down the queue publish or the response.
       if (aeDualWriteEnabled(env)) {
+        const aeSpan = obs?.span.startChild("analytics_engine.write");
         try {
-          for (const point of buildDataPoints(events)) env.EVALS?.writeDataPoint(point);
+          const points = buildDataPoints(events);
+          for (const point of points) env.EVALS?.writeDataPoint(point);
+          aeSpan?.setAttribute("ae.points", points.length).end();
         } catch (error) {
-          console.error("failed to write AE data points", error);
-          obs?.log.error("failed to write AE data points", { error: errText(error) });
+          aeSpan?.recordException(error).end();
+          obs?.log.error("failed to write AE data points", {
+            "event.name": "ae.write",
+            "event.outcome": "error",
+            error: errText(error),
+          });
         }
       }
+      const queueSpan = obs?.span.startChild("queue.publish");
       ctx.waitUntil(
         publishEvents(env.EVENTS, events)
+          .then(() => {
+            queueSpan?.setAttribute("event_count", events.length).end();
+          })
           .catch((error: unknown) => {
-            console.error("failed to publish evaluation events", error);
+            queueSpan?.recordException(error).end();
             obs?.log.error("failed to publish evaluation events", {
+              "event.name": "queue.publish",
+              "event.outcome": "error",
               error: errText(error),
               event_count: events.length,
             });
           })
-          // Flush the (possibly late) failure log without blocking the response.
           .finally(() => (obs ? obs.obs.flush() : undefined)),
       );
     }
@@ -586,7 +616,7 @@ export async function handleSnapshot(
   });
 
   const snapSpan = obs?.span.startChild("load_snapshot");
-  const loaded = await loadSnapshot(env.CONFIG_KV, entry.projectId, entry.envSlug);
+  const loaded = await loadSnapshot(env.CONFIG_KV, entry.projectId, entry.envSlug, obs?.log);
   snapSpan?.setAttribute("snapshot.hit", loaded !== null).end();
   const snapshot = loaded ?? emptySnapshot(entry);
   const etag = `"v${snapshot.version}"`;
@@ -638,21 +668,25 @@ const handler = {
       return new Response(null, { status: 204, headers: { ...PREFLIGHT_HEADERS } });
     }
 
+    attachWorkerTracing(ctx);
     const obs = readObservability(env as unknown as Record<string, unknown>, "betterflag-api", {
       environment: env.BETTERFLAG_ENV,
       release: formatRelease({ version: VERSION, gitSha: env.BETTERFLAG_GIT_SHA, override: env.BETTERFLAG_RELEASE }),
+      runtime: "worker",
     });
     const requestId = request.headers.get("cf-ray") ?? crypto.randomUUID();
-    const span = obs.tracer.startSpan(`${request.method} ${url.pathname}`, {
+    const route = routeTemplate(url.pathname);
+    const span = obs.tracer.startSpan(`${request.method} ${route}`, {
       kind: "server",
       attributes: {
         "http.request.method": request.method,
-        "url.path": url.pathname,
+        "http.route": route,
+        "url.path": route,
         "request.id": requestId,
-        "user_agent.original": request.headers.get("user-agent") ?? undefined,
+        "event.name": `${request.method} ${route}`,
       },
     });
-    const log = obs.logger.child({ request_id: requestId, method: request.method, path: url.pathname, ...span.logContext });
+    const log = obs.logger.child({ request_id: requestId, method: request.method, path: route, ...span.logContext });
     const edgeObs: EdgeObs = { obs, log, span };
 
     let response: Response;
@@ -674,7 +708,12 @@ const handler = {
     const durationMs = Math.round(span.durationMs() * 1000) / 1000;
     const isError = response.status >= 400;
     if (isError || Math.random() < EDGE_LOG_SUCCESS_SAMPLE_RATE) {
-      const fields = { status: response.status, duration_ms: durationMs };
+      const fields = {
+        status: response.status,
+        duration_ms: durationMs,
+        "event.name": `${request.method} ${route}`,
+        "event.outcome": eventOutcomeFromStatus(response.status),
+      };
       if (response.status >= 500) log.error("request", fields);
       else if (response.status >= 400) log.warn("request", fields);
       else log.info("request", fields);

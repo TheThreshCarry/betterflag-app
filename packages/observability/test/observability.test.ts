@@ -1,5 +1,13 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createObservability, formatRelease, parseOtlpHeaders, readObservability } from "../src/config";
+import {
+  boundErrorText,
+  eventOutcomeFromStatus,
+  redactString,
+  routeTemplate,
+  sanitizeFields,
+} from "../src/fields";
+import { installNativeTracing, resetNativeTracing, type NativeSpan } from "../src/native";
 
 function jsonBodies(fetchMock: ReturnType<typeof vi.fn>): Array<{ url: string; body: unknown }> {
   return fetchMock.mock.calls.map((call) => ({
@@ -203,7 +211,110 @@ describe("tracer", () => {
       resourceSpans: Array<{ scopeSpans: Array<{ spans: Array<Record<string, unknown>> }> }>;
     };
     const span = payload.resourceSpans[0]!.scopeSpans[0]!.spans[0]!;
-    expect(span.status).toMatchObject({ code: 2, message: "kaboom" });
+    expect(span.status).toMatchObject({ code: 2, message: "Error: kaboom" });
     expect((span.events as unknown[]) ?? []).toHaveLength(1);
+  });
+});
+
+describe("field redaction", () => {
+  it("drops blocked keys and redacts secrets in strings", () => {
+    const clean = sanitizeFields({
+      org_id: "org_1",
+      email: "me@betterflag.app",
+      userId: "user-1",
+      authorization: "Bearer secret",
+      body: { raw: true },
+      headers: { cookie: "sid=1" },
+      query: "token=abc",
+      token: "tok",
+      note: "key bf_sdk_abc123XYZ and user me@example.com",
+      request_id: "ray-1",
+    });
+    expect(clean).toEqual({
+      org_id: "org_1",
+      note: "key [redacted] and user [redacted]",
+      request_id: "ray-1",
+    });
+  });
+
+  it("redacts bearer tokens and emails in free text", () => {
+    expect(redactString("Authorization Bearer abc.def")).toContain("[redacted]");
+    expect(boundErrorText(new Error("fail me@x.com"))).toBe("Error: fail [redacted]");
+  });
+
+  it("maps status to event.outcome and templates routes", () => {
+    expect(eventOutcomeFromStatus(200)).toBe("ok");
+    expect(eventOutcomeFromStatus(404)).toBe("client_error");
+    expect(eventOutcomeFromStatus(500)).toBe("error");
+    expect(routeTemplate("/v1/flags/11111111-1111-4111-8111-111111111111/kill")).toBe(
+      "/v1/flags/:id/kill",
+    );
+    expect(routeTemplate("/v1/evaluate")).toBe("/v1/evaluate");
+  });
+});
+
+describe("worker runtime", () => {
+  afterEach(() => {
+    resetNativeTracing();
+  });
+
+  it("does not POST logs or traces when runtime is worker", async () => {
+    const fetchMock = vi.fn(async () => new Response("{}", { status: 200 }));
+    const obs = createObservability({
+      service: "betterflag-api",
+      runtime: "worker",
+      logs: { sourceToken: "tok", endpoint: "https://logs.example.com" },
+      traces: { endpoint: "https://otel.example.com" },
+      console: false,
+      fetchImpl: fetchMock as unknown as typeof fetch,
+    });
+    obs.logger.info("hello", { email: "a@b.com", org_id: "org_1" });
+    obs.tracer.startSpan("GET /v1/evaluate", { kind: "server" }).end();
+    await obs.flush();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("uses native spans when installed and still skips HTTP", async () => {
+    const fetchMock = vi.fn(async () => new Response("{}", { status: 200 }));
+    const attrs: Record<string, string | number | boolean> = {};
+    const ended: string[] = [];
+    let spanCount = 0;
+    installNativeTracing({
+      startActiveSpan(name, fn) {
+        spanCount += 1;
+        const fakeSpan: NativeSpan = {
+          setAttribute(key, value) {
+            attrs[`${name}:${key}`] = value;
+            attrs[key] = value;
+          },
+          end() {
+            ended.push(name);
+          },
+        };
+        return fn(fakeSpan);
+      },
+    });
+    const obs = createObservability({
+      service: "betterflag-api",
+      runtime: "worker",
+      traces: { endpoint: "https://otel.example.com" },
+      console: false,
+      fetchImpl: fetchMock as unknown as typeof fetch,
+    });
+    const root = obs.tracer.startSpan("GET /v1/evaluate", {
+      kind: "server",
+      attributes: { "http.route": "/v1/evaluate", authorization: "secret" },
+    });
+    const child = root.startChild("load_snapshot");
+    child.end();
+    root.end();
+    await obs.flush();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(attrs["GET /v1/evaluate:betterflag.span_name"]).toBe("GET /v1/evaluate");
+    expect(attrs["GET /v1/evaluate:http.route"]).toBe("/v1/evaluate");
+    expect(attrs.authorization).toBeUndefined();
+    expect(spanCount).toBe(2);
+    expect(ended).toContain("GET /v1/evaluate");
+    expect(ended).toContain("load_snapshot");
   });
 });

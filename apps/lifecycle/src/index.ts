@@ -22,7 +22,12 @@
  */
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
 import { orgLogoMergeVars } from "@betterflag/emails/runtime";
-import { formatRelease, readObservability } from "@betterflag/observability";
+import {
+  attachWorkerTracing,
+  formatRelease,
+  readObservability,
+  type Observability,
+} from "@betterflag/observability";
 
 import {
   agenticEmail,
@@ -101,16 +106,54 @@ async function resolveEmail(
   return fallback;
 }
 
-async function send(email: SendEmail, to: string, content: EmailContent): Promise<string> {
-  const result = await email.send({
-    to,
-    from: { email: FROM_ADDRESS.email, name: FROM_ADDRESS.name },
-    replyTo: FROM_ADDRESS.email,
-    subject: content.subject,
-    html: content.html,
-    text: content.text,
+async function send(
+  email: SendEmail,
+  to: string,
+  content: EmailContent,
+  obs?: Observability,
+  stepName?: string,
+): Promise<string> {
+  const span = obs?.tracer.startSpan(`lifecycle.email.${stepName ?? "send"}`, { kind: "client" });
+  try {
+    const result = await email.send({
+      to,
+      from: { email: FROM_ADDRESS.email, name: FROM_ADDRESS.name },
+      replyTo: FROM_ADDRESS.email,
+      subject: content.subject,
+      html: content.html,
+      text: content.text,
+    });
+    const messageId = result.messageId ?? "unknown";
+    obs?.logger.info("lifecycle email sent", {
+      "event.name": "lifecycle.email",
+      "event.outcome": "ok",
+      step: stepName,
+      message_id: messageId,
+    });
+    span?.setAttribute("message_id", messageId).end();
+    return messageId;
+  } catch (error) {
+    span?.recordException(error).end();
+    obs?.logger.error("lifecycle email failed", {
+      "event.name": "lifecycle.email",
+      "event.outcome": "error",
+      step: stepName,
+      error: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
+    });
+    throw error;
+  }
+}
+
+function lifecycleObs(env: LifecycleEnv): Observability {
+  return readObservability(env as unknown as Record<string, unknown>, "betterflag-lifecycle", {
+    environment: env.BETTERFLAG_ENV,
+    release: formatRelease({
+      version: VERSION,
+      gitSha: env.BETTERFLAG_GIT_SHA,
+      override: env.BETTERFLAG_RELEASE,
+    }),
+    runtime: "worker",
   });
-  return result.messageId ?? "unknown";
 }
 
 export class WelcomeSequence extends WorkflowEntrypoint<LifecycleEnv, WelcomeParams> {
@@ -120,7 +163,9 @@ export class WelcomeSequence extends WorkflowEntrypoint<LifecycleEnv, WelcomePar
   ): Promise<void> {
     // Re-validate: params crossed a serialization boundary.
     const params = welcomeParamsSchema.parse(event.payload);
-
+    attachWorkerTracing(this.ctx);
+    const obs = lifecycleObs(this.env);
+    try {
     // Day 0 - welcome (logo usually unset at create time).
     await step.do("send welcome email", async () => {
       const logo = orgLogoMergeVars(null);
@@ -130,7 +175,7 @@ export class WelcomeSequence extends WorkflowEntrypoint<LifecycleEnv, WelcomePar
         { orgName: params.orgName, ...logo },
         welcomeEmail(params.orgName),
       );
-      return await send(this.env.EMAIL, params.email, content);
+      return await send(this.env.EMAIL, params.email, content, obs, "welcome");
     });
 
     await step.sleep("wait until day 3", "3 days");
@@ -139,7 +184,16 @@ export class WelcomeSequence extends WorkflowEntrypoint<LifecycleEnv, WelcomePar
     const day3 = await step.do("read org state (day 3)", async () => {
       return await readOrgState(this.env, params.orgId);
     });
-    if (!day3.exists) return;
+    if (!day3.exists) {
+      obs.logger.info("lifecycle skipped", {
+        "event.name": "lifecycle.skip",
+        "event.outcome": "ok",
+        step: "agentic",
+        reason: "org_missing",
+        org_id: params.orgId,
+      });
+      return;
+    }
     await step.do("send agentic setup email", async () => {
       const logo = orgLogoMergeVars(day3.logoUrl);
       const content = await resolveEmail(
@@ -148,7 +202,7 @@ export class WelcomeSequence extends WorkflowEntrypoint<LifecycleEnv, WelcomePar
         { ...logo },
         agenticEmail(day3.logoUrl),
       );
-      return await send(this.env.EMAIL, params.email, content);
+      return await send(this.env.EMAIL, params.email, content, obs, "agentic");
     });
 
     await step.sleep("wait until day 10", "7 days");
@@ -157,7 +211,16 @@ export class WelcomeSequence extends WorkflowEntrypoint<LifecycleEnv, WelcomePar
     const day10 = await step.do("read org state (day 10)", async () => {
       return await readOrgState(this.env, params.orgId);
     });
-    if (!day10.exists || hasActiveSubscription(day10)) return;
+    if (!day10.exists || hasActiveSubscription(day10)) {
+      obs.logger.info("lifecycle skipped", {
+        "event.name": "lifecycle.skip",
+        "event.outcome": "ok",
+        step: "trial-ending",
+        reason: !day10.exists ? "org_missing" : "subscribed",
+        org_id: params.orgId,
+      });
+      return;
+    }
 
     // If trial usage pro-rates past the Starter tier, offer the tier that
     // actually fits (Launch/Scale/volume) instead of the generic copy. A null
@@ -178,6 +241,8 @@ export class WelcomeSequence extends WorkflowEntrypoint<LifecycleEnv, WelcomePar
           this.env.EMAIL,
           params.email,
           trialEndingUpsellEmail(daysLeft, upsell, day10.logoUrl),
+          obs,
+          "trial-ending-upsell",
         );
       }
       const content = await resolveEmail(
@@ -186,8 +251,11 @@ export class WelcomeSequence extends WorkflowEntrypoint<LifecycleEnv, WelcomePar
         { when: trialEndsWhen(daysLeft), ...logo },
         trialEndingEmail(daysLeft, day10.logoUrl),
       );
-      return await send(this.env.EMAIL, params.email, content);
+      return await send(this.env.EMAIL, params.email, content, obs, "trial-ending");
     });
+    } finally {
+      this.ctx.waitUntil(obs.flush());
+    }
   }
 }
 
@@ -214,14 +282,18 @@ const handler = {
       });
     }
 
-    const obs = readObservability(env as unknown as Record<string, unknown>, "betterflag-lifecycle", {
-      environment: env.BETTERFLAG_ENV,
-      release: formatRelease({ version: VERSION, gitSha: env.BETTERFLAG_GIT_SHA, override: env.BETTERFLAG_RELEASE }),
-    });
+    attachWorkerTracing(ctx);
+    const obs = lifecycleObs(env);
+    const span = obs.tracer.startSpan("lifecycle.trigger", { kind: "server" });
 
     try {
       if (!isAuthorized(request, env.LIFECYCLE_SECRET)) {
-        obs.logger.warn("trigger: unauthorized", { status: 401 });
+        obs.logger.warn("trigger: unauthorized", {
+          status: 401,
+          "event.name": "lifecycle.trigger",
+          "event.outcome": "client_error",
+        });
+        span.setAttribute("event.outcome", "client_error").end();
         return json(401, {
           error: { code: "unauthorized", message: "A valid bearer secret is required." },
         });
@@ -231,10 +303,12 @@ const handler = {
       try {
         raw = await request.json();
       } catch {
+        span.setAttribute("event.outcome", "client_error").end();
         return json(400, { error: { code: "invalid_request", message: "Body must be valid JSON." } });
       }
       const parsed = welcomeParamsSchema.safeParse(raw);
       if (!parsed.success) {
+        span.setAttribute("event.outcome", "client_error").end();
         return json(422, { error: { code: "invalid_request", message: parsed.error.message } });
       }
 
@@ -246,20 +320,32 @@ const handler = {
         obs.logger.info("welcome sequence started", {
           org_id: parsed.data.orgId,
           instance_id: instance.id,
+          "event.name": "lifecycle.trigger",
+          "event.outcome": "ok",
         });
+        span.setAttribute("event.outcome", "ok").end();
         return json(201, { started: true, instanceId: instance.id });
       } catch (error) {
-        // A duplicate id means the sequence already ran/is running, which is fine.
         const message = error instanceof Error ? error.message : String(error);
         if (/already exists|instance.*exists/i.test(message)) {
-          obs.logger.info("welcome sequence already exists", { org_id: parsed.data.orgId });
+          obs.logger.info("welcome sequence already exists", {
+            org_id: parsed.data.orgId,
+            "event.name": "lifecycle.trigger",
+            "event.outcome": "ok",
+          });
+          span.setAttribute("event.outcome", "ok").end();
           return json(200, { started: false, reason: "already_exists" });
         }
         throw error;
       }
     } catch (error) {
       const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-      obs.logger.error("trigger failed", { error: message });
+      span.recordException(error).end();
+      obs.logger.error("trigger failed", {
+        error: message,
+        "event.name": "lifecycle.trigger",
+        "event.outcome": "error",
+      });
       return json(500, { error: { code: "internal_error", message: "Something went wrong" } });
     } finally {
       ctx.waitUntil(obs.flush());

@@ -14,6 +14,7 @@ import { canWrite } from "@/lib/billing-lifecycle";
 import { billingDecisionForOrg } from "@/lib/billing-status";
 import { getOrg } from "@/lib/db";
 import { HttpError } from "@/lib/errors";
+import { reportServerWarn } from "@/lib/observability";
 
 export { billingDecisionForOrg } from "@/lib/billing-status";
 
@@ -25,6 +26,12 @@ export { billingDecisionForOrg } from "@/lib/billing-status";
 export async function assertOrgWritable(service: SupabaseClient, orgId: string): Promise<void> {
   const org = await getOrg(service, orgId);
   if (org.frozen_at) {
+    reportServerWarn("billing denial", {
+      "event.name": "billing.denied",
+      "event.outcome": "client_error",
+      org_id: orgId,
+      reason: "org_frozen",
+    });
     throw new HttpError(
       403,
       "org_frozen",
@@ -33,6 +40,12 @@ export async function assertOrgWritable(service: SupabaseClient, orgId: string):
   }
   const decision = billingDecisionForOrg(org);
   if (!canWrite(decision)) {
+    reportServerWarn("billing denial", {
+      "event.name": "billing.denied",
+      "event.outcome": "client_error",
+      org_id: orgId,
+      reason: decision.state,
+    });
     throw new HttpError(402, "billing_restricted", decision.message);
   }
 }

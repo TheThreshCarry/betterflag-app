@@ -19,7 +19,7 @@ import { createClient } from "@supabase/supabase-js";
 import { buildSnapshot, flagKindSchema, jsonValueSchema, snapshotKvKey } from "@betterflag/core";
 import type { EvaluationEvent, FlagConfigRowLike, FlagRowLike } from "@betterflag/core";
 import type { FlagConfigRow, FlagRow } from "@betterflag/db";
-import { formatRelease, readObservability, type Observability } from "@betterflag/observability";
+import { formatRelease, readObservability, attachWorkerTracing, type Observability } from "@betterflag/observability";
 import { runColdStorageJob, type AnalyticsR2Like } from "./coldStorage";
 import { VERSION } from "./version.gen";
 import { z } from "zod";
@@ -54,6 +54,8 @@ export interface IngestEnv {
   // console-only when unset. Tokens via `wrangler secret put`, endpoints via vars.
   BETTER_STACK_SOURCE_TOKEN?: string;
   BETTER_STACK_LOGS_ENDPOINT?: string;
+  /** Better Stack heartbeat URL pinged after a successful cold-storage run. */
+  BETTER_STACK_HEARTBEAT_URL?: string;
   OTEL_EXPORTER_OTLP_ENDPOINT?: string;
   OTEL_EXPORTER_OTLP_HEADERS?: string;
   BETTERFLAG_ENV?: string;
@@ -199,9 +201,6 @@ export async function handleEventsBatch(
     const parsed = evaluationEventSchema.safeParse(message.body);
     if (!parsed.success) {
       dropped += 1;
-      console.error(
-        `betterflag-events: dropping invalid message ${message.id}: ${parsed.error.message}`,
-      );
       log?.warn("dropping invalid evaluation event", {
         message_id: message.id,
         detail: parsed.error.message,
@@ -224,6 +223,8 @@ export async function handleEventsBatch(
     insertSpan?.recordException(error).end();
     span?.setStatus("error").end();
     log?.error("clickhouse insert failed; batch will retry", {
+      "event.name": "clickhouse.insert",
+      "event.outcome": "error",
       error: errText(error),
       rows: rows.length,
     });
@@ -233,6 +234,23 @@ export async function handleEventsBatch(
   batch.ackAll();
   span?.end();
   log?.info("events batch inserted into ClickHouse", { rows: rows.length, dropped });
+}
+
+export async function handleDlqBatch(batch: MessageBatchLike, obs?: Observability): Promise<void> {
+  const log = obs?.logger.child({ queue: batch.queue, batch_size: batch.messages.length });
+  const span = obs?.tracer.startSpan("ingest.dlq", {
+    kind: "consumer",
+    attributes: { "queue.name": batch.queue, "messaging.batch.message_count": batch.messages.length },
+  });
+  for (const message of batch.messages) {
+    log?.error("evaluation event landed in DLQ", {
+      "event.name": "queue.dlq",
+      "event.outcome": "error",
+      message_id: message.id,
+    });
+    message.ack();
+  }
+  span?.setStatus("error").end();
 }
 
 // ---------------------------------------------------------------------------
@@ -439,10 +457,6 @@ export async function syncEnvironment(
     const kvKey = snapshotKvKey(target.projectId, target.envSlug);
     const existing = await env.CONFIG_KV.get(kvKey, { type: "json" });
     if (!shouldWriteSnapshot(existing, snapshot.version)) {
-      console.log(
-        `betterflag-config-sync: skipping stale snapshot v${snapshot.version} for ${kvKey} ` +
-          `(existing is newer)`,
-      );
       log?.info("skipped stale snapshot (existing KV entry is newer)", {
         kv_key: kvKey,
         version: snapshot.version,
@@ -473,7 +487,6 @@ export async function handleConfigSyncBatch(
     batch.messages,
     (message) => message.body,
     (message, error) => {
-      console.error(`betterflag-config-sync: dropping invalid message ${message.id}: ${error}`);
       log?.warn("dropping invalid config-sync message", { message_id: message.id, detail: error });
       message.ack();
     },
@@ -484,11 +497,9 @@ export async function handleConfigSyncBatch(
       await syncFn(group.target, env, obs);
       for (const message of group.messages) message.ack();
     } catch (error) {
-      console.error(
-        `betterflag-config-sync: sync failed for ${group.target.projectId}/${group.target.envSlug}`,
-        error,
-      );
       log?.error("config-sync failed; messages will retry", {
+        "event.name": "config.sync",
+        "event.outcome": "error",
         project_id: group.target.projectId,
         env: group.target.envSlug,
         messages: group.messages.length,
@@ -510,9 +521,11 @@ const handler = {
   },
 
   async queue(batch, env, ctx): Promise<void> {
+    attachWorkerTracing(ctx);
     const obs = readObservability(env as unknown as Record<string, unknown>, "betterflag-ingest", {
       environment: env.BETTERFLAG_ENV,
       release: formatRelease({ version: VERSION, gitSha: env.BETTERFLAG_GIT_SHA, override: env.BETTERFLAG_RELEASE }),
+      runtime: "worker",
     });
     try {
       switch (batch.queue) {
@@ -522,28 +535,36 @@ const handler = {
         case "betterflag-config-sync":
           await handleConfigSyncBatch(batch, env, syncEnvironment, obs);
           return;
+        case "betterflag-events-dlq":
+          await handleDlqBatch(batch, obs);
+          return;
         default:
-          console.error(`ingest: message batch from unknown queue "${batch.queue}", acking`);
           obs.logger.warn("message batch from unknown queue, acking", { queue: batch.queue });
           batch.ackAll();
       }
     } finally {
-      // Ship telemetry after the batch settles (also runs on the retry/throw
-      // path so failed batches are still recorded).
       ctx.waitUntil(obs.flush());
     }
   },
 
   /** Daily analytics tiering: hot (ClickHouse, 7d) → cold (R2) → deletion. */
   async scheduled(controller, env, ctx): Promise<void> {
+    attachWorkerTracing(ctx);
     const obs = readObservability(env as unknown as Record<string, unknown>, "betterflag-ingest", {
       environment: env.BETTERFLAG_ENV,
       release: formatRelease({ version: VERSION, gitSha: env.BETTERFLAG_GIT_SHA, override: env.BETTERFLAG_RELEASE }),
+      runtime: "worker",
     });
     const log = obs.logger.child({ cron: controller.cron });
     const span = obs.tracer.startSpan("ingest.cold_storage", { kind: "internal" });
     try {
-      const report = await runColdStorageJob(env, new Date(controller.scheduledTime));
+      const report = await runColdStorageJob(
+        env,
+        new Date(controller.scheduledTime),
+        fetch,
+        undefined,
+        span,
+      );
       span.setAttributes({
         "cold_storage.day": report.day,
         "cold_storage.exported": report.exported,
@@ -551,17 +572,29 @@ const handler = {
         "cold_storage.deleted": report.deleted,
         "cold_storage.errors": report.errors.length,
       });
-      const fields = { ...report, errors: report.errors.slice(0, 10) };
+      const fields = {
+        ...report,
+        errors: report.errors.slice(0, 10),
+        "event.name": "cold_storage",
+        "event.outcome": report.errors.length > 0 ? "error" : "ok",
+      };
       if (report.errors.length > 0) {
         span.setStatus("error");
         log.error("cold storage job finished with errors", fields);
-        console.error("cold storage job errors:", report.errors);
       } else {
         log.info("cold storage job finished", fields);
+        const heartbeatUrl = env.BETTER_STACK_HEARTBEAT_URL;
+        if (heartbeatUrl) {
+          ctx.waitUntil(
+            fetch(heartbeatUrl, { method: "GET" }).catch((error) => {
+              log.warn("cold storage heartbeat ping failed", { error: errText(error) });
+            }),
+          );
+        }
       }
     } catch (error) {
       span.recordException(error).setStatus("error");
-      log.error("cold storage job crashed", { error: errText(error) });
+      log.error("cold storage job crashed", { error: errText(error), "event.outcome": "error" });
       throw error;
     } finally {
       span.end();

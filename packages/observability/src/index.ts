@@ -6,7 +6,8 @@
  *
  * Typical Worker usage:
  *
- *   const obs = readObservability(env, "betterflag-api");
+ *   attachWorkerTracing(ctx);
+ *   const obs = readObservability(env, "betterflag-api", { runtime: "worker" });
  *   const log = obs.logger.child({ request_id });
  *   const span = obs.tracer.startSpan("GET /v1/evaluate", { kind: "server" });
  *   // ... work, span.startChild(...), log.info(...) ...
@@ -41,3 +42,18 @@ export {
   type ObservabilityConfig,
   type ReadObservabilityOptions,
 } from "./config";
+export {
+  boundErrorText,
+  eventOutcomeFromStatus,
+  redactString,
+  routeTemplate,
+  sanitizeFields,
+  type EventOutcome,
+} from "./fields";
+export {
+  attachWorkerTracing,
+  installNativeTracing,
+  resetNativeTracing,
+  type NativeTracing,
+  type NativeSpan,
+} from "./native";

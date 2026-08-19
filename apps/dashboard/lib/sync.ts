@@ -11,6 +11,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { enqueueConfigSync, kvPutSnapshot } from "./cloudflare";
 import { unwrap } from "./errors";
+import { withBusinessSpan } from "./observability";
 
 export async function rebuildAndPushSnapshot(
   service: SupabaseClient,
@@ -82,7 +83,10 @@ export async function rebuildAndPushSnapshot(
     );
   }
 
-  await kvPutSnapshot(projectId, envSlug, JSON.stringify(snapshot));
+  await withBusinessSpan("kv.put_snapshot", () => kvPutSnapshot(projectId, envSlug, JSON.stringify(snapshot)), {
+    project_id: projectId,
+    env: envSlug,
+  });
   // Reconciliation message so the ingest worker converges KV even if the
   // direct write above raced or failed.
   enqueueConfigSync({ projectId, environmentId, envSlug, orgId });

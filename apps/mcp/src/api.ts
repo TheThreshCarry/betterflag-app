@@ -76,7 +76,8 @@ export async function apiFetch<T = unknown>(ctx: ApiCtx, req: ApiRequest): Promi
   } catch (e) {
     span?.recordException(e).end();
     log?.error("Betterflag API request could not connect", { error: errText(e) });
-    void ctx.obs?.flush();
+    if (ctx.waitUntil && ctx.obs) ctx.waitUntil(ctx.obs.flush());
+    else void ctx.obs?.flush();
     throw new ToolError(
       `Could not reach the Betterflag API at ${ctx.baseUrl}: ${e instanceof Error ? e.message : String(e)}. Try again in a moment.`,
     );
@@ -88,12 +89,14 @@ export async function apiFetch<T = unknown>(ctx: ApiCtx, req: ApiRequest): Promi
   if (!res.ok) {
     span?.setStatus("error").end();
     log?.warn("Betterflag API returned an error status", { status: res.status });
-    void ctx.obs?.flush();
+    if (ctx.waitUntil && ctx.obs) ctx.waitUntil(ctx.obs.flush());
+    else void ctx.obs?.flush();
     throw mapError(res.status, payload, req);
   }
 
   span?.end();
-  void ctx.obs?.flush();
+  if (ctx.waitUntil && ctx.obs) ctx.waitUntil(ctx.obs.flush());
+  else void ctx.obs?.flush();
   return payload as T;
 }
 

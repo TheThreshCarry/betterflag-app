@@ -11,13 +11,14 @@ import { revalidatePath } from "next/cache";
 
 import { isAdminEmail, requireAdmin } from "./admin-auth";
 import { kvDeleteSdkKey, kvDeleteSnapshot } from "./cloudflare";
+import { logAdminAction } from "./observability";
 import { createServiceClient } from "./supabase/server";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
-function failure(err: unknown): ActionResult {
+function failure(err: unknown, action: string): ActionResult {
   const message = err instanceof Error ? err.message : String(err);
-  console.error("[admin action]", message);
+  void logAdminAction(action, { outcome: "error", error: message });
   return { ok: false, error: message };
 }
 
@@ -56,12 +57,12 @@ export async function freezeOrg(orgId: string): Promise<ActionResult> {
       .is("frozen_at", null);
     if (error) throw error;
     await recordOrgAudit(admin.id, orgId, "org.freeze", { frozen_at: null }, { frozen_at: frozenAt });
-    console.log(`[admin] ${admin.email} froze org ${orgId}`);
+    await logAdminAction("org.freeze", { outcome: "ok", org_id: orgId });
     revalidatePath("/orgs");
     revalidatePath(`/orgs/${orgId}`);
     return { ok: true };
   } catch (err) {
-    return failure(err);
+    return failure(err, "org.freeze");
   }
 }
 
@@ -72,12 +73,12 @@ export async function unfreezeOrg(orgId: string): Promise<ActionResult> {
     const { error } = await service.from("orgs").update({ frozen_at: null }).eq("id", orgId);
     if (error) throw error;
     await recordOrgAudit(admin.id, orgId, "org.unfreeze", { frozen_at: "set" }, { frozen_at: null });
-    console.log(`[admin] ${admin.email} unfroze org ${orgId}`);
+    await logAdminAction("org.unfreeze", { outcome: "ok", org_id: orgId });
     revalidatePath("/orgs");
     revalidatePath(`/orgs/${orgId}`);
     return { ok: true };
   } catch (err) {
-    return failure(err);
+    return failure(err, "org.unfreeze");
   }
 }
 
@@ -123,12 +124,12 @@ export async function deleteOrg(orgId: string, confirmName: string): Promise<Act
     const { error: deleteError } = await service.from("orgs").delete().eq("id", orgId);
     if (deleteError) throw deleteError;
 
-    console.log(`[admin] ${admin.email} deleted org ${orgId} (${org.name})`);
+    await logAdminAction("org.delete", { outcome: "ok", org_id: orgId });
     revalidatePath("/orgs");
     revalidatePath("/");
     return { ok: true };
   } catch (err) {
-    return failure(err);
+    return failure(err, "org.delete");
   }
 }
 
@@ -157,11 +158,11 @@ export async function banUser(userId: string): Promise<ActionResult> {
       ban_duration: BAN_DURATION,
     });
     if (error) throw error;
-    console.log(`[admin] ${admin.email} banned user ${userId} (${guard.email ?? "no email"})`);
+    await logAdminAction("user.ban", { outcome: "ok" });
     revalidatePath("/users");
     return { ok: true };
   } catch (err) {
-    return failure(err);
+    return failure(err, "user.ban");
   }
 }
 
@@ -171,11 +172,11 @@ export async function unbanUser(userId: string): Promise<ActionResult> {
     const service = createServiceClient();
     const { error } = await service.auth.admin.updateUserById(userId, { ban_duration: "none" });
     if (error) throw error;
-    console.log(`[admin] ${admin.email} unbanned user ${userId}`);
+    await logAdminAction("user.unban", { outcome: "ok" });
     revalidatePath("/users");
     return { ok: true };
   } catch (err) {
-    return failure(err);
+    return failure(err, "user.unban");
   }
 }
 
@@ -195,11 +196,11 @@ export async function deleteUser(userId: string, confirmEmail: string): Promise<
     const service = createServiceClient();
     const { error } = await service.auth.admin.deleteUser(userId);
     if (error) throw error;
-    console.log(`[admin] ${admin.email} deleted user ${userId} (${guard.email ?? "no email"})`);
+    await logAdminAction("user.delete", { outcome: "ok" });
     revalidatePath("/users");
     revalidatePath("/orgs");
     return { ok: true };
   } catch (err) {
-    return failure(err);
+    return failure(err, "user.delete");
   }
 }

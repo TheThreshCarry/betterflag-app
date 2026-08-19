@@ -1,9 +1,10 @@
 /**
- * A tiny OTLP tracer. Spans are buffered in memory and shipped as one
- * OTLP/HTTP JSON request on `flush()`, call `flush()` inside
- * `ctx.waitUntil(...)` in Workers so it never blocks the response.
+ * Tracer: Node ships OTLP/HTTP JSON on flush(); Workers use Cloudflare native
+ * spans when `installNativeTracing` has been called (no extra POST).
  */
+import { boundErrorText, sanitizeFields } from "./fields";
 import { epochNanos, monotonicMs, msToNanos, newSpanId, newTraceId } from "./ids";
+import { nativeTracing, type NativeSpan, type NativeTracing } from "./native";
 import {
   buildTracePayload,
   SPAN_KIND,
@@ -26,12 +27,6 @@ export interface StartSpanOptions {
   attributes?: Record<string, unknown>;
 }
 
-/**
- * Nested log fields that let Better Stack link a log line to its span. The
- * nested `span` object maps to the queryable `.span.trace_id` / `.span.span_id`
- * paths on ingest (a flat `"span.trace_id"` key would NOT). Correlation also
- * requires the log and the trace to be in the SAME source.
- */
 export interface SpanLogContext {
   span: { trace_id: string; span_id: string };
 }
@@ -39,7 +34,6 @@ export interface SpanLogContext {
 export interface Span {
   readonly traceId: string;
   readonly spanId: string;
-  /** Fields to attach to a correlated log line so Better Stack links the two. */
   readonly logContext: SpanLogContext;
   setAttribute(key: string, value: unknown): this;
   setAttributes(attributes: Record<string, unknown>): this;
@@ -48,7 +42,6 @@ export interface Span {
   setStatus(status: SpanStatus, message?: string): this;
   startChild(name: string, options?: Omit<StartSpanOptions, "parent">): Span;
   end(): void;
-  /** Milliseconds elapsed so far (or total, once ended). */
   durationMs(): number;
 }
 
@@ -56,13 +49,12 @@ export interface TracerConfig {
   service: string;
   environment?: string;
   release?: string;
-  /** OTLP base URL, e.g. https://sXXXX.eu-fsn-3.betterstackdata.com (no /v1/traces). */
   endpoint?: string;
   headers?: Record<string, string>;
   scopeName?: string;
   scopeVersion?: string;
-  /** Optional override for tests. */
   fetchImpl?: typeof fetch;
+  runtime?: "worker" | "node";
 }
 
 export interface Tracer {
@@ -72,9 +64,109 @@ export interface Tracer {
     fn: (span: Span) => T | Promise<T>,
     options?: StartSpanOptions,
   ): Promise<T>;
-  /** Ship + clear all finished spans. Best-effort; never throws. */
   flush(): Promise<void>;
   readonly enabled: boolean;
+}
+
+function scalarAttr(value: unknown): string | number | boolean | undefined {
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return typeof value === "string" ? value.slice(0, 500) : value;
+  }
+  if (typeof value === "bigint") return value.toString();
+  if (value === undefined || value === null) return undefined;
+  try {
+    return JSON.stringify(value)?.slice(0, 500);
+  } catch {
+    return String(value).slice(0, 500);
+  }
+}
+
+function applyNativeAttrs(native: NativeSpan, attributes: Record<string, unknown> | undefined): void {
+  if (!attributes) return;
+  const clean = sanitizeFields(attributes);
+  for (const [key, value] of Object.entries(clean)) {
+    const scalar = scalarAttr(value);
+    if (scalar !== undefined) native.setAttribute(key, scalar);
+  }
+}
+
+class NativeSpanAdapter implements Span {
+  readonly traceId: string;
+  readonly spanId: string;
+  private readonly startMono: number;
+  private endedMono: number | undefined;
+  private ended = false;
+
+  constructor(
+    private readonly tracing: NativeTracing,
+    private readonly native: NativeSpan,
+    name: string,
+    options: StartSpanOptions,
+  ) {
+    this.traceId = options.parent?.traceId ?? newTraceId();
+    this.spanId = newSpanId();
+    this.startMono = monotonicMs();
+    native.setAttribute("betterflag.span_name", name);
+    native.setAttribute("betterflag.trace_id", this.traceId);
+    native.setAttribute("betterflag.span_id", this.spanId);
+    if (options.kind) native.setAttribute("span.kind", options.kind);
+    applyNativeAttrs(native, options.attributes);
+  }
+
+  get logContext(): SpanLogContext {
+    return { span: { trace_id: this.traceId, span_id: this.spanId } };
+  }
+
+  setAttribute(key: string, value: unknown): this {
+    applyNativeAttrs(this.native, { [key]: value });
+    return this;
+  }
+
+  setAttributes(attributes: Record<string, unknown>): this {
+    applyNativeAttrs(this.native, attributes);
+    return this;
+  }
+
+  addEvent(name: string, attributes?: Record<string, unknown>): this {
+    this.native.setAttribute(`event.${name}`, true);
+    applyNativeAttrs(this.native, attributes);
+    return this;
+  }
+
+  recordException(error: unknown): this {
+    const message = boundErrorText(error);
+    const type = error instanceof Error ? error.name : "Error";
+    this.native.setAttribute("exception.type", type.slice(0, 200));
+    this.native.setAttribute("exception.message", message);
+    return this.setStatus("error", message);
+  }
+
+  setStatus(status: SpanStatus, message?: string): this {
+    this.native.setAttribute("otel.status_code", status);
+    if (message) this.native.setAttribute("otel.status_description", message.slice(0, 500));
+    return this;
+  }
+
+  startChild(name: string, options?: Omit<StartSpanOptions, "parent">): Span {
+    return this.tracing.startActiveSpan(name, (child) => {
+      return new NativeSpanAdapter(this.tracing, child, name, {
+        ...options,
+        parent: { traceId: this.traceId, spanId: this.spanId },
+      });
+    });
+  }
+
+  durationMs(): number {
+    return (this.endedMono ?? monotonicMs()) - this.startMono;
+  }
+
+  end(): void {
+    if (this.ended) return;
+    this.ended = true;
+    this.endedMono = monotonicMs();
+    this.native.setAttribute("duration_ms", Math.round(this.durationMs() * 1000) / 1000);
+    this.native.end?.();
+  }
 }
 
 class SpanImpl implements Span {
@@ -112,12 +204,13 @@ class SpanImpl implements Span {
   }
 
   setAttribute(key: string, value: unknown): this {
-    this.attributes[key] = value;
+    const clean = sanitizeFields({ [key]: value });
+    Object.assign(this.attributes, clean);
     return this;
   }
 
   setAttributes(attributes: Record<string, unknown>): this {
-    for (const [key, value] of Object.entries(attributes)) this.attributes[key] = value;
+    Object.assign(this.attributes, sanitizeFields(attributes));
     return this;
   }
 
@@ -125,25 +218,27 @@ class SpanImpl implements Span {
     this.events.push({
       timeUnixNano: (this.startNanos + msToNanos(monotonicMs() - this.startMono)).toString(),
       name,
-      attributes: attributes ? toKeyValues(attributes) : undefined,
+      attributes: attributes ? toKeyValues(sanitizeFields(attributes)) : undefined,
     });
     return this;
   }
 
   recordException(error: unknown): this {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = boundErrorText(error);
     const type = error instanceof Error ? error.name : "Error";
     this.addEvent("exception", {
       "exception.type": type,
       "exception.message": message,
-      ...(error instanceof Error && error.stack ? { "exception.stacktrace": error.stack } : {}),
+      ...(error instanceof Error && error.stack
+        ? { "exception.stacktrace": boundErrorText(error.stack) }
+        : {}),
     });
     return this.setStatus("error", message);
   }
 
   setStatus(status: SpanStatus, message?: string): this {
     this.status = status;
-    if (message !== undefined) this.statusMessage = message;
+    if (message !== undefined) this.statusMessage = message.slice(0, 500);
     return this;
   }
 
@@ -183,8 +278,9 @@ class SpanImpl implements Span {
 }
 
 export function createTracer(config: TracerConfig): Tracer {
+  const native = config.runtime === "worker" ? nativeTracing() : undefined;
   const endpoint = config.endpoint?.replace(/\/+$/, "");
-  const enabled = typeof endpoint === "string" && endpoint.length > 0;
+  const otlpEnabled = config.runtime !== "worker" && typeof endpoint === "string" && endpoint.length > 0;
   const fetchImpl = config.fetchImpl ?? fetch;
   const scope = { name: config.scopeName ?? config.service, version: config.scopeVersion };
   const resourceAttributes: Record<string, unknown> = {
@@ -198,11 +294,15 @@ export function createTracer(config: TracerConfig): Tracer {
     buffer.push(span);
   };
 
-  const startSpan = (name: string, options: StartSpanOptions = {}): Span =>
-    new SpanImpl(sink, name, options);
+  const startSpan = (name: string, options: StartSpanOptions = {}): Span => {
+    if (native) {
+      return native.startActiveSpan(name, (span) => new NativeSpanAdapter(native, span, name, options));
+    }
+    return new SpanImpl(sink, name, options);
+  };
 
   return {
-    enabled,
+    enabled: Boolean(native) || otlpEnabled,
     startSpan,
     async withSpan<T>(
       name: string,
@@ -221,7 +321,7 @@ export function createTracer(config: TracerConfig): Tracer {
       }
     },
     async flush(): Promise<void> {
-      if (!enabled || buffer.length === 0) return;
+      if (!otlpEnabled || buffer.length === 0) return;
       const spans = buffer;
       buffer = [];
       const payload = buildTracePayload(resourceAttributes, scope, spans);
@@ -232,7 +332,7 @@ export function createTracer(config: TracerConfig): Tracer {
           body: JSON.stringify(payload),
         });
       } catch {
-        // Best-effort: a telemetry failure must never surface to callers.
+        // Best-effort.
       }
     },
   };

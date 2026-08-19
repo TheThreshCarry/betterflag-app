@@ -4,8 +4,20 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-06-01",
   "observability": {
-    "enabled": true
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "destinations": ["betterflag-otel"],
+      "head_sampling_rate": 1,
+      "invocation_logs": true
+    },
+    "traces": {
+      "enabled": true,
+      "destinations": ["betterflag-otel"],
+      "head_sampling_rate": 1
+    }
   },
+  "tail_consumers": [{ "service": "betterflag-tail" }],
   // Distinct dev ports so parallel `wrangler dev` instances don't collide.
   "dev": {
     "port": 8791,
@@ -41,6 +53,6 @@
   "vars": {
     "SUPABASE_URL": "https://tnlbktwyrctrxmpoafwb.supabase.co",
     "BETTERFLAG_ENV": "production",
-    "BETTER_STACK_LOGS_ENDPOINT": "https://s2578180.eu-fsn-3.betterstackdata.com"
+    "BETTER_STACK_LOGS_ENDPOINT": "https://s2692129.eu-central-1a.betterstackdata.com"
   }
 }

@@ -38,6 +38,7 @@ export class BetterFlagMcp extends McpAgent<Env, unknown, SessionProps> {
         gitSha: this.env.BETTERFLAG_GIT_SHA,
         override: this.env.BETTERFLAG_RELEASE,
       }),
+      runtime: "worker",
     });
 
     registerTools(this.server, (): ApiCtx => {
@@ -49,7 +50,12 @@ export class BetterFlagMcp extends McpAgent<Env, unknown, SessionProps> {
         );
       }
       const baseUrl = (this.env.BETTERFLAG_API_URL || DEFAULT_API_URL).replace(/\/+$/, "");
-      return { baseUrl, apiKey, obs: this.obs };
+      return {
+        baseUrl,
+        apiKey,
+        obs: this.obs,
+        waitUntil: (promise) => this.ctx.waitUntil(promise),
+      };
     });
   }
 }

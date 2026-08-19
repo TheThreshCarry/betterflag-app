@@ -63,6 +63,7 @@ export interface ApiCtx {
   apiKey: string;
   /** Best-effort telemetry; never carries or logs the bearer key. */
   obs?: Observability;
+  waitUntil?: (promise: Promise<unknown>) => void;
 }
 
 // ---------------------------------------------------------------------------

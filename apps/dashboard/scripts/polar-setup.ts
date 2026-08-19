@@ -11,7 +11,7 @@
  *
  * Safe to re-run: existing objects are matched by metadata and reused.
  * Promote sandbox -> production by pointing POLAR_ACCESS_TOKEN / POLAR_SERVER
- * at production and running again.
+ * at production and running again. POLAR_SERVER is required (no silent sandbox).
  *
  * Run:  bun run polar:setup            (from apps/dashboard)
  */
@@ -33,14 +33,13 @@ import {
   type PricingTier,
 } from "../lib/pricing-config";
 
-// The Polar vars live in the repo-root .env. Load .env files (dashboard, then
-// repo root) without adding a dependency, so `bun run polar:setup` from
-// apps/dashboard picks them up regardless of cwd.
+// Polar vars live in repo-root .env or apps/dashboard/.env.local. Last file wins.
 function loadEnvFiles() {
   const here = dirname(fileURLToPath(import.meta.url));
   const candidates = [
     resolve(here, "..", "..", "..", ".env"), // repo root .env
-    resolve(here, "..", ".env"), // apps/dashboard/.env (wins over root)
+    resolve(here, "..", ".env"), // apps/dashboard/.env
+    resolve(here, "..", ".env.local"), // apps/dashboard/.env.local (wins)
   ];
   // Parse files into a map with last-wins semantics (matches dotenv), so a
   // duplicated key in .env resolves to the LAST occurrence, then apply without
@@ -64,11 +63,16 @@ function loadEnvFiles() {
 loadEnvFiles();
 
 const accessToken = process.env.POLAR_ACCESS_TOKEN;
-const server: "sandbox" | "production" =
-  process.env.POLAR_SERVER === "production" ? "production" : "sandbox";
+const serverRaw = process.env.POLAR_SERVER;
+const server: "sandbox" | "production" | undefined =
+  serverRaw === "production" || serverRaw === "sandbox" ? serverRaw : undefined;
 
 if (!accessToken) {
-  console.error("✗ POLAR_ACCESS_TOKEN is not set. Add it to apps/dashboard/.env (or the repo .env).");
+  console.error("✗ POLAR_ACCESS_TOKEN is not set. Add it to apps/dashboard/.env.local (or the repo .env).");
+  process.exit(1);
+}
+if (!server) {
+  console.error('✗ POLAR_SERVER must be "production" or "sandbox". Unset defaults used to hit Polar sandbox.');
   process.exit(1);
 }
 
@@ -107,9 +111,11 @@ async function ensureMeter(): Promise<string> {
 
 async function ensureBenefit(tier: PricingTier, meterId: string): Promise<string> {
   const benefits = await collect(await polar.benefits.list({}));
-  const existing = benefits.find(
-    (b) => b.metadata?.betterflag_plan === tier.key && b.metadata?.betterflag_kind === "included_evaluations",
-  );
+  const existing = benefits.find((b) => {
+    const plan = b.metadata?.betterflag_plan;
+    const kind = b.metadata?.betterflag_kind;
+    return plan === tier.key && kind === "included_evaluations";
+  });
   if (existing) {
     console.log(`  • benefit for ${tier.key} already exists → ${existing.id}`);
     return existing.id;

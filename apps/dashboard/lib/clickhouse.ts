@@ -73,7 +73,12 @@ async function chQuery<T>(sql: string, params: Record<string, string | number>):
     if (!res.ok) {
       const detail = await res.text();
       console.error(`[clickhouse] query failed: ${res.status} ${detail}`);
-      reportServerError("clickhouse query failed", { status: res.status, detail: detail.slice(0, 500) });
+      reportServerError("clickhouse query failed", {
+        "event.name": "clickhouse.query",
+        "event.outcome": "error",
+        status: res.status,
+        detail: detail.slice(0, 500),
+      });
       return [];
     }
     const text = await res.text();
@@ -83,7 +88,11 @@ async function chQuery<T>(sql: string, params: Record<string, string | number>):
       .map((line) => JSON.parse(line) as T);
   } catch (err) {
     console.error("[clickhouse] query failed:", err);
-    reportServerError("clickhouse query failed", { error: err instanceof Error ? err.message : String(err) });
+    reportServerError("clickhouse query failed", {
+      "event.name": "clickhouse.query",
+      "event.outcome": "error",
+      error: err instanceof Error ? err.message : String(err),
+    });
     return [];
   }
 }

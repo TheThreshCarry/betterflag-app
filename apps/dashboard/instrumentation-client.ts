@@ -11,3 +11,15 @@ posthog.init(process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN!, {
   ui_host: "https://eu.posthog.com",
   defaults: "2026-01-30",
 });
+
+const errorsDsn = process.env.NEXT_PUBLIC_BETTER_STACK_ERRORS_DSN;
+if (errorsDsn) {
+  void import("@sentry/nextjs").then((Sentry) => {
+    Sentry.init({
+      dsn: errorsDsn,
+      tracesSampleRate: 0,
+      sendDefaultPii: false,
+      environment: process.env.NEXT_PUBLIC_BETTERFLAG_ENV ?? process.env.NODE_ENV,
+    });
+  });
+}

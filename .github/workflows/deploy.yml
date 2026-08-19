@@ -1,7 +1,7 @@
 name: Deploy Workers
 
-# Deploys the Cloudflare Workers (api, ingest, mcp, webhooks) with Wrangler.
-# The Next.js dashboard is deployed separately and is intentionally excluded.
+# Deploys the Cloudflare Workers (tail, api, ingest, mcp, webhooks, lifecycle)
+# with Wrangler. The Next.js dashboard is deployed separately.
 on:
   push:
     branches: [main]
@@ -10,8 +10,11 @@ on:
       - "apps/ingest/**"
       - "apps/mcp/**"
       - "apps/webhooks/**"
+      - "apps/lifecycle/**"
+      - "apps/tail/**"
       - "packages/core/**"
       - "packages/db/**"
+      - "packages/observability/**"
       - "bun.lock"
       - ".github/workflows/deploy.yml"
   workflow_dispatch:
@@ -20,7 +23,7 @@ on:
         description: "Which worker to deploy"
         type: choice
         default: all
-        options: [all, api, ingest, mcp, webhooks]
+        options: [all, tail, api, ingest, mcp, webhooks, lifecycle]
 
 # Never run two deploys of the same ref at once; let an in-flight deploy finish.
 concurrency:
@@ -45,10 +48,22 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     strategy:
-      # Deploy each worker independently; one failure shouldn't block the others.
+      # Tail Worker first (producers reference it). One failure shouldn't block others.
       fail-fast: false
       matrix:
-        worker: [api, ingest, mcp, webhooks]
+        include:
+          - worker: tail
+            order: 1
+          - worker: api
+            order: 2
+          - worker: ingest
+            order: 2
+          - worker: mcp
+            order: 2
+          - worker: webhooks
+            order: 2
+          - worker: lifecycle
+            order: 2
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2

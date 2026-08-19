@@ -36,16 +36,55 @@ function text(t: string, isError = false): CallToolResult {
     : { content: [{ type: "text", text: t }] };
 }
 
-/** Uniform exception → tool-result mapping. */
-async function run(fn: () => Promise<string>): Promise<CallToolResult> {
+/** Uniform exception → tool-result mapping. Logs tool name + outcome only. */
+async function run(
+  getCtx: () => ApiCtx,
+  toolName: string,
+  fn: () => Promise<string>,
+): Promise<CallToolResult> {
+  let ctx: ApiCtx | undefined;
   try {
-    return text(await fn());
+    ctx = getCtx();
+  } catch {
+    // Missing session key: fn() throws ToolError.
+  }
+  const span = ctx?.obs?.tracer.startSpan(`mcp.tool.${toolName}`, {
+    kind: "internal",
+    attributes: { tool_name: toolName },
+  });
+  const flush = (): void => {
+    if (!ctx?.obs) return;
+    if (ctx.waitUntil) ctx.waitUntil(ctx.obs.flush());
+    else void ctx.obs.flush();
+  };
+  try {
+    const result = await fn();
+    ctx?.obs?.logger.info("mcp tool", {
+      tool_name: toolName,
+      "event.name": "mcp.tool",
+      "event.outcome": "ok",
+    });
+    span?.setAttribute("event.outcome", "ok").end();
+    flush();
+    return text(result);
   } catch (e) {
-    if (e instanceof ToolError) return text(e.message, e.isError);
-    // Genuinely unexpected (a bug, not a mapped API error). Structured
-    // API-error telemetry is emitted in apiFetch; this console.error is the
-    // floor for everything else (captured in Workers Logs).
-    console.error("[mcp] unexpected tool error", e);
+    if (e instanceof ToolError) {
+      ctx?.obs?.logger.warn("mcp tool", {
+        tool_name: toolName,
+        "event.name": "mcp.tool",
+        "event.outcome": e.isError ? "error" : "ok",
+      });
+      span?.setAttribute("event.outcome", e.isError ? "error" : "ok").end();
+      flush();
+      return text(e.message, e.isError);
+    }
+    span?.recordException(e).end();
+    ctx?.obs?.logger.error("mcp tool unexpected error", {
+      tool_name: toolName,
+      "event.name": "mcp.tool",
+      "event.outcome": "error",
+    });
+    flush();
     return text(`Unexpected error: ${e instanceof Error ? e.message : String(e)}`, true);
   }
 }
@@ -88,7 +127,7 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
       inputSchema: { projectSlug: projectSlugParam },
     },
     async ({ projectSlug }) =>
-      run(async () => {
+      run(getCtx, "list_flags", async () => {
         const ctx = getCtx();
         const project = await resolveProject(ctx, projectSlug);
         const payload = await apiFetch(ctx, {
@@ -123,7 +162,7 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
       inputSchema: { projectSlug: projectSlugParam, key: keyParam },
     },
     async ({ projectSlug, key }) =>
-      run(async () => {
+      run(getCtx, "get_flag", async () => {
         const ctx = getCtx();
         const { project, flag } = await resolveFlag(ctx, projectSlug, key);
         return flagDetail(flag, project.slug);
@@ -156,7 +195,7 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
       },
     },
     async ({ projectSlug, key, name, description, kind, defaultValue }) =>
-      run(async () => {
+      run(getCtx, "create_flag", async () => {
         const ctx = getCtx();
         const project = await resolveProject(ctx, projectSlug);
         const body: Record<string, unknown> = { key, name: name ?? key, kind: kind ?? "boolean" };
@@ -192,7 +231,7 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
       },
     },
     async ({ projectSlug, key, name, description }) =>
-      run(async () => {
+      run(getCtx, "update_flag", async () => {
         if (name === undefined && description === undefined) {
           throw new ToolError("Nothing to update, pass name and/or description.", { isError: false });
         }
@@ -224,7 +263,7 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
       inputSchema: { projectSlug: projectSlugParam, key: keyParam },
     },
     async ({ projectSlug, key }) =>
-      run(async () => {
+      run(getCtx, "archive_flag", async () => {
         const ctx = getCtx();
         const { flag } = await resolveFlag(ctx, projectSlug, key);
         await apiFetch(ctx, {
@@ -253,7 +292,7 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
       },
     },
     async ({ projectSlug, key, env, on }) =>
-      run(async () => {
+      run(getCtx, "toggle_flag", async () => {
         const ctx = getCtx();
         const { flag } = await resolveFlag(ctx, projectSlug, key);
         await apiFetch(ctx, {
@@ -287,7 +326,7 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
       },
     },
     async ({ projectSlug, key, env, percent }) =>
-      run(async () => {
+      run(getCtx, "set_rollout", async () => {
         const ctx = getCtx();
         const { flag } = await resolveFlag(ctx, projectSlug, key);
         const current = configsOf(flag).find((c) => c.env === env);
@@ -327,7 +366,7 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
       },
     },
     async ({ projectSlug, key, env, rules }) =>
-      run(async () => {
+      run(getCtx, "set_targeting", async () => {
         // Belt-and-braces: mirror @betterflag/core validation so agents get
         // instant, precise feedback before anything hits the API.
         const parsed = targetingRulesSchema.safeParse(rules);
@@ -360,7 +399,7 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
       inputSchema: { projectSlug: projectSlugParam, key: keyParam, env: envParam },
     },
     async ({ projectSlug, key, env }) =>
-      run(async () => {
+      run(getCtx, "kill_flag", async () => {
         const ctx = getCtx();
         const { flag } = await resolveFlag(ctx, projectSlug, key);
         await apiFetch(ctx, {
@@ -392,7 +431,7 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
       },
     },
     async ({ projectSlug, key, from_env, to_env }) =>
-      run(async () => {
+      run(getCtx, "promote_config", async () => {
         if (from_env === to_env) {
           throw new ToolError("from_env and to_env are the same environment, nothing to promote.", { isError: false });
         }
@@ -426,7 +465,7 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
       },
     },
     async ({ projectSlug, key, env, period }) =>
-      run(async () => {
+      run(getCtx, "get_evaluation_stats", async () => {
         const ctx = getCtx();
         const { flag } = await resolveFlag(ctx, projectSlug, key);
         const p = period ?? "24h";
@@ -472,7 +511,7 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
       },
     },
     async ({ projectSlug, actorType, limit }) =>
-      run(async () => {
+      run(getCtx, "get_audit_log", async () => {
         const ctx = getCtx();
         const params = new URLSearchParams();
         if (actorType) params.set("actorType", actorType);

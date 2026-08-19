@@ -9,6 +9,7 @@
  *   - `externalCustomerId = orgId` (sets the Polar customer's external_id)
  */
 import { HttpError } from "@/lib/errors";
+import { withBusinessSpan } from "@/lib/observability";
 import { getPolar } from "@/lib/polar";
 import type { PlanKey } from "@/lib/pricing-config";
 import { getPricingTiers } from "@/lib/pricing";
@@ -45,21 +46,24 @@ export async function createCheckoutForPlan(input: {
   const tier = tiers.find((t) => t.key === input.planKey);
   if (!tier?.productId) {
     throw new HttpError(
-      400,
-      "unknown_plan",
-      `No purchasable Polar product for plan "${input.planKey}"`,
+      503,
+      "billing_unconfigured",
+      `Polar has no purchasable product for plan "${input.planKey}". Set POLAR_ACCESS_TOKEN (production OAT) and POLAR_SERVER=production.`,
     );
   }
 
+  const productId = tier.productId;
   const polar = getPolar();
-  const checkout = await polar.checkouts.create(
-    buildCheckoutRequest({
-      orgId: input.orgId,
-      productId: tier.productId,
-      planKey: input.planKey,
-      origin: input.origin,
-      customerEmail: input.customerEmail,
-    }),
+  const checkout = await withBusinessSpan("polar.checkout.create", () =>
+    polar.checkouts.create(
+      buildCheckoutRequest({
+        orgId: input.orgId,
+        productId,
+        planKey: input.planKey,
+        origin: input.origin,
+        customerEmail: input.customerEmail,
+      }),
+    ),
   );
   return { url: checkout.url };
 }
@@ -76,9 +80,11 @@ export async function createBillingPortal(input: {
 }): Promise<{ url: string }> {
   const polar = getPolar();
   try {
-    const session = await polar.customerSessions.create({
-      externalCustomerId: input.orgId,
-    });
+    const session = await withBusinessSpan("polar.portal.create", () =>
+      polar.customerSessions.create({
+        externalCustomerId: input.orgId,
+      }),
+    );
     return { url: session.customerPortalUrl };
   } catch {
     throw new HttpError(

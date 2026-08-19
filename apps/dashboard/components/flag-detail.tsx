@@ -18,6 +18,7 @@ import {
   formatCount,
 } from "@/components/analytics-view";
 import { SparklineArea, StackedAreaChart } from "@/components/charts";
+import { FlagEvaluateCard } from "@/components/evaluate-snippet";
 import { KIND_COLORS } from "@/components/flags-view";
 import { VersionHistoryBadge } from "@/components/version-history-badge";
 import { Slider } from "@appica/ui-react/slider";
@@ -247,12 +248,19 @@ export function FlagDetail({ flagKey }: { flagKey: string }) {
         ))}
 
         {shownConfigs[0]?.environment ? (
-          <FlagAnalytics
-            flagId={flag.id}
-            flagKey={flag.key}
-            projectId={project.id}
-            envSlug={shownConfigs[0].environment.slug}
-          />
+          <>
+            <FlagEvaluateCard
+              flagKey={flag.key}
+              envSlug={shownConfigs[0].environment.slug}
+              envName={shownConfigs[0].environment.name}
+            />
+            <FlagAnalytics
+              flagId={flag.id}
+              flagKey={flag.key}
+              projectId={project.id}
+              envSlug={shownConfigs[0].environment.slug}
+            />
+          </>
         ) : null}
       </Stagger>
 

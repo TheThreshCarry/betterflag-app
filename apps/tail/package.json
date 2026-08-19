@@ -1,0 +1,21 @@
+{
+  "name": "@betterflag/tail",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy --var BETTERFLAG_GIT_SHA:$(git rev-parse --short=7 HEAD 2>/dev/null || echo unknown)",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@betterflag/observability": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260704.1",
+    "typescript": "^5.9.2",
+    "vitest": "^4.1.9",
+    "wrangler": "^4.107.0"
+  }
+}

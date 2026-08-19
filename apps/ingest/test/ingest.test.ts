@@ -6,6 +6,7 @@ import {
   eventToRow,
   groupSyncMessages,
   handleConfigSyncBatch,
+  handleDlqBatch,
   handleEventsBatch,
   joinConfigRows,
   shouldWriteSnapshot,
@@ -416,5 +417,16 @@ describe("handleConfigSyncBatch", () => {
     expect(calls).toBe(0);
     expect(invalid.acked).toBe(true);
     expect(invalid.retried).toBe(false);
+  });
+});
+
+describe("handleDlqBatch", () => {
+  it("acks every DLQ message and records the failure", async () => {
+    const m1 = fakeMessage(EVENT, "dlq-1");
+    const m2 = fakeMessage({ nope: true }, "dlq-2");
+    const batch = fakeBatch("betterflag-events-dlq", [m1, m2]);
+    await handleDlqBatch(batch);
+    expect([m1.acked, m2.acked]).toEqual([true, true]);
+    expect([m1.retried, m2.retried]).toEqual([false, false]);
   });
 });

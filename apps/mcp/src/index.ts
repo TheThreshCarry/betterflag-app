@@ -20,7 +20,13 @@
  */
 import OAuthProvider from "@cloudflare/workers-oauth-provider";
 import { API_KEY_RE, kindOfKey } from "@betterflag/core";
-import { formatRelease, readObservability } from "@betterflag/observability";
+import {
+  attachWorkerTracing,
+  eventOutcomeFromStatus,
+  formatRelease,
+  readObservability,
+  routeTemplate,
+} from "@betterflag/observability";
 import { BetterFlagMcp } from "./agent";
 import { VERSION } from "./version.gen";
 import { oauthDefaultHandler, SCOPE_MANAGE } from "./oauth";
@@ -96,47 +102,79 @@ const oauthProvider = new OAuthProvider({
 
 export default {
   async fetch(request, env, ctx): Promise<Response> {
+    attachWorkerTracing(ctx);
     const { pathname } = new URL(request.url);
     const isMcp = pathname === "/mcp";
     const isSse = pathname === "/sse" || pathname === "/sse/message";
+    const obs = readObservability(env as unknown as Record<string, unknown>, "betterflag-mcp", {
+      environment: env.BETTERFLAG_ENV,
+      release: formatRelease({ version: VERSION, gitSha: env.BETTERFLAG_GIT_SHA, override: env.BETTERFLAG_RELEASE }),
+      runtime: "worker",
+    });
+    const route = routeTemplate(pathname);
+    const span = obs.tracer.startSpan(`${request.method} ${route}`, {
+      kind: "server",
+      attributes: { "http.route": route, "http.request.method": request.method },
+    });
 
-    // Legacy path: a Betterflag key presented directly skips the OAuth provider.
-    if (isMcp || isSse) {
-      const direct = checkDirectKey(request);
-      if (direct instanceof Response || direct) {
-        const obs = readObservability(env as unknown as Record<string, unknown>, "betterflag-mcp", {
-          environment: env.BETTERFLAG_ENV,
-          release: formatRelease({ version: VERSION, gitSha: env.BETTERFLAG_GIT_SHA, override: env.BETTERFLAG_RELEASE }),
-        });
-        const log = obs.logger.child({ path: pathname, method: request.method });
+    const finish = (response: Response): Response => {
+      span.setAttribute("http.response.status_code", response.status);
+      if (response.status >= 500) span.setStatus("error");
+      span.end();
+      obs.logger.info("request", {
+        status: response.status,
+        duration_ms: Math.round(span.durationMs() * 1000) / 1000,
+        "event.name": `${request.method} ${route}`,
+        "event.outcome": eventOutcomeFromStatus(response.status),
+        path: route,
+      });
+      obs.flushTo(ctx.waitUntil.bind(ctx));
+      return response;
+    };
 
-        if (direct instanceof Response) {
-          // The rejected key itself is never logged, only that auth failed.
-          log.warn("mcp: direct key rejected at the gate", {
-            status: 401,
+    try {
+      if (isMcp || isSse) {
+        const direct = checkDirectKey(request);
+        if (direct instanceof Response || direct) {
+          const log = obs.logger.child({ path: pathname, method: request.method });
+
+          if (direct instanceof Response) {
+            log.warn("mcp: direct key rejected at the gate", {
+              status: 401,
+              transport: isSse ? "sse" : "mcp",
+              "event.name": "mcp.auth",
+              "event.outcome": "client_error",
+            });
+            return finish(direct);
+          }
+
+          log.info("mcp: session authorized (direct key)", {
+            key_kind: kindOfKey(direct.apiKey),
             transport: isSse ? "sse" : "mcp",
+            "event.name": "mcp.auth",
+            "event.outcome": "ok",
           });
-          obs.flushTo(ctx.waitUntil.bind(ctx));
-          return direct;
+
+          const props: SessionProps = { apiKey: direct.apiKey, via: "bearer" };
+          (ctx as unknown as { props: SessionProps }).props = props;
+          const response = isSse
+            ? await sseHandler.fetch(request, env, ctx)
+            : await mcpHandler.fetch(request, env, ctx);
+          return finish(response);
         }
-
-        // key_kind (agent/admin) is safe to log; the key value is not.
-        log.info("mcp: session authorized (direct key)", {
-          key_kind: kindOfKey(direct.apiKey),
-          transport: isSse ? "sse" : "mcp",
-        });
-        obs.flushTo(ctx.waitUntil.bind(ctx));
-
-        // ExecutionContext.props is typed readonly in workers-types but is
-        // the documented handoff channel for the agents SDK, cast here only.
-        const props: SessionProps = { apiKey: direct.apiKey, via: "bearer" };
-        (ctx as unknown as { props: SessionProps }).props = props;
-        return isSse ? sseHandler.fetch(request, env, ctx) : mcpHandler.fetch(request, env, ctx);
       }
-      // No Betterflag key → fall through: the provider validates OAuth tokens
-      // and emits the RFC-9728 401 challenge for anonymous requests.
-    }
 
-    return oauthProvider.fetch(request, env as never, ctx);
+      const response = await oauthProvider.fetch(request, env as never, ctx);
+      return finish(response);
+    } catch (error) {
+      span.recordException(error).end();
+      obs.logger.error("mcp request failed", {
+        error: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
+        "event.name": `${request.method} ${route}`,
+        "event.outcome": "error",
+      });
+      obs.flushTo(ctx.waitUntil.bind(ctx));
+      throw error;
+    }
   },
 } satisfies ExportedHandler<Env>;

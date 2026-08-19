@@ -12,15 +12,26 @@
  *   BETTER_STACK_SOURCE_TOKEN, BETTER_STACK_LOGS_ENDPOINT   (logs)
  *   OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_EXPORTER_OTLP_HEADERS  (traces)
  */
+import { AsyncLocalStorage } from "node:async_hooks";
 import {
   formatRelease,
   readObservability,
   type Fields,
+  type Logger,
   type Observability,
+  type Span,
 } from "@betterflag/observability";
 import { VERSION } from "./version.gen";
 
 const SERVICE = "betterflag-dashboard";
+
+export interface RequestObsContext {
+  obs: Observability;
+  log: Logger;
+  span: Span;
+}
+
+export const requestObs = new AsyncLocalStorage<RequestObsContext>();
 
 function environment(): string {
   return (
@@ -32,9 +43,6 @@ function environment(): string {
 }
 
 function release(): string {
-  // VERSION (this app's committed semver) + the deploy's git commit, so every
-  // log/error/trace traces back to exact code. On Vercel the commit comes from
-  // VERCEL_GIT_COMMIT_SHA; BETTERFLAG_RELEASE, if set, is used verbatim.
   return formatRelease({
     version: VERSION,
     gitSha: process.env.BETTERFLAG_GIT_SHA ?? process.env.VERCEL_GIT_COMMIT_SHA,
@@ -47,21 +55,46 @@ export function createRequestObservability(): Observability {
   return readObservability(process.env, SERVICE, {
     environment: environment(),
     release: release(),
+    runtime: "node",
   });
 }
 
-/**
- * Fire-and-forget structured log for library-level events that aren't on the
- * request path. Never awaited by the caller and never throws.
- */
+export async function withBusinessSpan<T>(
+  name: string,
+  fn: (span: Span) => Promise<T> | T,
+  attributes?: Fields,
+): Promise<T> {
+  const current = requestObs.getStore();
+  const obs = current?.obs ?? createRequestObservability();
+  const parent = current?.span;
+  const span = parent
+    ? parent.startChild(name, { attributes })
+    : obs.tracer.startSpan(name, { attributes });
+  try {
+    const result = await fn(span);
+    span.end();
+    if (!current) await obs.flush();
+    return result;
+  } catch (error) {
+    span.recordException(error).end();
+    if (!current) await obs.flush();
+    throw error;
+  }
+}
+
 function reportServer(level: "warn" | "error", message: string, fields?: Fields): void {
   try {
+    const current = requestObs.getStore();
+    if (current) {
+      if (level === "error") current.log.error(message, fields);
+      else current.log.warn(message, fields);
+      return;
+    }
     const obs = readObservability(process.env, SERVICE, {
       environment: environment(),
       release: release(),
-      // Console mirroring is already done at the call sites; avoid duplicate
-      // console lines here.
       console: false,
+      runtime: "node",
     });
     if (level === "error") obs.logger.error(message, fields);
     else obs.logger.warn(message, fields);

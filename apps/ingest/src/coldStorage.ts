@@ -16,6 +16,7 @@
  * file only tiers the raw event rows.
  */
 import { ANALYTICS_HOT_DAYS, ANALYTICS_RETENTION_DAYS, type OrgPlan } from "@betterflag/db";
+import type { Span } from "@betterflag/observability";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
@@ -235,15 +236,17 @@ export async function runColdStorageJob(
   listOrgPlansFn: (
     env: Pick<ColdStorageEnv, "SUPABASE_URL" | "SUPABASE_SERVICE_ROLE_KEY">,
   ) => Promise<OrgPlanRow[]> = listOrgPlans,
+  span?: Span,
 ): Promise<ColdStorageReport> {
   const day = exportTargetDay(now);
   const report: ColdStorageReport = { day, exported: 0, skipped: 0, deleted: 0, errors: [] };
 
-  // 1. Export the day that is about to age out of hot storage.
+  const exportSpan = span?.startChild("cold_storage.export");
   let orgIds: string[] = [];
   try {
     orgIds = await orgsWithEventsOnDay(env, day, fetchFn);
   } catch (error) {
+    exportSpan?.recordException(error);
     report.errors.push(`list orgs for ${day}: ${error instanceof Error ? error.message : String(error)}`);
   }
   for (const orgId of orgIds) {
@@ -257,8 +260,9 @@ export async function runColdStorageJob(
       );
     }
   }
+  exportSpan?.setAttributes({ exported: report.exported, skipped: report.skipped }).end();
 
-  // 2. Sweep cold storage past each org's plan retention.
+  const sweepSpan = span?.startChild("cold_storage.sweep");
   try {
     const orgs = await listOrgPlansFn(env);
     for (const org of orgs) {
@@ -275,8 +279,10 @@ export async function runColdStorageJob(
       }
     }
   } catch (error) {
+    sweepSpan?.recordException(error);
     report.errors.push(`list org plans: ${error instanceof Error ? error.message : String(error)}`);
   }
+  sweepSpan?.setAttribute("deleted", report.deleted).end();
 
   return report;
 }

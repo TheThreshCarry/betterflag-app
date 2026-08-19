@@ -1,8 +1,9 @@
 # Copy to `.dev.vars` for local `wrangler dev`; `wrangler secret put` in prod.
 # Logs + OTLP traces share this one source token (→ log↔trace correlation).
 BETTERFLAG_ENV="development"
-# Better Stack "betterflag-ingest" source ingest token (used for BOTH logs and traces)
-BETTER_STACK_SOURCE_TOKEN=""
+# Native Worker logs/traces go through Cloudflare destination `betterflag-otel`.
+# Optional heartbeat ping after a successful ClickHouse cold-storage run:
+BETTER_STACK_HEARTBEAT_URL=""
 # Required for config-sync snapshot rebuilds (must match wrangler SUPABASE_URL project)
 SUPABASE_SERVICE_ROLE_KEY=""
 # ClickHouse writes for evaluation analytics

@@ -50,7 +50,7 @@ describe("frozen bucketing vectors", () => {
     ["checkout-v2", "a5f9d3e0-6a2b-4c1d-9e8f-7a6b5c4d3e2f"],
     ["new-onboarding", "user-1"],
     // Opaque hash input — keep literal stable for cross-SDK frozen vectors.
-    ["dark-mode", "mehdi@shipos.app"],
+    ["dark-mode", "mehdi@betterflag.app"],
     ["flag.with.dots", "user_with_underscores"],
     ["unicode-flag", "usér-ünïcode-λ"],
   ];

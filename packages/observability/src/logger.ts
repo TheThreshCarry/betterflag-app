@@ -1,16 +1,15 @@
 /**
- * Structured logger that ships JSON to a Better Stack logs source over HTTP.
+ * Structured logger. Records are sanitized, mirrored to console as JSON, and
+ * (Node only) POSTed to a Better Stack logs source on flush().
  *
- * - Every call is also mirrored to `console.*`, so logs survive even if the
- *   Better Stack POST fails (and still show up in Workers Logs / Vercel logs).
- * - Records are buffered and sent on `flush()`. In Workers, call `flush()`
- *   inside `ctx.waitUntil(...)` so shipping never blocks the response.
- *
- * Spec: https://betterstack.com/docs/logs/ingesting-data/http/logs/
+ * Worker runtime (`runtime: "worker"`) is console-only: Cloudflare OTel export
+ * ships console output. A telemetry failure never throws.
  */
 
+import { sanitizeFields, type Fields } from "./fields";
+
+export type { Fields };
 export type LogLevel = "debug" | "info" | "warn" | "error";
-export type Fields = Record<string, unknown>;
 
 const LEVEL_ORDER: Record<LogLevel, number> = { debug: 10, info: 20, warn: 30, error: 40 };
 
@@ -18,18 +17,14 @@ export interface LoggerConfig {
   service: string;
   environment?: string;
   release?: string;
-  /** Better Stack source token. When absent, logs are console-only. */
   sourceToken?: string;
-  /** Ingesting host base URL, e.g. https://sXXXX.eu-fsn-3.betterstackdata.com. */
   endpoint?: string;
-  /** Drop anything below this level. Default "info". */
   minLevel?: LogLevel;
-  /** Fields merged into every record. */
   fields?: Fields;
-  /** Mirror to console. Default true. */
   console?: boolean;
-  /** Optional override for tests. */
   fetchImpl?: typeof fetch;
+  /** Worker runtime skips HTTP ingest (Cloudflare OTel export covers logs). */
+  runtime?: "worker" | "node";
 }
 
 interface LogRecord extends Fields {
@@ -43,14 +38,11 @@ export interface Logger {
   info(message: string, fields?: Fields): void;
   warn(message: string, fields?: Fields): void;
   error(message: string, fields?: Fields): void;
-  /** A logger that merges `fields` into every record (e.g. request/span context). */
   child(fields: Fields): Logger;
-  /** Ship + clear all buffered records. Best-effort; never throws. */
   flush(): Promise<void>;
   readonly enabled: boolean;
 }
 
-/** Shared transport + buffer for a logger and all of its children. */
 interface Sink {
   buffer: LogRecord[];
   readonly enabled: boolean;
@@ -62,14 +54,11 @@ interface Sink {
 
 function serializeError(value: unknown): Fields {
   if (value instanceof Error) {
-    return {
-      error: { name: value.name, message: value.message, stack: value.stack },
-    };
+    return { error: { name: value.name, message: value.message, stack: value.stack } };
   }
   return { error: value };
 }
 
-/** Normalize a fields bag: a bare Error becomes a structured `error` field. */
 function normalizeFields(fields?: Fields): Fields {
   if (!fields) return {};
   if (fields instanceof Error) return serializeError(fields);
@@ -101,12 +90,22 @@ class LoggerImpl implements Logger {
 
   private emit(level: LogLevel, message: string, fields?: Fields): void {
     if (LEVEL_ORDER[level] < this.sink.minLevel) return;
-    const merged: Fields = { ...this.sink.base, ...this.fields, ...normalizeFields(fields) };
+    const merged = sanitizeFields({
+      ...this.sink.base,
+      ...this.fields,
+      ...normalizeFields(fields),
+    });
+    const record: LogRecord = {
+      dt: new Date().toISOString(),
+      level,
+      message: String(message).slice(0, 500),
+      ...merged,
+    };
     if (this.sink.console) {
-      consoleFor(level)(`[${String(merged["service"] ?? "betterflag")}] ${message}`, merged);
+      consoleFor(level)(JSON.stringify(record));
     }
     if (this.sink.enabled) {
-      this.sink.buffer.push({ dt: new Date().toISOString(), level, message, ...merged });
+      this.sink.buffer.push(record);
     }
   }
 
@@ -124,7 +123,7 @@ class LoggerImpl implements Logger {
   }
 
   child(fields: Fields): Logger {
-    return new LoggerImpl(this.sink, { ...this.fields, ...fields });
+    return new LoggerImpl(this.sink, sanitizeFields({ ...this.fields, ...fields }));
   }
 
   flush(): Promise<void> {
@@ -135,24 +134,24 @@ class LoggerImpl implements Logger {
 export function createLogger(config: LoggerConfig): Logger {
   const endpoint = config.endpoint?.replace(/\/+$/, "");
   const token = config.sourceToken;
-  const enabled = Boolean(endpoint) && Boolean(token);
+  const httpEnabled = config.runtime !== "worker" && Boolean(endpoint) && Boolean(token);
   const fetchImpl = config.fetchImpl ?? fetch;
 
-  const base: Fields = {
+  const base: Fields = sanitizeFields({
     service: config.service,
     ...(config.environment ? { environment: config.environment } : {}),
     ...(config.release ? { release: config.release } : {}),
     ...(config.fields ?? {}),
-  };
+  });
 
   const sink: Sink = {
     buffer: [],
-    enabled,
+    enabled: httpEnabled,
     minLevel: LEVEL_ORDER[config.minLevel ?? "info"],
     console: config.console ?? true,
     base,
     async flush(): Promise<void> {
-      if (!enabled || this.buffer.length === 0) return;
+      if (!httpEnabled || this.buffer.length === 0) return;
       const records = this.buffer;
       this.buffer = [];
       try {
@@ -165,7 +164,7 @@ export function createLogger(config: LoggerConfig): Logger {
           body: JSON.stringify(records),
         });
       } catch {
-        // Best-effort, records were already mirrored to console above.
+        // Best-effort.
       }
     },
   };

@@ -1,0 +1,31 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "betterflag-tail",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-06-01",
+  // Never attach this worker as its own tail consumer (infinite loop).
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "destinations": ["betterflag-otel"],
+      "head_sampling_rate": 1,
+      "invocation_logs": true
+    },
+    "traces": {
+      "enabled": true,
+      "destinations": ["betterflag-otel"],
+      "head_sampling_rate": 1
+    }
+  },
+  "dev": {
+    "port": 8792,
+    "inspector_port": 9235
+  },
+  // Better Stack "Betterflag Tail" HTTP source. Token is a SECRET:
+  //   echo <token> | wrangler secret put BETTER_STACK_SOURCE_TOKEN
+  "vars": {
+    "BETTERFLAG_ENV": "production",
+    "BETTER_STACK_LOGS_ENDPOINT": "https://s2692127.eu-central-1a.betterstackdata.com"
+  }
+}

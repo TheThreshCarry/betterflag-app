@@ -14,35 +14,20 @@ flag evaluation.
 
 ## Sources
 
-Everything is split **one source per service**: each service sends **both** its
-logs and its OTLP traces to its own source, which is exactly what Better Stack
-needs for **one-click log↔trace correlation**.
+Two Better Stack sources, both EU (`eu-central-1a`):
 
-| Service | Better Stack source | ID | Ingest host (logs + `/v1/traces`) |
-|---|---|---|---|
-| API worker | `betterflag-api` | 2578178 | `s2578178.eu-fsn-3.betterstackdata.com` |
-| Ingest worker | `betterflag-ingest` | 2578180 | `s2578180.eu-fsn-3.betterstackdata.com` |
-| MCP worker | `betterflag-mcp` | 2578182 | `s2578182.eu-fsn-3.betterstackdata.com` |
-| Dashboard | `betterflag-dashboard` | 2578184 | `s2578184.eu-fsn-3.betterstackdata.com` |
+| Source | ID | Table | Host | Who writes |
+|---|---|---|---|---|
+| Betterflag OTel | 2692129 | `betterflag_otel` | `s2692129.eu-central-1a.betterstackdata.com` | Cloudflare OTel destination `betterflag-otel` (Workers logs+traces) and Node OTLP (dashboard/admin/landing) |
+| Betterflag Tail | 2692127 | `betterflag_tail` | `s2692127.eu-central-1a.betterstackdata.com` | `betterflag-tail` Worker (one sanitized invocation summary per producer event) |
 
-Each source has one ingest token used for **both** logs and traces. Tokens are
-**not** committed, they live in each worker's `.dev.vars` (gitignored) for local
-dev, in `wrangler secret put` for production, and in `.env` / Vercel env for the
-dashboard.
+Workers do **not** POST logs/spans directly. Native `cloudflare:workers` traces and structured `console` logs export through the Cloudflare Observability destination named **`betterflag-otel`** at `head_sampling_rate: 1`. The Tail Worker is attached to API, ingest, MCP, webhooks, and lifecycle — never to itself.
 
-> **One-click log ⇄ trace correlation.** Correlation works because three things
-> line up: (1) logs and traces share the same source per service; (2) every log
-> emitted inside a span carries a nested `span.trace_id` / `span.span_id` (via
-> `span.logContext`) that maps to Better Stack's `.span.*` fields; (3) log
-> timestamps fall within the span. In the Better Stack UI you can jump straight
-> from a span to its logs and back.
->
-> `readObservability` sends traces to the logs source by default. Set
-> `OTEL_EXPORTER_OTLP_ENDPOINT` (+ `OTEL_EXPORTER_OTLP_HEADERS`) **only** if you
-> want to route a service's traces to a *different* destination (e.g. a shared
-> cross-service trace source), doing so gives up correlation. Because the edge
-> and ingest workers communicate asynchronously over queues, there's no
-> cross-service trace context to preserve, so per-service is the right default.
+Node apps keep direct OTLP HTTP to Betterflag OTel. Browser exceptions go to Better Stack Errors (Sentry-compatible SDK, `tracesSampleRate: 0` so traces stay on OTel).
+
+Tokens are **not** committed. Put the OTel token in Vercel / local `.env`. Put the Tail token on `betterflag-tail` via `wrangler secret put BETTER_STACK_SOURCE_TOKEN`. Create the Cloudflare destination in the dashboard (name must match `betterflag-otel`).
+
+> Correlation: Node logs and traces share Betterflag OTel. Worker traces land in the same OTel source via Cloudflare export. Tail summaries are a separate stream for invocation SLO charts.
 
 ## The package: `@betterflag/observability`
 
@@ -107,16 +92,19 @@ Env keys (see `.env.example` and `apps/*/.dev.vars.example`):
 | `BETTERFLAG_RELEASE` | all, optional (`service.version`) | no |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` / `_HEADERS` | optional trace-routing override only |, |
 
-Workers: non-secret endpoints are committed in each `wrangler.jsonc` `vars`.
-Set the one secret per worker in production:
+Cloudflare destination `betterflag-otel` must exist (logs + traces) or Worker
+deploys fail. Tail Worker needs its own source token:
 
 ```sh
-# from apps/api (repeat in apps/ingest, apps/mcp with each source's token)
-echo "<betterflag-api source token>" | wrangler secret put BETTER_STACK_SOURCE_TOKEN
+# from apps/tail
+echo "<betterflag-tail source token>" | wrangler secret put BETTER_STACK_SOURCE_TOKEN
+# from apps/ingest, after a successful cold-storage run
+echo "<heartbeat url>" | wrangler secret put BETTER_STACK_HEARTBEAT_URL
 ```
 
-Dashboard: set `BETTER_STACK_SOURCE_TOKEN`, `BETTER_STACK_LOGS_ENDPOINT`, and
-`BETTERFLAG_ENV` in the Vercel project (already in local `.env`).
+Dashboard/admin/landing: set `BETTER_STACK_SOURCE_TOKEN` (OTel),
+`BETTER_STACK_LOGS_ENDPOINT`, `BETTER_STACK_ERRORS_DSN`, and `BETTERFLAG_ENV`
+in Vercel (already in local `.env`).
 
 Local dev reads `apps/*/.dev.vars` (workers) and `.env` (dashboard). With none
 of it set, everything logs to the console only. Do **not** set `OTEL_*` unless

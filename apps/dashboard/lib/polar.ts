@@ -12,7 +12,10 @@ import { optionalEnv, requiredEnv } from "@/lib/env";
  */
 export function polarServer(): "sandbox" | "production" {
   const server = optionalEnv("POLAR_SERVER");
-  return server === "production" ? "production" : "sandbox";
+  if (server === "production" || server === "sandbox") return server;
+  throw new Error(
+    'POLAR_SERVER must be "production" or "sandbox". Unset used to default to Polar sandbox, which has no Betterflag products.',
+  );
 }
 
 let cached: Polar | null = null;

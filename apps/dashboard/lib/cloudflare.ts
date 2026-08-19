@@ -70,6 +70,8 @@ export function enqueueConfigSync(message: Omit<ConfigSyncMessage, "type">): voi
         const detail = await res.text();
         console.error(`[cloudflare] config-sync enqueue failed: ${res.status} ${detail}`);
         reportServerError("config-sync enqueue failed", {
+          "event.name": "config.sync",
+          "event.outcome": "error",
           status: res.status,
           detail: detail.slice(0, 500),
           project_id: message.projectId,

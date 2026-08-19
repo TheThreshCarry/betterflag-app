@@ -12,6 +12,7 @@ import { compileTemplate, fillTemplate, TEMPLATE_SEEDS, type EmailTemplateKey } 
 import { revalidatePath } from "next/cache";
 
 import { requireAdmin } from "./admin-auth";
+import { logAdminAction } from "./observability";
 import { createServiceClient } from "./supabase/server";
 
 export interface EmailTemplateInput {
@@ -28,7 +29,7 @@ export type EmailActionResult = { ok: true } | { ok: false; error: string };
 
 function failure(err: unknown): EmailActionResult {
   const message = err instanceof Error ? err.message : String(err);
-  console.error("[admin email action]", message);
+  void logAdminAction("email.template", { outcome: "error", error: message });
   return { ok: false, error: message };
 }
 

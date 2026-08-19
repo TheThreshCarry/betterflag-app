@@ -23,6 +23,8 @@ export interface ObservabilityConfig {
   fields?: Fields;
   console?: boolean;
   fetchImpl?: typeof fetch;
+  /** Worker runtime: console logs + native spans. Node: HTTP logs + OTLP traces. */
+  runtime?: "worker" | "node";
 }
 
 export function createObservability(config: ObservabilityConfig): Observability {
@@ -36,6 +38,7 @@ export function createObservability(config: ObservabilityConfig): Observability 
     fields: config.fields,
     console: config.console,
     fetchImpl: config.fetchImpl,
+    runtime: config.runtime,
   });
   const tracer = createTracer({
     service: config.service,
@@ -44,6 +47,7 @@ export function createObservability(config: ObservabilityConfig): Observability 
     endpoint: config.traces?.endpoint,
     headers: config.traces?.headers,
     fetchImpl: config.fetchImpl,
+    runtime: config.runtime,
   });
 
   return {
@@ -114,6 +118,7 @@ export interface ReadObservabilityOptions {
   fields?: Fields;
   console?: boolean;
   fetchImpl?: typeof fetch;
+  runtime?: "worker" | "node";
 }
 
 /**
@@ -164,6 +169,7 @@ export function readObservability(
     fields: options.fields,
     console: options.console,
     fetchImpl: options.fetchImpl,
+    runtime: options.runtime ?? "node",
   });
 }
 

@@ -29,6 +29,7 @@
     "lucide-react": "^1.23.0",
     "maplibre-gl": "5.24.0",
     "next": "^16.2.10",
+    "@sentry/nextjs": "^10.32.1",
     "nuqs": "^2.9.2",
     "posthog-js": "^1.364.0",
     "posthog-node": "^5.4.0",

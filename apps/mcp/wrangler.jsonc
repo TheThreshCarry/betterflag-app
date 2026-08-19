@@ -7,15 +7,13 @@
 
   // Control-plane origin the tools proxy to. Override for local dev:
   //   wrangler dev --var BETTERFLAG_API_URL:http://localhost:3000
-  // Observability (Better Stack). Logs AND OTLP traces both go to the
-  // "betterflag-mcp" source for one-click log↔trace correlation. Endpoint is
-  // non-secret; ingest token is a SECRET (apps/mcp/.dev.vars / secret put):
-  //   echo <betterflag-mcp source token> | wrangler secret put BETTER_STACK_SOURCE_TOKEN
+  // Native Worker logs/traces export through Cloudflare destination
+  // `betterflag-otel` (Betterflag OTel source). Direct HTTP POST unused.
   "vars": {
     "BETTERFLAG_API_URL": "https://app.betterflag.app",
     "BETTERFLAG_DASHBOARD_URL": "https://app.betterflag.app",
     "BETTERFLAG_ENV": "production",
-    "BETTER_STACK_LOGS_ENDPOINT": "https://s2578182.eu-fsn-3.betterstackdata.com"
+    "BETTER_STACK_LOGS_ENDPOINT": "https://s2692129.eu-central-1a.betterstackdata.com"
   },
 
   // OAuth token/grant/client storage for @cloudflare/workers-oauth-provider
@@ -48,15 +46,25 @@
     }
   ],
 
-  // Production custom domain, enable once the betterflag.app zone is on this
-  // account. For the test deploy the worker is reachable at its workers.dev URL.
-  // "routes": [
-  //   { "pattern": "mcp.betterflag.app", "custom_domain": true }
-  // ],
+  "routes": [
+    { "pattern": "mcp.betterflag.app", "custom_domain": true }
+  ],
 
   "observability": {
-    "enabled": true
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "destinations": ["betterflag-otel"],
+      "head_sampling_rate": 1,
+      "invocation_logs": true
+    },
+    "traces": {
+      "enabled": true,
+      "destinations": ["betterflag-otel"],
+      "head_sampling_rate": 1
+    }
   },
+  "tail_consumers": [{ "service": "betterflag-tail" }],
 
   // Distinct dev ports so parallel `wrangler dev` instances don't collide on
   // the inspector port (9229 is the shared default and does not auto-increment).

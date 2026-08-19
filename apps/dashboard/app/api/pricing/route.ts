@@ -7,7 +7,9 @@
 
 import { NextResponse } from "next/server";
 
+import { withErrors } from "@/lib/errors";
 import { getPricingTiers } from "@/lib/pricing";
+import { withBusinessSpan } from "@/lib/observability";
 
 export const runtime = "nodejs";
 export const revalidate = 300;
@@ -18,8 +20,10 @@ const CORS = {
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
-export async function GET() {
-  const tiers = await getPricingTiers();
+export const GET = withErrors(async () => {
+  const tiers = await withBusinessSpan("pricing.load", () => getPricingTiers(), {
+    "event.name": "pricing.load",
+  });
   return NextResponse.json(
     { tiers, source: tiers[0]?.productId ? "polar" : "fallback" },
     {
@@ -29,7 +33,7 @@ export async function GET() {
       },
     },
   );
-}
+});
 
 export function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: CORS });

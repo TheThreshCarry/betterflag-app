@@ -12,9 +12,10 @@
  */
 
 import { type Logger } from "@betterflag/observability";
+import { eventOutcomeFromStatus, routeTemplate } from "@betterflag/observability";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import { createRequestObservability } from "./observability";
+import { createRequestObservability, requestObs } from "./observability";
 
 /** Human-readable one-liner for an unknown thrown value. */
 function errText(error: unknown): string {
@@ -92,43 +93,54 @@ export function withErrors<P = Record<string, never>>(
     const obs = createRequestObservability();
     const url = new URL(request.url);
     const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
-    const span = obs.tracer.startSpan(`${request.method} ${url.pathname}`, {
+    const route = routeTemplate(url.pathname);
+    const span = obs.tracer.startSpan(`${request.method} ${route}`, {
       kind: "server",
       attributes: {
         "http.request.method": request.method,
-        "url.path": url.pathname,
+        "http.route": route,
+        "url.path": route,
         "request.id": requestId,
+        "event.name": `${request.method} ${route}`,
       },
     });
     const log = obs.logger.child({
       request_id: requestId,
       method: request.method,
-      path: url.pathname,
+      path: route,
       ...span.logContext,
     });
 
-    try {
-      const response = await handler(request, context);
-      span.setAttribute("http.response.status_code", response.status);
-      if (response.status >= 500) span.setStatus("error");
-      span.end();
-      const fields = { status: response.status, duration_ms: round(span.durationMs()) };
-      if (response.status >= 500) log.error("request", fields);
-      else if (response.status >= 400) log.warn("request", fields);
-      else log.info("request", fields);
-      return response;
-    } catch (err) {
-      const response = handleError(err, log);
-      span.recordException(err).setAttribute("http.response.status_code", response.status).end();
-      if (response.status < 500) {
-        // Expected, mapped errors (validation, conflicts, not-found), info level.
-        log.info("request", { status: response.status, duration_ms: round(span.durationMs()) });
+    return requestObs.run({ obs, log, span }, async () => {
+      try {
+        const response = await handler(request, context);
+        span.setAttribute("http.response.status_code", response.status);
+        if (response.status >= 500) span.setStatus("error");
+        span.end();
+        const fields = {
+          status: response.status,
+          duration_ms: round(span.durationMs()),
+          "event.name": `${request.method} ${route}`,
+          "event.outcome": eventOutcomeFromStatus(response.status),
+        };
+        if (response.status >= 500) log.error("request", fields);
+        else if (response.status >= 400) log.warn("request", fields);
+        else log.info("request", fields);
+        return response;
+      } catch (err) {
+        const response = handleError(err, log);
+        span.recordException(err).setAttribute("http.response.status_code", response.status).end();
+        log.info("request", {
+          status: response.status,
+          duration_ms: round(span.durationMs()),
+          "event.name": `${request.method} ${route}`,
+          "event.outcome": eventOutcomeFromStatus(response.status),
+        });
+        return response;
+      } finally {
+        await obs.flush();
       }
-      return response;
-    } finally {
-      // Ship logs + spans before returning. Non-hot-path, so awaiting is fine.
-      await obs.flush();
-    }
+    });
   };
 }
 
