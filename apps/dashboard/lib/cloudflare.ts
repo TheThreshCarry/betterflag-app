@@ -9,6 +9,7 @@
  */
 
 import { sdkKeyKvKey, snapshotKvKey, type SdkKeyKvEntry } from "@betterflag/core";
+import { edgeQuotaForPlan, type OrgPlan } from "@betterflag/db";
 
 import { optionalEnv } from "./env";
 import { reportServerError } from "./observability";
@@ -132,6 +133,28 @@ export async function kvPutSnapshot(
 /** Write an SDK key entry to KV at key:{prefix} (created or revoked). */
 export async function kvPutSdkKey(prefix: string, entry: SdkKeyKvEntry): Promise<void> {
   await kvWrite(sdkKeyKvKey(prefix), JSON.stringify(entry), "kv sdk key put");
+}
+
+/** Stamp plan/quota so the edge can throttle Starter without Postgres. */
+export function sdkKeyKvEntry(input: {
+  orgId: string;
+  projectId: string;
+  envSlug: string;
+  hash: string;
+  revoked: boolean;
+  plan: OrgPlan;
+  used?: number;
+}): SdkKeyKvEntry {
+  return {
+    orgId: input.orgId,
+    projectId: input.projectId,
+    envSlug: input.envSlug,
+    hash: input.hash,
+    revoked: input.revoked,
+    plan: input.plan,
+    quota: edgeQuotaForPlan(input.plan),
+    used: input.used ?? 0,
+  };
 }
 
 /** Delete an SDK key entry from KV. */

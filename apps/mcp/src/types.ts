@@ -12,7 +12,7 @@ import type { Observability } from "@betterflag/observability";
 
 /** Worker environment (bindings + vars from wrangler.jsonc). */
 export interface Env {
-  /** Control-plane origin, e.g. https://app.betterflag.app (no trailing slash). */
+  /** Control-plane origin, e.g. https://dashboard.betterflag.app (no trailing slash). */
   BETTERFLAG_API_URL: string;
   /** Dashboard origin hosting the OAuth consent screen (no trailing slash). */
   BETTERFLAG_DASHBOARD_URL: string;

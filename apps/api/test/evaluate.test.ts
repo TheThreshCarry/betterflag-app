@@ -93,6 +93,42 @@ describe("POST /v1/evaluate, auth", () => {
     expect(((await res.json()) as ErrorResponse).error.code).toBe("invalid_key");
   });
 
+  it("returns 429 quota_exceeded for Starter at 3× included and emits no events", async () => {
+    const queue = fakeQueue();
+    const kv = await standardKv({ plan: "starter", quota: 3_000_000, used: 3_000_000 });
+    const res = await handleRequest(
+      evaluateRequest({ token: SDK_KEY, body: { key: "checkout-redesign" } }),
+      { CONFIG_KV: kv, EVENTS: queue },
+      fakeCtx(),
+    );
+    expect(res.status).toBe(429);
+    expect(res.headers.get("Retry-After")).toBe("3600");
+    expect(((await res.json()) as ErrorResponse).error.code).toBe("quota_exceeded");
+    expect(queue.events()).toEqual([]);
+    expect(kv.reads.map((r) => r.key)).toEqual([`key:${SDK_KEY.slice(0, 16)}`]);
+  });
+
+  it("still evaluates old KV entries that omit plan/quota/used", async () => {
+    const res = await handleRequest(
+      evaluateRequest({ token: SDK_KEY, body: { key: "checkout-redesign" } }),
+      { CONFIG_KV: await standardKv(), EVENTS: fakeQueue() },
+      fakeCtx(),
+    );
+    expect(res.status).toBe(200);
+  });
+
+  it("does not throttle Launch even when used is huge", async () => {
+    const res = await handleRequest(
+      evaluateRequest({ token: SDK_KEY, body: { key: "checkout-redesign" } }),
+      {
+        CONFIG_KV: await standardKv({ plan: "launch", quota: null, used: 80_000_000 }),
+        EVENTS: fakeQueue(),
+      },
+      fakeCtx(),
+    );
+    expect(res.status).toBe(200);
+  });
+
   it("rejects non-sdk keys and missing Authorization", async () => {
     const kv = await standardKv();
     for (const token of [AGENT_KEY, "not-a-key", undefined]) {

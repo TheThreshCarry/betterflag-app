@@ -1,12 +1,11 @@
-import type { SdkKeyKvEntry } from "@betterflag/core";
 import type { ApiKeyRow, EnvironmentRow } from "@betterflag/db";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { toApiApiKey } from "@/lib/api-types";
 import { resolveSessionUser } from "@/lib/auth";
 import { assertOrgWritable } from "@/lib/billing-guard";
-import { kvPutSdkKey } from "@/lib/cloudflare";
-import { recordAudit } from "@/lib/db";
+import { kvPutSdkKey, sdkKeyKvEntry } from "@/lib/cloudflare";
+import { getOrg, recordAudit } from "@/lib/db";
 import { HttpError, unwrap, withErrors } from "@/lib/errors";
 import { rejectKeysBearer } from "@/lib/keys";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -70,14 +69,18 @@ export const DELETE = withErrors<{ id: string }>(async (request: NextRequest, { 
     if (envError) throw envError;
     const environment = envData as EnvironmentRow | null;
     if (environment) {
-      const entry: SdkKeyKvEntry = {
-        orgId: key.org_id,
-        projectId: key.project_id,
-        envSlug: environment.slug,
-        hash: key.hash,
-        revoked: true,
-      };
-      await kvPutSdkKey(key.prefix, entry);
+      const org = await getOrg(service, key.org_id);
+      await kvPutSdkKey(
+        key.prefix,
+        sdkKeyKvEntry({
+          orgId: key.org_id,
+          projectId: key.project_id,
+          envSlug: environment.slug,
+          hash: key.hash,
+          revoked: true,
+          plan: org.plan,
+        }),
+      );
     }
   }
 

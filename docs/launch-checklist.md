@@ -41,14 +41,14 @@ create flag → evaluate from SDK → connect MCP → upgrade to paid.**
 ## 2. Infra & Ops (deadline T-5)
 
 - [ ] **Status page live** (Better Stack, already connected): monitors on
-      app.betterflag.app, edge, mcp.betterflag.app, docs; status.betterflag.app CNAME.
+      dashboard.betterflag.app, edge, mcp.betterflag.app, docs; status.betterflag.app CNAME.
 - [ ] Uptime alerts → phone/Slack, not email. On-call = you; write down the
       escalation ritual anyway (what you check first, in order).
 - [ ] Cloudflare: confirm Workers limits/plan headroom for a traffic spike;
       check D1/KV/DO quotas on current tier.
 - [ ] Supabase: connection pooling verified, plan headroom, PITR/backups
       enabled and a restore actually tested once.
-- [ ] DNS + TLS on all subdomains (www, app, edge, mcp, docs, status, t).
+- [ ] DNS + TLS on all subdomains (www, dashboard, api, mcp, docs, status, t).
 - [ ] Domain email deliverability: SPF/DKIM/DMARC for betterflag.app (lifecycle
       emails + waitlist blast will tank without it); test with
       mail-tester.com.

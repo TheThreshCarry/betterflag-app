@@ -22,7 +22,7 @@ export const FONT =
 export const MONO =
   "ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace";
 
-export const APP_URL = "https://app.betterflag.app";
+export const APP_URL = "https://dashboard.betterflag.app";
 
 export const FROM_ADDRESS = {
   email: "hi@betterflag.app",

@@ -11,7 +11,7 @@ interface; the dashboard is the observation layer.
 
 | Workspace | What it is |
 |---|---|
-| [apps/dashboard](apps/dashboard) | Next.js control plane, auth, dashboard UI, and the `/api/v1` REST API every surface (UI, MCP, agents) goes through |
+| [apps/dashboard](apps/dashboard) | Next.js control plane at `dashboard.betterflag.app`: auth, dashboard UI, and the `/api/v1` REST API every surface (UI, MCP, agents) goes through |
 | [apps/api](apps/api) | Cloudflare Worker at `api.betterflag.app`, flag evaluation from KV snapshots, no DB on the hot path |
 | [apps/ingest](apps/ingest) | Cloudflare Worker, Queues consumers: evaluation events → ClickHouse, config-sync → KV snapshots |
 | [apps/mcp](apps/mcp) | Cloudflare Worker at `mcp.betterflag.app`, MCP server wrapping the REST API with agent-scoped keys |

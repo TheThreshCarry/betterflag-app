@@ -1,8 +1,17 @@
 /**
  * Better Stack Errors (Sentry-compatible). Tracing stays on OTel — do not
  * enable Sentry performance tracing or we duplicate spans.
+ *
+ * Fail-fast on missing control-plane env at Node boot (ITR-190). Skipped
+ * during `next build`, Vitest, and the Edge runtime.
  */
+import { assertRequiredDashboardEnv, shouldAssertDashboardEnv } from "./lib/env";
+
 export async function register(): Promise<void> {
+  if (shouldAssertDashboardEnv()) {
+    assertRequiredDashboardEnv();
+  }
+
   const dsn = process.env.BETTER_STACK_ERRORS_DSN ?? process.env.NEXT_PUBLIC_BETTER_STACK_ERRORS_DSN;
   if (!dsn) return;
   const Sentry = await import("@sentry/nextjs");

@@ -23,7 +23,7 @@ export interface EmailContent {
 
 export const FROM_ADDRESS = { email: "hi@betterflag.app", name: "Mehdi from Betterflag" } as const;
 
-const APP_URL = "https://app.betterflag.app";
+const APP_URL = "https://dashboard.betterflag.app";
 
 // Design tokens (kept in sync with apps/dashboard/app/globals.css).
 const INK = "#171717";

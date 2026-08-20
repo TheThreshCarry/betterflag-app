@@ -10,5 +10,10 @@ SUPABASE_SERVICE_ROLE_KEY=""
 CLICKHOUSE_URL=""
 CLICKHOUSE_USER=""
 CLICKHOUSE_PASSWORD=""
+# Optional Polar metering (hourly cron). Skip ingest when unset.
+# Same org token as the dashboard; needs events:write. `wrangler secret put POLAR_ACCESS_TOKEN`.
+POLAR_ACCESS_TOKEN=""
+# production | sandbox. Defaults to production API when unset.
+POLAR_SERVER="production"
 # Optional OTEL_EXPORTER_OTLP_ENDPOINT + _HEADERS override routes traces elsewhere
 # (gives up correlation).

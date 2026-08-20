@@ -4,10 +4,18 @@ Supabase migrations + row types for the Betterflag control plane.
 
 ## Apply
 
+Run from this package so the CLI picks up `supabase/migrations/*`:
+
 ```bash
+cd packages/db
 supabase link --project-ref <ref>   # once
 supabase db push                    # applies supabase/migrations/*
 ```
+
+Do not keep a second `supabase/` tree at the repo root. CLI local state
+(`.temp/`, `.branches/`) is gitignored; the migrations themselves are not.
+
+Rollback notes: `docs/RUNBOOK.md`.
 
 ## Generate types
 

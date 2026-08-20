@@ -2,7 +2,8 @@
  * Idempotent Polar setup for Betterflag pricing.
  *
  * Creates (or reuses) in the Polar organization tied to POLAR_ACCESS_TOKEN:
- *   1. the "Flag Evaluations" usage meter (count of `evaluation` events),
+ *   1. the "Flag Evaluations" usage meter (sum of metadata `evaluations` on
+ *      `evaluation` events — hourly deltas, not one-per-eval),
  *   2. one meter-credit benefit per tier granting the included evaluations,
  *   3. the Starter / Launch / Scale subscription products, each with a fixed
  *      monthly price + a metered overage price on the meter, a 14-day trial,
@@ -25,6 +26,7 @@ import { Polar } from "@polar-sh/sdk";
 import {
   CURRENCY,
   EVALUATION_EVENT_NAME,
+  EVALUATION_METER_AGGREGATION,
   EVALUATION_METER_NAME,
   PRICING_SPEC,
   TRIAL_DAYS,
@@ -93,7 +95,31 @@ async function ensureMeter(): Promise<string> {
     (m) => m.metadata?.betterflag_meter === "evaluations" || m.name === EVALUATION_METER_NAME,
   );
   if (existing) {
-    console.log(`• meter "${existing.name}" already exists → ${existing.id}`);
+    const aggregation = existing.aggregation as { func?: string; property?: string } | undefined;
+    const alreadySum =
+      aggregation?.func === EVALUATION_METER_AGGREGATION.func &&
+      aggregation.property === EVALUATION_METER_AGGREGATION.property;
+    if (alreadySum) {
+      console.log(`• meter "${existing.name}" already exists → ${existing.id} (sum(evaluations))`);
+      return existing.id;
+    }
+    try {
+      await polar.meters.update({
+        id: existing.id,
+        meterUpdate: { aggregation: EVALUATION_METER_AGGREGATION },
+      });
+      console.log(
+        `✓ meter "${existing.name}" aggregation updated to sum(${EVALUATION_METER_AGGREGATION.property}) → ${existing.id}`,
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(
+        `! could not update meter "${existing.name}" (${existing.id}) to sum(evaluations): ${message}`,
+      );
+      console.warn(
+        "  Polar blocks aggregation changes once the meter has events or purchases. Hourly ingest would then bill 1 unit per event. Recreate the meter as sum(evaluations) and re-attach products/benefits.",
+      );
+    }
     return existing.id;
   }
   const meter = await polar.meters.create({
@@ -102,10 +128,10 @@ async function ensureMeter(): Promise<string> {
       conjunction: "and",
       clauses: [{ property: "name", operator: "eq", value: EVALUATION_EVENT_NAME }],
     },
-    aggregation: { func: "count" },
+    aggregation: EVALUATION_METER_AGGREGATION,
     metadata: { betterflag_meter: "evaluations" },
   });
-  console.log(`✓ created meter "${meter.name}" → ${meter.id}`);
+  console.log(`✓ created meter "${meter.name}" → ${meter.id} (sum(evaluations))`);
   return meter.id;
 }
 

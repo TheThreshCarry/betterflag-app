@@ -12,6 +12,8 @@
  *                          out of ClickHouse's 7-day hot TTL to R2, delete
  *                          cold objects past the org's plan retention. See
  *                          src/coldStorage.ts.
+ * - hourly cron          → Polar evaluation metering + SDK-key quota stamp
+ *                          (plan/quota/used on `key:{prefix}`). See src/meter.ts.
  *
  * See docs/CONTRACTS.md for message formats, KV keys and R2 objects.
  */
@@ -21,6 +23,7 @@ import type { EvaluationEvent, FlagConfigRowLike, FlagRowLike } from "@betterfla
 import type { FlagConfigRow, FlagRow } from "@betterflag/db";
 import { formatRelease, readObservability, attachWorkerTracing, type Observability } from "@betterflag/observability";
 import { runColdStorageJob, type AnalyticsR2Like } from "./coldStorage";
+import { POLAR_METER_CRON, runMeterJob } from "./meter";
 import { VERSION } from "./version.gen";
 import { z } from "zod";
 
@@ -63,6 +66,10 @@ export interface IngestEnv {
   BETTERFLAG_GIT_SHA?: string;
   /** Fully-formed release override (wins over VERSION + git sha) if set. */
   BETTERFLAG_RELEASE?: string;
+  /** Optional. Hourly Polar metering skips ingest when unset. */
+  POLAR_ACCESS_TOKEN?: string;
+  /** `production` | `sandbox`. Defaults to production API when unset. */
+  POLAR_SERVER?: string;
 }
 
 /** The slice of a queue Message this worker uses. */
@@ -547,7 +554,7 @@ const handler = {
     }
   },
 
-  /** Daily analytics tiering: hot (ClickHouse, 7d) → cold (R2) → deletion. */
+  /** Daily analytics tiering + hourly Polar metering / SDK-key quota stamp. */
   async scheduled(controller, env, ctx): Promise<void> {
     attachWorkerTracing(ctx);
     const obs = readObservability(env as unknown as Record<string, unknown>, "betterflag-ingest", {
@@ -556,6 +563,41 @@ const handler = {
       runtime: "worker",
     });
     const log = obs.logger.child({ cron: controller.cron });
+
+    if (controller.cron === POLAR_METER_CRON) {
+      const span = obs.tracer.startSpan("ingest.meter", { kind: "internal" });
+      try {
+        const report = await runMeterJob(env, new Date(controller.scheduledTime), fetch);
+        span.setAttributes({
+          "meter.orgs": report.orgs,
+          "meter.ingested": report.ingested,
+          "meter.stamped": report.stamped,
+          "meter.skipped": report.skipped,
+          "meter.errors": report.errors.length,
+        });
+        const fields = {
+          ...report,
+          errors: report.errors.slice(0, 10),
+          "event.name": "meter",
+          "event.outcome": report.errors.length > 0 ? "error" : "ok",
+        };
+        if (report.errors.length > 0) {
+          span.setStatus("error");
+          log.error("polar meter job finished with errors", fields);
+        } else {
+          log.info("polar meter job finished", fields);
+        }
+      } catch (error) {
+        span.recordException(error).setStatus("error");
+        log.error("polar meter job crashed", { error: errText(error), "event.outcome": "error" });
+        throw error;
+      } finally {
+        span.end();
+        ctx.waitUntil(obs.flush());
+      }
+      return;
+    }
+
     const span = obs.tracer.startSpan("ingest.cold_storage", { kind: "internal" });
     try {
       const report = await runColdStorageJob(

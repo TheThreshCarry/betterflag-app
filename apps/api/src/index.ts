@@ -16,6 +16,7 @@ import {
   evaluateSnapshot,
   evaluationContextSchema,
   hashUserId,
+  isSdkKeyThrottled,
   keyPrefixOf,
   kindOfKey,
   projectSnapshotSchema,
@@ -136,6 +137,10 @@ export const sdkKeyKvEntrySchema = z.object({
   envSlug: z.string(),
   hash: z.string(),
   revoked: z.boolean(),
+  // Optional: old entries omit these; missing quota/used = not throttled.
+  plan: z.string().optional(),
+  quota: z.number().int().nonnegative().nullable().optional(),
+  used: z.number().int().nonnegative().optional(),
 }) satisfies z.ZodType<SdkKeyKvEntry>;
 
 /** POST /v1/evaluate request body. One of key/keys, or neither = all flags. */
@@ -469,6 +474,20 @@ export async function handleEvaluate(
     "betterflag.project_id": entry.projectId,
     "betterflag.env": entry.envSlug,
   });
+
+  if (isSdkKeyThrottled(entry)) {
+    obs?.log.warn("evaluate: starter quota exceeded", { status: 429 });
+    return jsonResponse(
+      429,
+      {
+        error: {
+          code: "quota_exceeded",
+          message: "Starter plan evaluation quota exceeded. Retry later this month, or upgrade.",
+        },
+      },
+      { "Retry-After": "3600" },
+    );
+  }
 
   let rawBody: unknown = {};
   const text = await request.text();

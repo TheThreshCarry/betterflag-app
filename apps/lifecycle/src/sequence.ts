@@ -276,11 +276,20 @@ export interface RenderedEmail {
   text: string;
 }
 
+export function templateFromRow(
+  row: { subject: string; compiled_html: string; text: string },
+  vars: Record<string, string | number | null | undefined>,
+): RenderedEmail | null {
+  if (row.compiled_html.trim() === "") return null;
+  return fillTemplate({ subject: row.subject, html: row.compiled_html, text: row.text }, vars);
+}
+
 /**
  * Fetch a template edited in the admin panel and substitute its variables for
- * this recipient. Returns null when the template row is missing, so callers can
- * fall back to the built-in default. The worker never renders React: the admin
- * pre-compiles `compiled_html` on save via @betterflag/emails.
+ * this recipient. Returns null when the template row is missing or
+ * `compiled_html` is empty, so callers fall back to `@betterflag/emails` seeds.
+ * The worker never renders React: the admin pre-compiles `compiled_html` on
+ * save via @betterflag/emails.
  */
 export async function fetchTemplate(
   env: SupabaseEnv,
@@ -299,5 +308,5 @@ export async function fetchTemplate(
   if (result.error) throw new Error(`email_templates query failed: ${result.error.message}`);
   if (result.data === null) return null;
   const row = templateRowSchema.parse(result.data);
-  return fillTemplate({ subject: row.subject, html: row.compiled_html, text: row.text }, vars);
+  return templateFromRow(row, vars);
 }

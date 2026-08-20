@@ -11,7 +11,7 @@ import { registerTools } from "./tools";
 import type { ApiCtx, Env, SessionProps } from "./types";
 import { VERSION } from "./version.gen";
 
-const DEFAULT_API_URL = "https://app.betterflag.app";
+const DEFAULT_API_URL = "https://dashboard.betterflag.app";
 
 export class BetterFlagMcp extends McpAgent<Env, unknown, SessionProps> {
   server = new McpServer({

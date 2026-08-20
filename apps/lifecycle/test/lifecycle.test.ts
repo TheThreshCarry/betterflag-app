@@ -16,6 +16,7 @@ import {
   projectMonthlyEvals,
   readTrialEvals,
   recommendTier,
+  templateFromRow,
   trialDaysElapsed,
   trialDaysLeft,
   trialUpsellRecommendation,
@@ -106,13 +107,13 @@ describe("email templates", () => {
     expect(email.subject).toContain("Welcome");
     expect(email.html).toContain("Acme &lt;&amp;&gt; Sons");
     expect(email.text).toContain("Acme <&> Sons");
-    expect(email.html).toContain("app.betterflag.app/onboarding");
+    expect(email.html).toContain("dashboard.betterflag.app/onboarding");
   });
 
   it("agentic email points at the keys page and the MCP server", () => {
     const email = agenticEmail();
     expect(email.html).toContain("mcp.betterflag.app");
-    expect(email.html).toContain("app.betterflag.app/settings/keys");
+    expect(email.html).toContain("dashboard.betterflag.app/settings/keys");
     expect(email.text).toContain("mcp.betterflag.app");
   });
 
@@ -121,7 +122,7 @@ describe("email templates", () => {
     expect(trialEndingEmail(1).subject).toBe("Your Betterflag trial ends tomorrow");
     expect(trialEndingEmail(0).subject).toBe("Your Betterflag trial ends today");
     expect(trialEndingEmail(-3).subject).toBe("Your Betterflag trial ends today");
-    expect(trialEndingEmail(4).html).toContain("app.betterflag.app/settings");
+    expect(trialEndingEmail(4).html).toContain("dashboard.betterflag.app/settings");
   });
 
   it("every email has both html and text bodies and the reply-note footer", () => {
@@ -278,7 +279,7 @@ describe("trialEndingUpsellEmail", () => {
     expect(email.subject).toContain("Launch");
     expect(email.html).toContain("7.5M");
     expect(email.html).toContain("$24.99");
-    expect(email.html).toContain("app.betterflag.app/settings");
+    expect(email.html).toContain("dashboard.betterflag.app/settings");
     expect(email.text).toContain("7.5M");
     expect(email.html).toContain("Reply any time");
   });
@@ -292,5 +293,20 @@ describe("trialEndingUpsellEmail", () => {
     expect(email.subject).toContain("120M");
     expect(email.text.toLowerCase()).toContain("volume");
     expect(email.html).toContain("120M");
+  });
+});
+
+describe("templateFromRow", () => {
+  it("returns null when compiled_html is empty so seeds are used", () => {
+    expect(templateFromRow({ subject: "Hi", compiled_html: "", text: "Hi" }, {})).toBeNull();
+    expect(templateFromRow({ subject: "Hi", compiled_html: "   ", text: "Hi" }, {})).toBeNull();
+  });
+
+  it("substitutes vars when compiled_html is present", () => {
+    const rendered = templateFromRow(
+      { subject: "Hello {{name}}", compiled_html: "<p>{{name}}</p>", text: "{{name}}" },
+      { name: "Ada" },
+    );
+    expect(rendered).toEqual({ subject: "Hello Ada", html: "<p>Ada</p>", text: "Ada" });
   });
 });

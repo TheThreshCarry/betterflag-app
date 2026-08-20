@@ -70,8 +70,9 @@ obs.flushTo(ctx.waitUntil.bind(ctx)); // Workers: ship without blocking
 - **Ingest worker** (`apps/ingest`), `ingest.events` span with a
   `clickhouse.insert` child (rows/dropped counts, retry on failure);
   `ingest.config_sync` span with `supabase.select_*` and `kv.put_snapshot`
-  children; warnings for dropped messages/invalid rules, errors on failed
-  inserts/syncs. Flushes in the queue handler `finally`.
+  children; `ingest.meter` hourly Polar + SDK-key stamp; `ingest.cold_storage`
+  daily R2 tiering. Warnings for dropped messages/invalid rules, errors on
+  failed inserts/syncs. Flushes in the queue handler `finally`.
 - **MCP worker** (`apps/mcp`), auth outcomes logged at the gate (**never the
   key**, only `key_kind`); every control-plane call in `apiFetch` is a `client`
   span with timing, plus warn/error logs on API errors.
@@ -104,12 +105,20 @@ echo "<heartbeat url>" | wrangler secret put BETTER_STACK_HEARTBEAT_URL
 
 Dashboard/admin/landing: set `BETTER_STACK_SOURCE_TOKEN` (OTel),
 `BETTER_STACK_LOGS_ENDPOINT`, `BETTER_STACK_ERRORS_DSN`, and `BETTERFLAG_ENV`
-in Vercel (already in local `.env`).
+in Vercel.
 
-Local dev reads `apps/*/.dev.vars` (workers) and `.env` (dashboard). With none
-of it set, everything logs to the console only. Do **not** set `OTEL_*` unless
-you deliberately want a service's traces to go somewhere other than its logs
-source (which forfeits correlation).
+**Where env files live.** Next.js does **not** load the repo-root `.env`.
+The dashboard reads `apps/dashboard/.env.local` (and `.env`,
+`.env.development` / `.env.production` in that app directory). `polar:setup`
+is the exception: it loads repo-root `.env` then `apps/dashboard/.env.local`
+(last file wins). Workers read `apps/<worker>/.dev.vars` locally and
+`wrangler secret put` in production. Root `.env.example` documents every
+service; copy the dashboard slice into `apps/dashboard/.env.local`.
+
+Local workers: `apps/*/.dev.vars`. With none of it set, everything logs to
+the console only. Do **not** set `OTEL_*` unless you deliberately want a
+service's traces to go somewhere other than its logs source (which forfeits
+correlation).
 
 ## Querying
 

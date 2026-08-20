@@ -137,6 +137,16 @@ export interface AuditLogRow {
   created_at: string;
 }
 
+/** Polar event name + metadata property the evaluations meter sums (ITR-187). */
+export const EVALUATION_EVENT_NAME = "evaluation";
+export const EVALUATION_EVENT_COUNT_PROPERTY = "evaluations";
+
+/**
+ * Starter is the only plan that soft-throttles at the edge (3× included).
+ * Launch/Scale/trial never block mid-cycle; Polar bills overage instead.
+ */
+export const STARTER_THROTTLE_MULTIPLIER = 3;
+
 /** Plan limits enforced in app logic (evaluations are metered, never blocked here). */
 export const PLAN_LIMITS: Record<
   OrgPlan,
@@ -150,6 +160,12 @@ export const PLAN_LIMITS: Record<
   launch: { projects: null, agentKeys: null, includedEvalsPerMonth: 5_000_000 },
   scale: { projects: null, agentKeys: null, includedEvalsPerMonth: 50_000_000 },
 };
+
+/** Null = do not throttle this plan at the edge. */
+export function edgeQuotaForPlan(plan: OrgPlan): number | null {
+  if (plan !== "starter") return null;
+  return PLAN_LIMITS.starter.includedEvalsPerMonth * STARTER_THROTTLE_MULTIPLIER;
+}
 
 /**
  * Analytics retention per plan, in days: how long evaluation-level analytics
@@ -166,3 +182,18 @@ export const ANALYTICS_RETENTION_DAYS: Record<OrgPlan, number> = {
   launch: 90,
   scale: 365,
 };
+
+/** Admin-edited transactional templates (migration 20260820110000). */
+export interface EmailTemplateRow {
+  key: "welcome" | "agentic" | "trial-ending";
+  subject: string;
+  preview: string;
+  eyebrow: string;
+  heading: string;
+  body_html: string;
+  text: string;
+  compiled_html: string;
+  version: number;
+  updated_by: string | null;
+  updated_at: string;
+}

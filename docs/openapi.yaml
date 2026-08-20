@@ -3,7 +3,7 @@ info:
   title: Betterflag Control Plane API
   version: 1.0.0
   description: |
-    REST API for the Betterflag control plane (`app.betterflag.app/api/v1`).
+    REST API for the Betterflag control plane (`dashboard.betterflag.app/api/v1`).
 
     ## Auth
     Two modes:
@@ -36,7 +36,7 @@ info:
     subscription lapsed) and 403 `org_frozen` (org frozen by Betterflag support);
     reads and edge flag serving keep working in both cases.
 servers:
-  - url: https://app.betterflag.app
+  - url: https://dashboard.betterflag.app
     description: Production
   - url: http://localhost:3000
     description: Local development

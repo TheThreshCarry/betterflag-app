@@ -6,7 +6,7 @@ const base = {
   orgId: "org_123",
   productId: "prod_launch",
   planKey: "launch" as const,
-  origin: "https://app.betterflag.app",
+  origin: "https://dashboard.betterflag.app",
 };
 
 describe("buildCheckoutRequest", () => {
@@ -17,7 +17,7 @@ describe("buildCheckoutRequest", () => {
   it("builds a success URL back to billing settings with the checkout id placeholder", () => {
     const { successUrl } = buildCheckoutRequest(base);
     expect(successUrl).toBe(
-      "https://app.betterflag.app/settings/billing?checkout=success&checkout_id={CHECKOUT_ID}",
+      "https://dashboard.betterflag.app/settings/billing?checkout=success&checkout_id={CHECKOUT_ID}",
     );
   });
 

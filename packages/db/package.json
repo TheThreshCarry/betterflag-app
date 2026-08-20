@@ -8,12 +8,14 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "gen-types": "supabase gen types typescript --linked --schema public > src/database.types.ts"
   },
   "dependencies": {
     "@betterflag/core": "workspace:*"
   },
   "devDependencies": {
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "vitest": "^4.1.9"
   }
 }

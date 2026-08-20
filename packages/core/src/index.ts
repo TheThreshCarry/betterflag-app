@@ -5,6 +5,7 @@ export {
   kindOfKey,
   sha256Hex,
   timingSafeEqualHex,
+  isSdkKeyThrottled,
   API_KEY_RE,
   API_KEY_PREFIX_LENGTH,
   type ApiKeyKind,

@@ -14,8 +14,13 @@ in the same PR.
   returned exactly once, at creation.
 - SDK keys additionally get a KV entry so the edge never touches Postgres:
   - KV key: `key:{prefix}`  → `SdkKeyKvEntry` (see `@betterflag/core`):
-    `{ orgId, projectId, envSlug, hash, revoked }`
-  - Written on creation, updated on revoke (set `revoked: true`).
+    `{ orgId, projectId, envSlug, hash, revoked, plan?, quota?, used? }`
+  - Written on creation, updated on revoke (set `revoked: true`), refreshed
+    hourly by ingest (`plan`/`quota`/`used`).
+  - `quota` is null/omitted for Launch, Scale, and trial (never throttled).
+    Starter `quota` is 3× included (3M). Missing fields on old entries =
+    not throttled. Edge `POST /v1/evaluate` returns 429 `quota_exceeded`
+    with `Retry-After: 3600` when `used >= quota`; it does not emit events.
 
 ## KV snapshots
 
@@ -35,7 +40,7 @@ in the same PR.
   straight to KV via the Cloudflare REST API, then enqueues a sync message
   for reconciliation.
 
-## Control plane REST API (`/api/v1` on app.betterflag.app)
+## Control plane REST API (`/api/v1` on dashboard.betterflag.app)
 
 Auth: Supabase session cookie (dashboard) OR `Authorization: Bearer bf_adm_*|bf_agt_*`.
 A valid key executes mutations directly.
@@ -90,6 +95,10 @@ config-sync for the affected (project, env).
   SDKs evaluating from a snapshot must supply `country` themselves.
 - `GET /v1/snapshot`, same auth; `ETag: "v{version}"`, honors `If-None-Match` → 304.
 - CORS: `*` (keys are publishable for sdk kind).
+- Starter throttle: after auth, if the KV entry `used >= quota`, evaluate
+  returns 429 `{ error: { code: "quota_exceeded" } }` with `Retry-After: 3600`
+  and emits no events. Snapshot is not throttled. Missing `quota`/`used` =
+  not throttled (old KV entries, Launch/Scale/trial).
 - Every evaluated flag emits one `EvaluationEvent` to `EVENTS` via
   `ctx.waitUntil(sendBatch(…))`, chunked ≤100. `user_hash` = `hashUserId()`
   from core ("0" when anonymous). `country` = uppercased ISO 3166-1 alpha-2
@@ -145,11 +154,31 @@ from per-flag charts.
   launch/trial 90d, scale 365d). Retention is a plan feature, not a per-org
   setting; the API rejects periods beyond it with 422 `retention_exceeded`.
 
+## Polar metering (ITR-187)
+
+Hourly ingest cron (`0 * * * *`, `src/meter.ts`):
+
+1. Month-to-date evaluations per org from ClickHouse `evals_per_org_day`.
+2. Emit the delta to Polar `POST /v1/events/ingest` as event name
+   `evaluation`, metadata `{ evaluations: <delta> }`, `customer_id` =
+   `orgs.polar_customer_id`, `external_id` = `eval:{orgId}:{yyyy-mm-ddTHH}`
+   (idempotent retries). Skip Polar when the org has no customer or
+   `POLAR_ACCESS_TOKEN` is unset; still stamp KV.
+3. Stamp every SDK key KV entry with `plan`, `quota` (`edgeQuotaForPlan`),
+   `used`. Watermark in KV at `meter:polar:{orgId}`. Pending-hour state
+   covers Polar success + KV commit failure.
+
+The Polar meter **must** aggregate `sum(evaluations)`. A count meter bills
+1 per hourly event.
+
 ## Plan limits
 
 From `PLAN_LIMITS` in `@betterflag/db`, projects and agent keys enforced at
-creation time in the control plane; evaluations are metered, never blocked
-mid-cycle (except Starter throttle at 3× included volume, Phase 5).
+creation time in the control plane. Evaluations are metered via Polar
+(`evaluation` events, sum of metadata `evaluations`). Launch, Scale, and
+trial are never blocked mid-cycle. Starter is soft-throttled at the edge at
+3× included volume (3M); Polar still bills overage between included and the
+throttle.
 
 ## Billing access policy (trial + subscription)
 

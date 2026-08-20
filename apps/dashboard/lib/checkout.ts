@@ -18,7 +18,7 @@ export interface CheckoutRequestInput {
   orgId: string;
   productId: string;
   planKey: PlanKey;
-  /** Dashboard origin, e.g. https://app.betterflag.app */
+  /** Dashboard origin, e.g. https://dashboard.betterflag.app */
   origin: string;
   customerEmail?: string | null;
 }

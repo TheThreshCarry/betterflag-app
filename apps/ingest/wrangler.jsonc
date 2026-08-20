@@ -38,9 +38,11 @@
     }
   ],
   // Daily analytics tiering at 03:10 UTC (hot ClickHouse day → R2, retention
-  // sweep). See src/coldStorage.ts.
+  // sweep). Hourly Polar metering + SDK-key quota stamp at minute 0.
+  // Cron strings must match POLAR_METER_CRON in src/meter.ts and the
+  // cold-storage path in src/index.ts (`controller.cron` dispatch).
   "triggers": {
-    "crons": ["10 3 * * *"]
+    "crons": ["10 3 * * *", "0 * * * *"]
   },
   "queues": {
     "consumers": [

@@ -48,6 +48,15 @@ export interface PricingTier {
 /** The event name the app ingests to Polar for the evaluations meter. */
 export const EVALUATION_EVENT_NAME = "evaluation";
 
+/** Metadata property Polar sums (hourly deltas, not one-per-eval). */
+export const EVALUATION_EVENT_COUNT_PROPERTY = "evaluations";
+
+/** Meter aggregation for hourly ingest. Count would bill 1 per hour. */
+export const EVALUATION_METER_AGGREGATION = {
+  func: "sum" as const,
+  property: EVALUATION_EVENT_COUNT_PROPERTY,
+};
+
 /** Meter name shown on customer invoices / usage. */
 export const EVALUATION_METER_NAME = "Flag Evaluations";
 

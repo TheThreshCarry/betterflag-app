@@ -1,8 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { PLAN_LIMITS } from "@betterflag/db";
+import {
+  EVALUATION_EVENT_COUNT_PROPERTY as DB_EVENT_PROP,
+  EVALUATION_EVENT_NAME as DB_EVENT_NAME,
+  PLAN_LIMITS,
+} from "@betterflag/db";
 
 import {
+  EVALUATION_EVENT_COUNT_PROPERTY,
+  EVALUATION_EVENT_NAME,
+  EVALUATION_METER_AGGREGATION,
   PRICING_SPEC,
   TRIAL_DAYS,
   decodeLimit,
@@ -108,6 +115,15 @@ describe("PRICING_SPEC integrity", () => {
       expect(limit.projects).toBe(t.projects);
       expect(limit.agentKeys).toBe(t.agentKeys);
     }
+  });
+
+  it("meters Polar usage as sum(evaluations), not count of hourly events", () => {
+    expect(EVALUATION_EVENT_NAME).toBe(DB_EVENT_NAME);
+    expect(EVALUATION_EVENT_COUNT_PROPERTY).toBe(DB_EVENT_PROP);
+    expect(EVALUATION_METER_AGGREGATION).toEqual({
+      func: "sum",
+      property: "evaluations",
+    });
   });
 
   it("offers a 14-day trial", () => {

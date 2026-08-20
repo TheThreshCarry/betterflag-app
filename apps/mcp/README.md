@@ -20,7 +20,7 @@ remote server and click **Connect**. The flow:
 1. The client registers itself (dynamic client registration, RFC 7591) and
    opens the browser at `/authorize`.
 2. The worker parks the request and redirects to the dashboard consent
-   screen (`app.betterflag.app/mcp/consent`), where you sign in and **pick which
+   screen (`dashboard.betterflag.app/mcp/consent`), where you sign in and **pick which
    organization** the connection may access.
 3. Approving mints a dedicated agent key for the connection
    (`source: oauth`, visible on the Keys page and exempt from the plan

@@ -10,8 +10,8 @@
   // Native Worker logs/traces export through Cloudflare destination
   // `betterflag-otel` (Betterflag OTel source). Direct HTTP POST unused.
   "vars": {
-    "BETTERFLAG_API_URL": "https://app.betterflag.app",
-    "BETTERFLAG_DASHBOARD_URL": "https://app.betterflag.app",
+    "BETTERFLAG_API_URL": "https://dashboard.betterflag.app",
+    "BETTERFLAG_DASHBOARD_URL": "https://dashboard.betterflag.app",
     "BETTERFLAG_ENV": "production",
     "BETTER_STACK_LOGS_ENDPOINT": "https://s2692129.eu-central-1a.betterstackdata.com"
   },

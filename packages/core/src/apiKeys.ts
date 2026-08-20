@@ -56,4 +56,19 @@ export interface SdkKeyKvEntry {
   /** SHA-256 hex of the full key; edge verifies the presented key against it. */
   hash: string;
   revoked: boolean;
+  /** Org plan, stamped so the edge can throttle without Postgres (ITR-187). */
+  plan?: string;
+  /**
+   * Max month-to-date evaluations before the edge returns 429. Null/omitted =
+   * never throttle (Launch, Scale, trial). Starter is 3× included (3M).
+   */
+  quota?: number | null;
+  /** Month-to-date evaluations for the org, refreshed by the ingest hourly cron. */
+  used?: number;
+}
+
+/** Soft-throttle: Starter at 3× included. Missing quota/used = not throttled. */
+export function isSdkKeyThrottled(entry: Pick<SdkKeyKvEntry, "quota" | "used">): boolean {
+  if (entry.quota == null) return false;
+  return (entry.used ?? 0) >= entry.quota;
 }

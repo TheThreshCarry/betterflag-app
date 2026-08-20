@@ -27,7 +27,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL ?? "https://app.betterflag.app",
+    process.env.NEXT_PUBLIC_APP_URL ?? "https://dashboard.betterflag.app",
   ),
   title: "Betterflag: Feature flags for agentic teams",
   description:

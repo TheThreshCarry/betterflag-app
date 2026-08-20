@@ -164,7 +164,27 @@ function UsageContent({
             />
           </div>
           <p className="mt-2 text-[12px] text-ink-muted">
-            {overLimit ? (
+            {usage.plan === "starter" ? (
+              overLimit ? (
+                <>
+                  {formatCount(overageEvals)} over included
+                  {perMillionCents > 0 ? (
+                    <>
+                      {" "}
+                      · {formatUsdFromCents(perMillionCents)} / additional 1M
+                    </>
+                  ) : null}
+                  . Polar bills overage. The edge pauses evaluate at 3× included (
+                  {formatCount(usage.includedEvalsPerMonth * 3)}) until the next billing period.
+                </>
+              ) : (
+                <>
+                  {pctBar.toFixed(pctBar < 10 ? 1 : 0)}% used. Polar bills overage past included.
+                  The edge pauses evaluate at 3× included (
+                  {formatCount(usage.includedEvalsPerMonth * 3)}).
+                </>
+              )
+            ) : overLimit ? (
               <>
                 {formatCount(overageEvals)} over included
                 {perMillionCents > 0 ? (

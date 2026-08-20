@@ -19,7 +19,7 @@ create type public.actor_type as enum ('user', 'agent');
 -- Tables
 -- ---------------------------------------------------------------------------
 
-create table public.orgs (
+create table if not exists public.orgs (
   id uuid primary key default gen_random_uuid(),
   name text not null check (char_length(name) between 1 and 120),
   plan public.org_plan not null default 'trial',
@@ -31,7 +31,7 @@ create table public.orgs (
   created_at timestamptz not null default now()
 );
 
-create table public.org_members (
+create table if not exists public.org_members (
   org_id uuid not null references public.orgs (id) on delete cascade,
   user_id uuid not null references auth.users (id) on delete cascade,
   role public.org_role not null default 'member',
@@ -39,7 +39,7 @@ create table public.org_members (
   primary key (org_id, user_id)
 );
 
-create table public.projects (
+create table if not exists public.projects (
   id uuid primary key default gen_random_uuid(),
   org_id uuid not null references public.orgs (id) on delete cascade,
   name text not null check (char_length(name) between 1 and 120),
@@ -48,7 +48,7 @@ create table public.projects (
   unique (org_id, slug)
 );
 
-create table public.environments (
+create table if not exists public.environments (
   id uuid primary key default gen_random_uuid(),
   project_id uuid not null references public.projects (id) on delete cascade,
   name text not null check (char_length(name) between 1 and 60),
@@ -57,7 +57,7 @@ create table public.environments (
   unique (project_id, slug)
 );
 
-create table public.flags (
+create table if not exists public.flags (
   id uuid primary key default gen_random_uuid(),
   project_id uuid not null references public.projects (id) on delete cascade,
   key text not null check (key ~ '^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$'),
@@ -71,7 +71,7 @@ create table public.flags (
   unique (project_id, key)
 );
 
-create table public.flag_configs (
+create table if not exists public.flag_configs (
   id uuid primary key default gen_random_uuid(),
   flag_id uuid not null references public.flags (id) on delete cascade,
   environment_id uuid not null references public.environments (id) on delete cascade,
@@ -90,7 +90,7 @@ create table public.flag_configs (
   unique (flag_id, environment_id)
 );
 
-create table public.api_keys (
+create table if not exists public.api_keys (
   id uuid primary key default gen_random_uuid(),
   org_id uuid not null references public.orgs (id) on delete cascade,
   project_id uuid references public.projects (id) on delete cascade,
@@ -111,7 +111,7 @@ create table public.api_keys (
   constraint sdk_keys_scoped check (kind <> 'sdk' or (project_id is not null and environment_id is not null))
 );
 
-create table public.guardrails (
+create table if not exists public.guardrails (
   id uuid primary key default gen_random_uuid(),
   org_id uuid not null references public.orgs (id) on delete cascade,
   environment_id uuid references public.environments (id) on delete cascade,
@@ -122,7 +122,7 @@ create table public.guardrails (
   unique (org_id, environment_id, action)
 );
 
-create table public.approvals (
+create table if not exists public.approvals (
   id uuid primary key default gen_random_uuid(),
   org_id uuid not null references public.orgs (id) on delete cascade,
   requested_by_key text not null,
@@ -135,7 +135,7 @@ create table public.approvals (
   created_at timestamptz not null default now()
 );
 
-create table public.audit_log (
+create table if not exists public.audit_log (
   id bigint generated always as identity primary key,
   org_id uuid not null references public.orgs (id) on delete cascade,
   project_id uuid references public.projects (id) on delete set null,
@@ -153,15 +153,15 @@ create table public.audit_log (
 -- Indexes
 -- ---------------------------------------------------------------------------
 
-create index org_members_user_idx on public.org_members (user_id);
-create index projects_org_idx on public.projects (org_id);
-create index environments_project_idx on public.environments (project_id);
-create index flags_project_idx on public.flags (project_id) where archived_at is null;
-create index flag_configs_env_idx on public.flag_configs (environment_id);
-create index api_keys_org_idx on public.api_keys (org_id) where revoked_at is null;
-create index approvals_org_pending_idx on public.approvals (org_id, created_at desc) where status = 'pending';
-create index audit_log_org_idx on public.audit_log (org_id, created_at desc);
-create index audit_log_actor_type_idx on public.audit_log (org_id, actor_type, created_at desc);
+create index if not exists org_members_user_idx on public.org_members (user_id);
+create index if not exists projects_org_idx on public.projects (org_id);
+create index if not exists environments_project_idx on public.environments (project_id);
+create index if not exists flags_project_idx on public.flags (project_id) where archived_at is null;
+create index if not exists flag_configs_env_idx on public.flag_configs (environment_id);
+create index if not exists api_keys_org_idx on public.api_keys (org_id) where revoked_at is null;
+create index if not exists approvals_org_pending_idx on public.approvals (org_id, created_at desc) where status = 'pending';
+create index if not exists audit_log_org_idx on public.audit_log (org_id, created_at desc);
+create index if not exists audit_log_actor_type_idx on public.audit_log (org_id, actor_type, created_at desc);
 
 -- ---------------------------------------------------------------------------
 -- Helpers

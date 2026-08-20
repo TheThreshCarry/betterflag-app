@@ -1,12 +1,12 @@
-import { formatApiKey, keyPrefixOf, sha256Hex, type SdkKeyKvEntry } from "@betterflag/core";
+import { formatApiKey, keyPrefixOf, sha256Hex } from "@betterflag/core";
 import { PLAN_LIMITS, type ApiKeyRow } from "@betterflag/db";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
 import { toApiApiKey } from "@/lib/api-types";
-import { auditActor, resolveSessionUser } from "@/lib/auth";
+import { resolveSessionUser } from "@/lib/auth";
 import { assertOrgWritable } from "@/lib/billing-guard";
-import { kvPutSdkKey } from "@/lib/cloudflare";
+import { kvPutSdkKey, sdkKeyKvEntry } from "@/lib/cloudflare";
 import { getEnvironmentInProject, getOrg, getProjectInOrg, recordAudit } from "@/lib/db";
 import { HttpError, parseJson, unwrap, withErrors } from "@/lib/errors";
 import { KEY_COLUMNS, rejectKeysBearer } from "@/lib/keys";
@@ -121,14 +121,18 @@ export const POST = withErrors(async (request: NextRequest) => {
 
   // SDK keys are resolved by the edge from KV, never from Postgres.
   if (body.kind === "sdk" && body.projectId && envSlug) {
-    const entry: SdkKeyKvEntry = {
-      orgId,
-      projectId: body.projectId,
-      envSlug,
-      hash,
-      revoked: false,
-    };
-    await kvPutSdkKey(prefix, entry);
+    const org = await getOrg(service, orgId);
+    await kvPutSdkKey(
+      prefix,
+      sdkKeyKvEntry({
+        orgId,
+        projectId: body.projectId,
+        envSlug,
+        hash,
+        revoked: false,
+        plan: org.plan,
+      }),
+    );
   }
 
   const apiKey = toApiApiKey({ ...inserted, hash: "" });

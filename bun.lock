@@ -58,7 +58,7 @@
     },
     "apps/dashboard": {
       "name": "@betterflag/dashboard",
-      "version": "0.15.1",
+      "version": "0.15.2",
       "dependencies": {
         "@appica/country-flags-react": "^1.0.0",
         "@appica/ui-react": "^1.0.0",
@@ -134,7 +134,7 @@
     },
     "apps/mcp": {
       "name": "@betterflag/mcp",
-      "version": "0.6.1",
+      "version": "0.6.2",
       "dependencies": {
         "@betterflag/core": "workspace:*",
         "@betterflag/observability": "workspace:*",
@@ -197,6 +197,7 @@
       },
       "devDependencies": {
         "typescript": "^5.9.2",
+        "vitest": "^4.1.9",
       },
     },
     "packages/emails": {

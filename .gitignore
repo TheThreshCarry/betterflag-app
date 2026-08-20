@@ -26,7 +26,6 @@ test-results/
 # supabase CLI local state (link/temp); real config lives in packages/db/supabase
 **/supabase/.temp/
 **/supabase/.branches/
-/supabase/
 
 # this repo uses bun, bun.lock is committed (CI runs `bun install --frozen-lockfile`).
 # Don't commit a stray pnpm lockfile.
