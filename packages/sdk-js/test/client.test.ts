@@ -88,7 +88,7 @@ describe("flag()", () => {
     expect(String(url)).toBe("https://api.betterflag.app/v1/evaluate");
     expect(init?.method).toBe("POST");
     expect(headerOf(init, "Authorization")).toBe("Bearer bf_sdk_test");
-    expect(headerOf(init, "X-Betterflag-SDK")).toBe("js/0.1.0");
+    expect(headerOf(init, "X-Betterflag-SDK")).toBe("js/0.1.3");
     expect(bodyOf(init)).toEqual({
       key: "checkout",
       context: { userId: "u1", attributes: { plan: "pro" } },

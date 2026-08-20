@@ -7,7 +7,7 @@ import type {
 } from "./types";
 
 /** Version stamped into the `X-Betterflag-SDK` header. Keep in sync with package.json. */
-export const SDK_VERSION = "0.1.0";
+export const SDK_VERSION = "0.1.3";
 
 const SDK_HEADER = `js/${SDK_VERSION}`;
 const DEFAULT_BASE_URL = "https://api.betterflag.app";

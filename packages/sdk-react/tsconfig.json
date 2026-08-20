@@ -2,7 +2,10 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "lib": ["ES2022", "DOM"],
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "paths": {
+      "@betterflag/sdk": ["../sdk-js/src/index.ts"]
+    }
   },
   "include": ["src", "test"]
 }
