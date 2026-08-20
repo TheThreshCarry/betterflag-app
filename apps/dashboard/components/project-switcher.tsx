@@ -38,8 +38,9 @@ function slugify(value: string): string {
 
 export function ProjectSwitcher() {
   const { isMobile } = useSidebar();
-  const { projects, activeProject, setActiveProjectId } = useApp();
+  const { org, projects, activeProject, setActiveProjectId } = useApp();
   const [createOpen, setCreateOpen] = useState(false);
+  const orgLogoUrl = org.logoUrl;
 
   return (
     <>
@@ -47,7 +48,7 @@ export function ProjectSwitcher() {
         <SidebarMenuItem>
           {projects.length === 0 || !activeProject ? (
             <SidebarMenuButton size="lg" onClick={() => setCreateOpen(true)}>
-              <ProjectAvatar pictureUrl={null} className="size-8 rounded-lg" iconClassName="size-4" />
+              <ProjectAvatar pictureUrl={orgLogoUrl} className="size-8 rounded-lg" iconClassName="size-4" />
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">No projects yet</span>
                 <span className="truncate text-xs text-muted-foreground">
@@ -66,7 +67,7 @@ export function ProjectSwitcher() {
                 }
               >
                 <ProjectAvatar
-                  pictureUrl={activeProject.pictureUrl}
+                  pictureUrl={orgLogoUrl ?? activeProject.pictureUrl}
                   className="size-8 rounded-lg"
                   iconClassName="size-4"
                 />
@@ -93,7 +94,7 @@ export function ProjectSwitcher() {
                       className="gap-2 p-2"
                     >
                       <ProjectAvatar
-                        pictureUrl={project.pictureUrl}
+                        pictureUrl={project.pictureUrl ?? orgLogoUrl}
                         className="size-6 rounded-md border"
                         iconClassName="size-3.5"
                         muted
@@ -137,7 +138,7 @@ function ProjectAvatar({
   if (pictureUrl) {
     return (
       // eslint-disable-next-line @next/next/no-img-element -- external media CDN URL
-      <img src={pictureUrl} alt="" className={`object-cover ${className ?? ""}`} />
+      <img key={pictureUrl} src={pictureUrl} alt="" className={`object-cover ${className ?? ""}`} />
     );
   }
   return (

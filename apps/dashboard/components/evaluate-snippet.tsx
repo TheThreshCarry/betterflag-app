@@ -54,7 +54,7 @@ export function FlagEvaluateCard({
         <p className="mt-1 text-[13px] text-ink-muted">
           Hit evaluate for <span className="font-mono text-[12px] text-ink">{flagKey}</span> in{" "}
           {envName}. Swap in an SDK key for this environment from{" "}
-          <Link href="/settings/keys" className="font-medium text-ink underline underline-offset-2">
+          <Link href="/keys" className="font-medium text-ink underline underline-offset-2">
             Keys
           </Link>
           .

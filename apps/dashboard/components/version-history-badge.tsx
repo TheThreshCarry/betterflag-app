@@ -155,7 +155,7 @@ export function VersionHistoryBadge({
         </div>
         <div className="border-t border-line px-2 py-2">
           <Link
-            href={`/settings/audit?subject=${encodeURIComponent(`flag:${flagKey}`)}`}
+            href={`/audit?subject=${encodeURIComponent(`flag:${flagKey}`)}`}
             className="flex w-full items-center justify-center rounded-lg px-2 py-1.5 text-[12px] font-medium text-ink transition-colors hover:bg-surface"
           >
             See all versions

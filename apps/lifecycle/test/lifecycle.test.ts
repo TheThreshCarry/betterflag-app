@@ -113,7 +113,7 @@ describe("email templates", () => {
   it("agentic email points at the keys page and the MCP server", () => {
     const email = agenticEmail();
     expect(email.html).toContain("mcp.betterflag.app");
-    expect(email.html).toContain("dashboard.betterflag.app/settings/keys");
+    expect(email.html).toContain("dashboard.betterflag.app/keys");
     expect(email.text).toContain("mcp.betterflag.app");
   });
 

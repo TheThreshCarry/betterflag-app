@@ -6,7 +6,7 @@
  * ToolError messages.
  */
 import { ToolError } from "./errors";
-import type { ApiCtx, Flag, FlagConfig, Project } from "./types";
+import type { ApiCtx, Flag, FlagConfig, Project, SessionOrgKey } from "./types";
 
 type Method = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
 
@@ -208,30 +208,63 @@ export function isKilled(cfg: FlagConfig): boolean {
 
 const PROJECT_KEYS = ["projects", "data", "items"] as const;
 
-export async function listProjects(ctx: ApiCtx): Promise<Project[]> {
-  const payload = await apiFetch(ctx, { method: "GET", path: "/api/v1/projects" });
-  const projects = pluckArray<Project>(payload, PROJECT_KEYS);
-  if (!projects) {
-    throw new ToolError("Unexpected response from GET /api/v1/projects, could not find a project list.");
-  }
-  return projects;
+type ProjectHit = Project & { _accessKey: string; _orgName?: string };
+
+function accesses(ctx: ApiCtx): SessionOrgKey[] {
+  if (ctx.keys && ctx.keys.length > 0) return ctx.keys;
+  return [{ orgId: "", apiKey: ctx.apiKey }];
 }
 
-function projectLabel(p: Project): string {
+function bindAccess(ctx: ApiCtx, hit: ProjectHit): void {
+  ctx.apiKey = hit._accessKey;
+}
+
+export async function listProjects(ctx: ApiCtx): Promise<Project[]> {
+  const hits = await listProjectHits(ctx);
+  return hits.map(({ _accessKey: _k, _orgName: _n, ...project }) => project);
+}
+
+async function listProjectHits(ctx: ApiCtx): Promise<ProjectHit[]> {
+  const auths = accesses(ctx);
+  const lists = await Promise.all(
+    auths.map(async (access) => {
+      const payload = await apiFetch(
+        { ...ctx, apiKey: access.apiKey },
+        { method: "GET", path: "/api/v1/projects" },
+      );
+      const projects = pluckArray<Project>(payload, PROJECT_KEYS);
+      if (!projects) {
+        throw new ToolError("Unexpected response from GET /api/v1/projects, could not find a project list.");
+      }
+      return projects.map((project) => ({
+        ...project,
+        _accessKey: access.apiKey,
+        _orgName: access.orgName,
+      }));
+    }),
+  );
+  return lists.flat();
+}
+
+function projectLabel(p: ProjectHit | Project): string {
+  const orgName = "_orgName" in p ? p._orgName : undefined;
   const envs = (p.environments ?? [])
     .map((e) => e.slug ?? e.name)
     .filter((s): s is string => typeof s === "string");
   const envNote = envs.length > 0 ? `, envs: ${envs.join(", ")}` : "";
-  return `  • ${p.slug ?? p.id}${p.name && p.name !== p.slug ? ` (${p.name})` : ""}${envNote}`;
+  const orgNote = orgName ? ` — ${orgName}` : "";
+  return `  • ${p.slug ?? p.id}${p.name && p.name !== p.slug ? ` (${p.name})` : ""}${orgNote}${envNote}`;
 }
 
 /**
  * Resolve which project to operate on. When `projectSlug` is omitted and the
- * org has exactly one project, default to it; if several exist, come back
+ * grant has exactly one project, default to it; if several exist, come back
  * with the list (as a non-error result) so the agent can retry with a slug.
+ * Multi-org OAuth grants search every approved org and bind `ctx.apiKey` to
+ * the matching org's key.
  */
 export async function resolveProject(ctx: ApiCtx, projectSlug: string | undefined): Promise<Project> {
-  const projects = await listProjects(ctx);
+  const projects = await listProjectHits(ctx);
 
   if (projects.length === 0) {
     throw new ToolError(
@@ -246,14 +279,18 @@ export async function resolveProject(ctx: ApiCtx, projectSlug: string | undefine
         `No project with slug "${projectSlug}". Available projects:\n${projects.map(projectLabel).join("\n")}`,
       );
     }
+    bindAccess(ctx, match);
     return match;
   }
 
   const only = projects[0];
-  if (projects.length === 1 && only) return only;
+  if (projects.length === 1 && only) {
+    bindAccess(ctx, only);
+    return only;
+  }
 
   throw new ToolError(
-    `This organization has ${projects.length} projects, pass projectSlug to pick one:\n` +
+    `This connection can see ${projects.length} projects, pass projectSlug to pick one:\n` +
       projects.map(projectLabel).join("\n"),
     { isError: false },
   );

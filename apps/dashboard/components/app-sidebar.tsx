@@ -13,11 +13,13 @@ import {
   SidebarRail,
   SidebarSeparator,
 } from "@/components/ui/sidebar";
-import { FlagIcon, GlobeIcon, SettingsIcon } from "lucide-react";
+import { FlagIcon, GlobeIcon, KeyIcon, ScrollTextIcon, SettingsIcon } from "lucide-react";
 
 export const NAV_ITEMS = [
   { title: "Flags", url: "/flags", icon: FlagIcon },
   { title: "Analytics", url: "/analytics", icon: GlobeIcon },
+  { title: "Keys", url: "/keys", icon: KeyIcon },
+  { title: "Audit", url: "/audit", icon: ScrollTextIcon },
   { title: "Settings", url: "/settings", icon: SettingsIcon },
 ] as const;
 

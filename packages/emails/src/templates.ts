@@ -127,11 +127,11 @@ const agentic: EmailTemplateSeed = {
     ),
     para(strong("Setup is one key and one config block:")),
     numberedSteps([
-      `Mint an agent key in <a href="${APP_URL}/settings/keys" style="color:#171717;font-weight:600;text-decoration:underline;">Settings → Keys</a>`,
+      `Mint an agent key in <a href="${APP_URL}/keys" style="color:#171717;font-weight:600;text-decoration:underline;">Keys</a>`,
       "Add the MCP server to your agent's config",
       `Ask it to "create a flag and roll it out to 10%"`,
     ]),
-    cta(`${APP_URL}/settings/keys`, "Mint an agent key"),
+    cta(`${APP_URL}/keys`, "Mint an agent key"),
     mutedPara("Feature flags made easy, with unlimited seats on every plan."),
     para("- Mehdi"),
   ].join("\n"),
@@ -141,7 +141,7 @@ Point Claude Code or Cursor at mcp.betterflag.app with an agent key and it can c
 
 Setup is one key and one config block:
 
-1. Mint an agent key in Settings → Keys: ${APP_URL}/settings/keys
+1. Mint an agent key: ${APP_URL}/keys
 2. Add the MCP server to your agent's config
 3. Ask it to "create a flag and roll it out to 10%"
 

@@ -93,10 +93,10 @@ export function KeysView({ initialKeys }: { initialKeys: ApiApiKey[] }) {
   return (
     <>
       <Stagger>
-        <div className="mb-5 flex items-center justify-between gap-4">
+        <div className="mb-6 flex items-center justify-between gap-4">
           <div>
-            <h2 className="text-[20px] font-semibold tracking-[-0.01em]">API keys</h2>
-            <p className="mt-1 text-[13px] text-ink-muted">
+            <h1 className="text-[28px] font-semibold tracking-[-0.01em]">Keys</h1>
+            <p className="mt-0.5 text-[14px] text-ink-muted">
               SDK keys evaluate, agent keys automate, admin keys administer.
             </p>
           </div>

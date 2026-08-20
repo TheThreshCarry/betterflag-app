@@ -1,5 +1,12 @@
-import { redirect } from "next/navigation";
+import { Suspense } from "react";
 
-export default function AuditRedirectPage() {
-  redirect("/settings/audit");
+import { AuditView } from "@/components/audit-view";
+import { AuditListSkeleton } from "@/components/skeletons";
+
+export default function AuditPage() {
+  return (
+    <Suspense fallback={<AuditListSkeleton />}>
+      <AuditView />
+    </Suspense>
+  );
 }

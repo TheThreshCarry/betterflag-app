@@ -7,18 +7,21 @@
  * approves or denies, see actions.ts for what happens next.
  */
 import { Logo } from "@/components/logo";
-import { Button, Card, Chip } from "@/components/ui";
+import { Card, Chip } from "@/components/ui";
 import { resolveSessionUser } from "@/lib/auth";
 import { fetchConsentTxn, isValidTxnId, listConsentOrgs } from "@/lib/mcp-oauth";
 
-import { approveConsent, denyConsent } from "./actions";
+import { ConsentForm } from "./consent-form";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const ERROR_COPY: Record<string, string> = {
   bad_txn: "This connection request is malformed. Restart the connection from your MCP client.",
-  bad_org: "That organization is not available to your account. Pick one of your organizations.",
+  bad_org: "Pick at least one organization you belong to.",
+  writable:
+    "None of the selected organizations can grant access right now (billing restricted or frozen). Pick another org or update billing, then restart the connection.",
+  failed: "Could not complete the connection. Restart it from your MCP client.",
   expired:
     "This connection request expired or was already used. Restart the connection from your MCP client.",
 };
@@ -105,54 +108,16 @@ export default async function McpConsentPage({
         </h1>
         <p className="mt-2 text-[14px] leading-relaxed text-ink-muted">
           It will be able to manage feature flags, create flags, change targeting, stage
-          rollouts, and use kill switches, in the organization you choose. Every change is
+          rollouts, and use kill switches, in the organizations you choose. Every change is
           attributed in the audit log, and you can disconnect any time by revoking the key on the
           Keys page.
         </p>
 
-        <form className="mt-6">
-          <input type="hidden" name="txnId" value={txn.txnId} />
-          <input type="hidden" name="clientName" value={txn.client.clientName ?? ""} />
-
-          <fieldset>
-            <legend className="mb-2 text-[13px] font-medium text-ink">
-              Give access to organization
-            </legend>
-            <div className="space-y-2">
-              {orgs.map((org, index) => (
-                <label
-                  key={org.id}
-                  className="flex cursor-pointer items-center gap-3 rounded-xl border border-line bg-canvas px-3.5 py-3 transition-colors hover:border-line-strong has-[:checked]:border-accent"
-                >
-                  <input
-                    type="radio"
-                    name="orgId"
-                    value={org.id}
-                    defaultChecked={index === 0}
-                    required
-                    className="size-4 accent-accent"
-                  />
-                  <span className="flex-1 text-[14px] font-medium text-ink">{org.name}</span>
-                  <span className="text-[12px] capitalize text-ink-muted">{org.plan}</span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
-
-          <p className="mt-4 text-[12px] leading-relaxed text-ink-muted">
-            Approving creates a dedicated agent key for this connection (it does not count
-            against your plan&apos;s agent-key limit).
-          </p>
-
-          <div className="mt-6 flex gap-3">
-            <Button type="submit" formAction={approveConsent} className="flex-1">
-              Approve
-            </Button>
-            <Button type="submit" formAction={denyConsent} variant="ghost" className="flex-1">
-              Deny
-            </Button>
-          </div>
-        </form>
+        <ConsentForm
+          txnId={txn.txnId}
+          clientName={txn.client.clientName ?? ""}
+          orgs={orgs}
+        />
       </Card>
 
       <p className="mt-4 text-center text-[12px] text-ink-muted">

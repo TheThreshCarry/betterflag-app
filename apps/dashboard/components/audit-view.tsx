@@ -128,10 +128,10 @@ export function AuditView() {
 
   return (
     <Stagger>
-      <div className="mb-5 flex items-center justify-between gap-4">
+      <div className="mb-6 flex items-center justify-between gap-4">
         <div>
-          <h2 className="text-[20px] font-semibold tracking-[-0.01em]">Audit log</h2>
-          <p className="mt-1 text-[13px] text-ink-muted">
+          <h1 className="text-[28px] font-semibold tracking-[-0.01em]">Audit</h1>
+          <p className="mt-0.5 text-[14px] text-ink-muted">
             {subjectFilter
               ? `Filtered to ${subjectFilter}.`
               : "Every mutation, human or machine, in one trail."}

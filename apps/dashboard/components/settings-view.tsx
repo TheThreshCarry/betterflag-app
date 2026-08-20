@@ -7,8 +7,6 @@ import {
   CheckIcon,
   CreditCardIcon,
   FolderKanbanIcon,
-  KeyIcon,
-  ScrollTextIcon,
   UserRoundIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -26,14 +24,7 @@ import { cn } from "@/lib/utils";
 import { tierForPlan, usePricingTiers } from "@/lib/use-pricing";
 import { toast } from "@/lib/toast";
 
-export type SettingsSection =
-  | "organization"
-  | "project"
-  | "keys"
-  | "usage"
-  | "audit"
-  | "billing"
-  | "account";
+export type SettingsSection = "organization" | "project" | "usage" | "billing" | "account";
 
 const SETTINGS_NAV = [
   {
@@ -51,25 +42,11 @@ const SETTINGS_NAV = [
     icon: FolderKanbanIcon,
   },
   {
-    key: "keys",
-    label: "Keys",
-    description: "SDK, agent, and admin",
-    href: "/settings/keys",
-    icon: KeyIcon,
-  },
-  {
     key: "usage",
     label: "Usage",
     description: "Evaluations meter",
     href: "/settings/usage",
     icon: BarChart3Icon,
-  },
-  {
-    key: "audit",
-    label: "Audit",
-    description: "Mutation trail",
-    href: "/settings/audit",
-    icon: ScrollTextIcon,
   },
   {
     key: "billing",
@@ -206,7 +183,7 @@ function OrganizationSettings({
   staggerFrom?: number;
   staggerSelf?: boolean;
 }) {
-  const { patchOrg } = useApp();
+  const { patchOrg, refreshOrgs } = useApp();
   const canEdit = org.role === "owner" || org.role === "admin";
 
   return (
@@ -229,6 +206,7 @@ function OrganizationSettings({
               body,
             });
             patchOrg(updated);
+            await refreshOrgs();
             toast.success({ title: "Logo updated" });
           }}
           onRemove={async () => {
@@ -236,6 +214,7 @@ function OrganizationSettings({
               method: "DELETE",
             });
             patchOrg(updated);
+            await refreshOrgs();
             toast.success({ title: "Logo removed" });
           }}
         />

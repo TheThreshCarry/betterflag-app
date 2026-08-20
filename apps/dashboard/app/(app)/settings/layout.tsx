@@ -8,9 +8,7 @@ import { Stagger } from "@/components/stagger";
 function sectionFromPath(pathname: string): SettingsSection {
   if (pathname.endsWith("/billing")) return "billing";
   if (pathname.endsWith("/project")) return "project";
-  if (pathname.endsWith("/keys")) return "keys";
   if (pathname.endsWith("/usage")) return "usage";
-  if (pathname.endsWith("/audit")) return "audit";
   if (pathname.endsWith("/account")) return "account";
   return "organization";
 }
@@ -29,7 +27,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
         <div className="mb-8">
           <h1 className="text-[28px] font-semibold tracking-[-0.01em]">Settings</h1>
           <p className="mt-1 text-[14px] text-ink-muted">
-            Workspace, keys, usage, audit, billing, and personal preferences.
+            Workspace, usage, billing, and personal preferences.
           </p>
         </div>
 

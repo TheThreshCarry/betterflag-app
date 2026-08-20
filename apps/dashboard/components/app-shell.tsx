@@ -338,8 +338,10 @@ export function AppShell({
             <main
               // Env-scoped pages remount on switch; settings (org-wide) stays put.
               key={
-                pathname.startsWith("/settings")
-                  ? "settings"
+                pathname.startsWith("/settings") ||
+                pathname.startsWith("/keys") ||
+                pathname.startsWith("/audit")
+                  ? "org-wide"
                   : (activeEnv?.slug ?? "none")
               }
               className="mx-auto w-full max-w-[1400px] flex-1 px-8 py-8"

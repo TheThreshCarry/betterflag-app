@@ -53,6 +53,7 @@ export class BetterFlagMcp extends McpAgent<Env, unknown, SessionProps> {
       return {
         baseUrl,
         apiKey,
+        keys: Array.isArray(this.props?.keys) ? this.props.keys : undefined,
         obs: this.obs,
         waitUntil: (promise) => this.ctx.waitUntil(promise),
       };

@@ -173,6 +173,8 @@ interface DecisionBody {
   /** The per-connection bf_agt_ key minted by the dashboard. */
   apiKey?: string;
   keyPrefix?: string;
+  /** One key per approved org. When omitted, `apiKey`/`orgId` is the single-org grant. */
+  keys?: Array<{ orgId: string; orgName: string; apiKey: string; keyPrefix: string }>;
 }
 
 /**
@@ -217,23 +219,39 @@ async function handleDecision(request: Request, env: Env): Promise<Response> {
     return oauthError(400, "invalid_request", "Approval requires userId, orgId and a valid apiKey");
   }
 
+  const grantedKeys =
+    body.keys && body.keys.length > 0
+      ? body.keys.filter((k) => k.orgId && k.apiKey && API_KEY_RE.test(k.apiKey))
+      : [{ orgId: body.orgId, orgName: body.orgName ?? "", apiKey: body.apiKey, keyPrefix: body.keyPrefix ?? "" }];
+  if (grantedKeys.length === 0) {
+    return oauthError(400, "invalid_request", "Approval requires at least one valid org key");
+  }
+  const primary = grantedKeys[0]!;
+
   const { redirectTo } = await provider(env).completeAuthorization({
     request: txn.oauthReqInfo,
     userId: body.userId,
     scope: [SCOPE_MANAGE],
     // Safe-to-display bookkeeping (grant listing / audit); never the key.
     metadata: {
-      orgId: body.orgId,
-      orgName: body.orgName ?? null,
-      keyPrefix: body.keyPrefix ?? null,
+      orgId: primary.orgId,
+      orgName: primary.orgName || body.orgName || null,
+      orgIds: grantedKeys.map((k) => k.orgId),
+      keyPrefix: primary.keyPrefix || body.keyPrefix || null,
       clientId: txn.client.clientId,
       clientName: txn.client.clientName,
     },
     // Encrypted by the provider; surfaces as ctx.props on /mcp requests.
     props: {
-      apiKey: body.apiKey,
-      orgId: body.orgId,
-      keyPrefix: body.keyPrefix,
+      apiKey: primary.apiKey,
+      orgId: primary.orgId,
+      keyPrefix: primary.keyPrefix || body.keyPrefix,
+      keys: grantedKeys.map((k) => ({
+        orgId: k.orgId,
+        orgName: k.orgName,
+        apiKey: k.apiKey,
+        keyPrefix: k.keyPrefix,
+      })),
       via: "oauth" as const,
     },
   });
@@ -242,8 +260,9 @@ async function handleDecision(request: Request, env: Env): Promise<Response> {
     "event.name": "mcp.oauth.decision",
     "event.outcome": "ok",
     approved: true,
-    org_id: body.orgId,
-    key_prefix: body.keyPrefix,
+    org_id: primary.orgId,
+    org_ids: grantedKeys.map((k) => k.orgId),
+    key_prefix: primary.keyPrefix || body.keyPrefix,
   });
 
   return json(200, { redirectTo });

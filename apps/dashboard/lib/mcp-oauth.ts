@@ -74,6 +74,7 @@ export async function postConsentDecision(body: {
   orgName?: string;
   apiKey?: string;
   keyPrefix?: string;
+  keys?: Array<{ orgId: string; orgName: string; apiKey: string; keyPrefix: string }>;
 }): Promise<{ redirectTo: string } | null> {
   const res = await fetch(`${mcpBaseUrl()}/internal/oauth/decision`, {
     method: "POST",

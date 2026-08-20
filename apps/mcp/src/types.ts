@@ -49,11 +49,20 @@ export interface Env {
  * (for OAuth grants, the per-connection bf_agt_ key minted at consent);
  * never logged.
  */
+export type SessionOrgKey = {
+  orgId: string;
+  orgName?: string;
+  apiKey: string;
+  keyPrefix?: string;
+};
+
 export type SessionProps = {
   apiKey: string;
   /** Present on OAuth-grant sessions only. */
   orgId?: string;
   keyPrefix?: string;
+  /** OAuth grants that approved more than one org. */
+  keys?: SessionOrgKey[];
   via?: "bearer" | "oauth";
 };
 
@@ -61,6 +70,8 @@ export type SessionProps = {
 export interface ApiCtx {
   baseUrl: string;
   apiKey: string;
+  /** Extra org keys for multi-org OAuth grants; `apiKey` is the primary. */
+  keys?: SessionOrgKey[];
   /** Best-effort telemetry; never carries or logs the bearer key. */
   obs?: Observability;
   waitUntil?: (promise: Promise<unknown>) => void;
