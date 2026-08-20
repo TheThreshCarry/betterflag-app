@@ -24,23 +24,6 @@ const nextConfig: NextConfig = {
   },
   // PostHog rewrites need trailing-slash passthrough.
   skipTrailingSlashRedirect: true,
-  // Retire dashboard.betterflag.app if that host still points at this deployment.
-  async redirects() {
-    return [
-      {
-        source: "/",
-        has: [{ type: "host", value: "dashboard.betterflag.app" }],
-        destination: "https://dashboard.betterflag.app/",
-        permanent: true,
-      },
-      {
-        source: "/:path*",
-        has: [{ type: "host", value: "dashboard.betterflag.app" }],
-        destination: "https://dashboard.betterflag.app/:path*",
-        permanent: true,
-      },
-    ];
-  },
 };
 
 export default nextConfig;
