@@ -12,6 +12,7 @@ import {
 import Link from "next/link";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 
+import { AddToPostmanButton } from "@/components/add-to-postman";
 import { AppearanceSettings } from "@/components/appearance-settings";
 import { useApp } from "@/components/app-shell";
 import { ImageUploadField } from "@/components/image-upload-field";
@@ -360,6 +361,19 @@ function ProjectSettings({
             <DefinitionRow
               label="Created"
               value={new Date(activeProject.createdAt).toLocaleDateString()}
+            />
+            <DefinitionRow
+              label="Edge API"
+              value={
+                <span className="font-normal text-ink-muted">
+                  Evaluate flags with an SDK key from{" "}
+                  <Link href="/keys" className="font-medium text-ink underline underline-offset-2">
+                    Keys
+                  </Link>
+                  . Admin and agent keys are rejected.
+                </span>
+              }
+              action={<AddToPostmanButton size="sm" />}
             />
           </Card>
 

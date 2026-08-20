@@ -1,0 +1,127 @@
+{
+  "info": {
+    "_postman_id": "7c8e4f21-9a3b-4d6e-8f01-2c3d4e5f6a7b",
+    "name": "Betterflag Edge API",
+    "description": "Public edge evaluation API at `https://api.betterflag.app`.\n\n**Auth:** `Authorization: Bearer {{sdkKey}}`. Evaluate and snapshot **require an SDK key** (`bf_sdk_*`). Admin (`bf_adm_*`) and agent (`bf_agt_*`) keys are rejected — those belong on the control plane, not this collection.\n\nSet `sdkKey` in the collection variables, then send Evaluate or Snapshot. The key is scoped to one project and environment; you never pass those in the body.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://api.betterflag.app"
+    },
+    {
+      "key": "sdkKey",
+      "value": "",
+      "description": "Publishable SDK key (`bf_sdk_...`). Required. Admin and agent keys are rejected."
+    }
+  ],
+  "item": [
+    {
+      "name": "Evaluate",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{sdkKey}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"key\": \"my-flag\",\n  \"context\": {\n    \"userId\": \"u_123\"\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/v1/evaluate",
+        "description": "Evaluate one flag (`key`), several (`keys`), or all flags (omit both). Do not send `key` and `keys` together.\n\nOptional `context`: `{ userId?, attributes? }`. Drives targeting and percentage bucketing.\n\nRequires `bf_sdk_*`. Response: `{ version, results }` where `results` is always an array."
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sdkKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"key\": \"my-flag\",\n  \"context\": {\n    \"userId\": \"u_123\"\n  }\n}"
+            },
+            "url": "{{baseUrl}}/v1/evaluate"
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"version\": 42,\n  \"results\": [\n    {\n      \"key\": \"my-flag\",\n      \"value\": true,\n      \"variation\": \"on\",\n      \"reason\": \"default\"\n    }\n  ]\n}"
+        }
+      ]
+    },
+    {
+      "name": "Snapshot",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{sdkKey}}",
+            "type": "text"
+          }
+        ],
+        "url": "{{baseUrl}}/v1/snapshot",
+        "description": "Full environment snapshot for the SDK key's project + environment. Response sets `ETag: \"v{version}\"`. Send it back as `If-None-Match` on later polls for a cheap 304.\n\nRequires `bf_sdk_*`. Not throttled by the Starter evaluation quota."
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{sdkKey}}"
+              }
+            ],
+            "url": "{{baseUrl}}/v1/snapshot"
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "ETag",
+              "value": "\"v42\""
+            }
+          ],
+          "body": "{\n  \"version\": 42,\n  \"projectId\": \"00000000-0000-0000-0000-000000000000\",\n  \"environment\": \"prod\",\n  \"generatedAt\": \"2026-08-20T00:00:00.000Z\",\n  \"flags\": {\n    \"my-flag\": {\n      \"kind\": \"boolean\",\n      \"enabled\": true,\n      \"killed\": false,\n      \"rolloutPct\": 100,\n      \"rules\": [],\n      \"valueOn\": true,\n      \"valueOff\": false,\n      \"defaultValue\": false\n    }\n  }\n}"
+        }
+      ]
+    }
+  ]
+}

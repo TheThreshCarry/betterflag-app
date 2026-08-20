@@ -4,6 +4,7 @@ import { PLAN_LIMITS } from "@betterflag/db";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { AddToPostmanButton } from "@/components/add-to-postman";
 import { useApp } from "@/components/app-shell";
 import {
   Button,
@@ -100,7 +101,10 @@ export function KeysView({ initialKeys }: { initialKeys: ApiApiKey[] }) {
               SDK keys evaluate, agent keys automate, admin keys administer.
             </p>
           </div>
-          <Button onClick={() => setCreateOpen(true)}>New key</Button>
+          <div className="flex shrink-0 items-center gap-2">
+            <AddToPostmanButton />
+            <Button onClick={() => setCreateOpen(true)}>New key</Button>
+          </div>
         </div>
 
         <ErrorNote message={error} />
