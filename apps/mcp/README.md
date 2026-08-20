@@ -90,7 +90,7 @@ with several, the tool answers with the list so the agent can pick.
 >
 > ```
 > ✅ Created flag "checkout-v2" (boolean) in project "shop".
-> All environments start OFF, toggle_flag turns it on, set_rollout ramps it gradually.
+> All environments start OFF at 100% rollout; toggle_flag turns it on.
 >
 > Ready to paste into your code:
 >   const on = await betterflag.flag("checkout-v2", { userId, default: false });
@@ -101,7 +101,7 @@ with several, the tool answers with the list so the agent can pick.
 > **Claude** → `set_rollout { key: "checkout-v2", env: "prod", percent: 10 }`
 >
 > ```
-> 📈 Rollout for "checkout-v2" in prod: 0% → 10%.
+> 📈 Rollout for "checkout-v2" in prod: 100% → 10%.
 > Bucketing is stable: users hash to fixed buckets, so raising the percentage
 > only adds users, nobody who already has the flag loses it.
 > ```

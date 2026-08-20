@@ -140,6 +140,12 @@ export function Card({
 export const inputClass =
   "h-10 w-full rounded-xl border border-line bg-canvas px-3.5 text-[14px] text-ink placeholder:text-ink-muted/60 outline-none focus:border-line-strong";
 
+/**
+ * Native select: same chrome as inputClass, extra end padding so the
+ * chevron sits 14px off the rounded edge (matches left `px-3.5`).
+ */
+export const selectClass = `${inputClass} select-field`;
+
 export const textareaClass =
   "w-full rounded-xl border border-line bg-canvas px-3.5 py-2.5 text-[13px] font-mono text-ink placeholder:text-ink-muted/60 outline-none focus:border-line-strong";
 

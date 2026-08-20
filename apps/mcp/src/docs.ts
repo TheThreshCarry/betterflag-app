@@ -67,7 +67,7 @@ No init ceremony, no waiting. \`flag()\` never throws: on any failure
 
 3. Create and control the flag, either in the dashboard or right here via
    MCP tools: create_flag → toggle_flag → set_rollout. New flags start OFF
-   at 0% in every environment; enable them once the code is deployed.
+   at 100% rollout in every environment; enable them once the code is deployed.
 
 Using React? read_docs topic "sdk-react". Details and API reference:
 topic "sdk-js" or https://docs.betterflag.app`,
@@ -383,7 +383,7 @@ values. promote_config copies a full config between environments
 set_rollout sets the share of users that get the ON variation. Bucketing
 is stable: users hash to fixed buckets, so raising the percentage only
 adds users, nobody who already has the flag loses it. New flags start
-OFF at 0% everywhere.
+OFF at 100% rollout everywhere.
 
 ## Kill switch
 

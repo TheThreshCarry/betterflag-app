@@ -178,8 +178,8 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
     {
       title: "Create a feature flag",
       description:
-        "Create a new feature flag. Every environment starts OFF at 0%, enable it with " +
-        "toggle_flag / set_rollout when the code is deployed behind it.",
+        "Create a new feature flag. Every environment starts OFF at 100% rollout; enable it with " +
+        "toggle_flag when the code is deployed behind it.",
       inputSchema: {
         projectSlug: projectSlugParam,
         key: flagKeyFormat,
@@ -210,7 +210,7 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
         const slug = project.slug ?? project.id;
         return [
           `✅ Created flag "${created?.key ?? key}" (${kind ?? "boolean"}) in project "${slug}".`,
-          "All environments start OFF, toggle_flag turns it on, set_rollout ramps it gradually.",
+          "All environments start OFF at 100% rollout; toggle_flag turns it on.",
           "",
           "Ready to paste into your code:",
           `  const on = await betterflag.flag("${key}", { userId, default: false });`,

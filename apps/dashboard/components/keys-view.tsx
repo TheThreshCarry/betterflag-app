@@ -16,6 +16,7 @@ import {
   Field,
   RelativeTime,
   inputClass,
+  selectClass,
   type ChipColor,
 } from "@/components/ui";
 import { DataTable, TableCell, TableRow, type Column } from "@/components/data-table";
@@ -344,7 +345,7 @@ function CreateKeyDialog({
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Project">
                 <select
-                  className={inputClass}
+                  className={selectClass}
                   value={projectId}
                   onChange={(event) => {
                     setProjectId(event.target.value);
@@ -360,7 +361,7 @@ function CreateKeyDialog({
               </Field>
               <Field label="Environment">
                 <select
-                  className={inputClass}
+                  className={selectClass}
                   value={environmentId}
                   onChange={(event) => setEnvironmentId(event.target.value)}
                 >
