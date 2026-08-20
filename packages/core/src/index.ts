@@ -35,6 +35,7 @@ export {
   ruleConditionSchema,
   targetingRuleSchema,
   targetingRulesSchema,
+  RULE_NAME_MAX,
   flagSnapshotEntrySchema,
   projectSnapshotSchema,
   evaluationContextSchema,

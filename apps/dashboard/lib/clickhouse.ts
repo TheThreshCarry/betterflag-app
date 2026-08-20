@@ -2,11 +2,15 @@
  * ClickHouse read helpers for usage + per-flag stats. Queries go over the
  * HTTP interface with basic auth and bound parameters ({name:Type}), FORMAT
  * JSONEachRow. When CLICKHOUSE_URL is unset the helpers return [] with a
- * console.warn so the dashboard degrades gracefully in dev.
+ * console.warn so the dashboard degrades gracefully in dev. A configured but
+ * unreachable host throws HttpError 503 so Analytics does not look empty.
  */
 
 import { optionalEnv } from "./env";
+import { HttpError } from "./errors";
 import { reportServerError } from "./observability";
+
+const QUERY_TIMEOUT_MS = 10_000;
 
 interface ClickHouseConfig {
   url: string;
@@ -17,9 +21,8 @@ interface ClickHouseConfig {
 /**
  * ClickHouse Cloud serves only over https and 301-redirects http → https.
  * `fetch` drops the Authorization header across that (cross-scheme) redirect,
- * so an http:// URL makes every read fail auth and return []. Upgrade the
- * scheme for any non-local host so a stray http:// in the env can't silently
- * blank out analytics.
+ * so an http:// URL makes every read fail auth. Upgrade the scheme for any
+ * non-local host so a stray http:// in the env can't blank out analytics.
  */
 function normalizeClickhouseUrl(raw: string): string {
   try {
@@ -69,6 +72,7 @@ async function chQuery<T>(sql: string, params: Record<string, string | number>):
         "Content-Type": "text/plain",
       },
       body: `${sql} FORMAT JSONEachRow`,
+      signal: AbortSignal.timeout(QUERY_TIMEOUT_MS),
     });
     if (!res.ok) {
       const detail = await res.text();
@@ -79,7 +83,11 @@ async function chQuery<T>(sql: string, params: Record<string, string | number>):
         status: res.status,
         detail: detail.slice(0, 500),
       });
-      return [];
+      throw new HttpError(
+        503,
+        "clickhouse_unavailable",
+        `ClickHouse query failed (${res.status})`,
+      );
     }
     const text = await res.text();
     return text
@@ -87,13 +95,20 @@ async function chQuery<T>(sql: string, params: Record<string, string | number>):
       .filter((line) => line.trim().length > 0)
       .map((line) => JSON.parse(line) as T);
   } catch (err) {
+    if (err instanceof HttpError) throw err;
     console.error("[clickhouse] query failed:", err);
     reportServerError("clickhouse query failed", {
       "event.name": "clickhouse.query",
       "event.outcome": "error",
       error: err instanceof Error ? err.message : String(err),
     });
-    return [];
+    const timedOut =
+      err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError");
+    throw new HttpError(
+      503,
+      "clickhouse_unavailable",
+      timedOut ? "ClickHouse query timed out" : "ClickHouse query failed",
+    );
   }
 }
 

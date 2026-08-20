@@ -35,8 +35,12 @@ export const ruleConditionSchema = z.object({
   value: jsonValueSchema,
 });
 
+/** Display title on a targeting rule. Evaluate still keys by `id`. */
+export const RULE_NAME_MAX = 80;
+
 export const targetingRuleSchema = z.object({
   id: z.string().min(1).max(64),
+  name: z.string().max(RULE_NAME_MAX).optional(),
   description: z.string().max(512).optional(),
   conditions: z.array(ruleConditionSchema).max(32),
   serve: z.enum(["on", "off"]),

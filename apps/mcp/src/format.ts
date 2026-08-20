@@ -31,8 +31,9 @@ export function renderRule(rule: TargetingRule, index: number): string {
       ? "matches everyone"
       : rule.conditions.map((c) => `${c.attribute} ${c.op} ${JSON.stringify(c.value)}`).join(" AND ");
   const pct = rule.rolloutPct !== undefined ? ` to ${rule.rolloutPct}% of matches` : "";
+  const title = rule.name ? `${rule.name} ` : "";
   const desc = rule.description ? `, ${rule.description}` : "";
-  return `    ${index + 1}. [${rule.id}] ${conds} → serve ${rule.serve}${pct}${desc}`;
+  return `    ${index + 1}. ${title}[${rule.id}] ${conds} → serve ${rule.serve}${pct}${desc}`;
 }
 
 export function flagDetail(flag: Flag, projectSlug: string | undefined): string {

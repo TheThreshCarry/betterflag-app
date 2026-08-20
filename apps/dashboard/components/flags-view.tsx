@@ -18,6 +18,7 @@ import { useRouter } from "next/navigation";
 import {
   useCallback,
   useEffect,
+  useRef,
   useState,
   type FormEvent,
   type MouseEvent,
@@ -50,6 +51,7 @@ import type { ApiEnvironment, ApiFlag, ApiFlagConfig } from "@/lib/api-types";
 import { api, ApiClientError } from "@/lib/client-api";
 import { staggerStyle } from "@/lib/stagger";
 import { flagEnvDescription, toast } from "@/lib/toast";
+import { useFlagRealtime } from "@/lib/use-flag-realtime";
 import { cn } from "@/lib/utils";
 
 const FLAG_EXPAND_MS = 400;
@@ -133,6 +135,75 @@ export function FlagsView() {
     setExpandedId(null);
     void load();
   }, [load]);
+
+  const flagsRef = useRef(flags);
+  flagsRef.current = flags;
+  const loadRef = useRef(load);
+  loadRef.current = load;
+
+  useFlagRealtime(activeProject?.id, {
+    onFlag: ({ eventType, flag, oldId }) => {
+      if (!flagsRef.current) return;
+      if (eventType === "INSERT") {
+        void loadRef.current();
+        return;
+      }
+      const id = flag?.id ?? oldId;
+      if (!id) return;
+      if (eventType === "DELETE" || flag?.archivedAt) {
+        setFlags((current) => current?.filter((row) => row.id !== id) ?? current);
+        return;
+      }
+      if (eventType === "UPDATE" && flag) {
+        setFlags(
+          (current) =>
+            current?.map((row) => (row.id === flag.id ? { ...row, ...flag } : row)) ??
+            current,
+        );
+      }
+    },
+    onConfig: ({ eventType, config, oldId }) => {
+      const listed = flagsRef.current;
+      if (!listed) return;
+
+      if (eventType === "DELETE") {
+        const id = config?.id ?? oldId;
+        if (!id) return;
+        setFlags((current) => {
+          if (!current) return current;
+          return current.map((row) => {
+            if (config?.flagId && row.id !== config.flagId) return row;
+            if (!row.configs.some((item) => item.id === id)) return row;
+            return { ...row, configs: row.configs.filter((item) => item.id !== id) };
+          });
+        });
+        return;
+      }
+
+      if (!config) return;
+      // Other projects in the same org also match flag_configs RLS. Ignore
+      // unknown flag_id; flags INSERT already reloads nested configs.
+      if (!listed.some((row) => row.id === config.flagId)) return;
+
+      setFlags((current) => {
+        if (!current) return current;
+        return current.map((row) => {
+          if (row.id !== config.flagId) return row;
+          const existing = row.configs.find((item) => item.id === config.id);
+          if (existing) {
+            if (config.version <= existing.version) return row;
+            return {
+              ...row,
+              configs: row.configs.map((item) =>
+                item.id === config.id ? config : item,
+              ),
+            };
+          }
+          return { ...row, configs: [...row.configs, config] };
+        });
+      });
+    },
+  });
 
   // Close expand when env changes — config context shifts.
   useEffect(() => {

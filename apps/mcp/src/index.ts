@@ -40,6 +40,28 @@ const sseHandler = BetterFlagMcp.serveSSE("/sse", { binding: "MCP_OBJECT" });
 const KEY_HINT =
   "Send `Authorization: Bearer bf_agt_…`, create an agent key in the Betterflag dashboard under Keys, or connect via OAuth.";
 
+/** Browser MCP Inspector (direct Streamable HTTP) must CORS-preflight /mcp without a Bearer. */
+const MCP_CORS_HEADERS: Record<string, string> = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "Content-Type, Accept, Authorization, mcp-session-id, MCP-Protocol-Version, Last-Event-ID",
+  "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+  "Access-Control-Expose-Headers": "mcp-session-id, MCP-Protocol-Version, WWW-Authenticate",
+  "Access-Control-Max-Age": "86400",
+};
+
+function withMcpCors(response: Response): Response {
+  const headers = new Headers(response.headers);
+  for (const [key, value] of Object.entries(MCP_CORS_HEADERS)) {
+    headers.set(key, value);
+  }
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 function json(status: number, body: unknown, request?: Request): Response {
   const headers: Record<string, string> = { "content-type": "application/json" };
   if (status === 401 && request) {
@@ -134,6 +156,10 @@ export default {
 
     try {
       if (isMcp || isSse) {
+        if (request.method === "OPTIONS") {
+          return finish(new Response(null, { status: 204, headers: MCP_CORS_HEADERS }));
+        }
+
         const direct = checkDirectKey(request);
         if (direct instanceof Response || direct) {
           const log = obs.logger.child({ path: pathname, method: request.method });
@@ -145,7 +171,7 @@ export default {
               "event.name": "mcp.auth",
               "event.outcome": "client_error",
             });
-            return finish(direct);
+            return finish(withMcpCors(direct));
           }
 
           log.info("mcp: session authorized (direct key)", {
@@ -160,12 +186,12 @@ export default {
           const response = isSse
             ? await sseHandler.fetch(request, env, ctx)
             : await mcpHandler.fetch(request, env, ctx);
-          return finish(response);
+          return finish(withMcpCors(response));
         }
       }
 
       const response = await oauthProvider.fetch(request, env as never, ctx);
-      return finish(response);
+      return finish(isMcp || isSse ? withMcpCors(response) : response);
     } catch (error) {
       span.recordException(error).end();
       obs.logger.error("mcp request failed", {

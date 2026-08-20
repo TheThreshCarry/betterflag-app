@@ -1,11 +1,13 @@
 "use client";
 
 import {
+  RULE_NAME_MAX,
   targetingRulesSchema,
   type JsonValue,
   type RuleOperator,
   type TargetingRule,
 } from "@betterflag/core";
+import { useDebounce } from "@uidotdev/usehooks";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQueryStates } from "nuqs";
@@ -41,6 +43,7 @@ import type {
   AnalyticsPeriod,
   ApiAnalytics,
   ApiFlag,
+  ApiFlagConfig,
   ApiFlagConfigWithEnv,
   ApiStats,
   StatsPoint,
@@ -81,6 +84,7 @@ interface EditableCondition {
 
 interface EditableRule {
   id: string;
+  name: string;
   description: string;
   conditions: EditableCondition[];
   serve: "on" | "off";
@@ -101,11 +105,36 @@ function textToConditionValue(text: string): JsonValue {
   }
 }
 
-function rulesToEditable(rules: JsonValue): EditableRule[] {
+function parseRules(rules: JsonValue): TargetingRule[] {
   const parsed = targetingRulesSchema.safeParse(rules);
-  if (!parsed.success) return [];
-  return parsed.data.map((rule) => ({
+  return parsed.success ? parsed.data : [];
+}
+
+function namesEqual(a: string | undefined, b: string | undefined): boolean {
+  return (a ?? "").trim() === (b ?? "").trim();
+}
+
+function overlayRuleNames(saved: TargetingRule[], local: EditableRule[]): TargetingRule[] {
+  const names = new Map(local.map((rule) => [rule.id, rule.name.trim().slice(0, RULE_NAME_MAX)]));
+  return saved.map((rule) => {
+    const next: TargetingRule = { ...rule };
+    const name = names.get(rule.id) ?? "";
+    if (name.length > 0) next.name = name;
+    else delete next.name;
+    return next;
+  });
+}
+
+function namesFromRules(rules: TargetingRule[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const rule of rules) out[rule.id] = rule.name ?? "";
+  return out;
+}
+
+function rulesToEditable(rules: JsonValue): EditableRule[] {
+  return parseRules(rules).map((rule) => ({
     id: rule.id,
+    name: rule.name ?? "",
     description: rule.description ?? "",
     conditions: rule.conditions.map((condition) => ({
       attribute: condition.attribute,
@@ -130,6 +159,8 @@ function editableToRules(editable: EditableRule[]): TargetingRule[] {
         })),
       serve: rule.serve,
     };
+    const name = rule.name.trim().slice(0, RULE_NAME_MAX);
+    if (name.length > 0) out.name = name;
     if (rule.description.trim().length > 0) out.description = rule.description.trim();
     if (rule.rolloutPctText.trim().length > 0) {
       const pct = Number(rule.rolloutPctText);
@@ -393,6 +424,16 @@ function EnvConfigCard({
   const [conflict, setConflict] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [killOpen, setKillOpen] = useState(false);
+  const [savedNames, setSavedNames] = useState<Record<string, string>>(() =>
+    namesFromRules(parseRules(config.rules)),
+  );
+
+  const versionRef = useRef(config.version);
+  const savedRulesRef = useRef<TargetingRule[]>(parseRules(config.rules));
+  const rulesRef = useRef(rules);
+  rulesRef.current = rules;
+  const conflictRef = useRef(false);
+  const nameSaveChain = useRef(Promise.resolve());
 
   useEffect(() => {
     setEnabled(config.enabled);
@@ -403,21 +444,73 @@ function EnvConfigCard({
     setDirty(false);
     setConflict(false);
     setError(null);
+    versionRef.current = config.version;
+    savedRulesRef.current = parseRules(config.rules);
+    conflictRef.current = false;
+    setSavedNames(namesFromRules(savedRulesRef.current));
   }, [config, flag.kind]);
 
   function touch() {
     setDirty(true);
   }
 
+  function markConflict() {
+    conflictRef.current = true;
+    setConflict(true);
+  }
+
+  function persistRuleNames() {
+    nameSaveChain.current = nameSaveChain.current
+      .catch(() => undefined)
+      .then(async () => {
+        if (conflictRef.current) return;
+        const saved = savedRulesRef.current;
+        const nextRules = overlayRuleNames(saved, rulesRef.current);
+        const unchanged = saved.every(
+          (rule, index) =>
+            rule.id === nextRules[index]?.id && namesEqual(rule.name, nextRules[index]?.name),
+        );
+        if (unchanged) return;
+
+        try {
+          const result = await api<{ config: ApiFlagConfig }>(
+            `/api/v1/flags/${flag.id}/environments/${envSlug}/config`,
+            {
+              method: "PUT",
+              body: JSON.stringify({
+                rules: nextRules,
+                expectedVersion: versionRef.current,
+              }),
+            },
+          );
+          versionRef.current = result.config.version;
+          savedRulesRef.current = parseRules(result.config.rules);
+          setSavedNames(namesFromRules(savedRulesRef.current));
+        } catch (err) {
+          if (err instanceof ApiClientError && err.status === 409) {
+            markConflict();
+          } else {
+            toast.error({
+              title: "Couldn't save rule name",
+              description: err instanceof Error ? err.message : "Failed to save",
+            });
+          }
+          throw err;
+        }
+      });
+    return nameSaveChain.current;
+  }
+
   async function save() {
     setBusy(true);
     setError(null);
     try {
+      await nameSaveChain.current.catch(() => undefined);
       const body: Record<string, unknown> = {
         enabled,
         rolloutPct,
         rules: editableToRules(rules),
-        expectedVersion: config.version,
+        expectedVersion: versionRef.current,
       };
       if (flag.kind !== "boolean") {
         const on = textToValue(flag.kind, valueOnText);
@@ -433,7 +526,7 @@ function EnvConfigCard({
       toast.success({ title: "Changes saved", description: flagEnvDescription(flag.key, envSlug) });
     } catch (err) {
       if (err instanceof ApiClientError && err.status === 409) {
-        setConflict(true);
+        markConflict();
       } else {
         setError(err instanceof Error ? err.message : "Failed to save");
       }
@@ -448,7 +541,7 @@ function EnvConfigCard({
     try {
       await api(`/api/v1/flags/${flag.id}/environments/${envSlug}/config`, {
         method: "PUT",
-        body: JSON.stringify({ clearKill: true, expectedVersion: config.version }),
+        body: JSON.stringify({ clearKill: true, expectedVersion: versionRef.current }),
       });
       await onRefresh();
       toast.success({
@@ -457,7 +550,7 @@ function EnvConfigCard({
       });
     } catch (err) {
       if (err instanceof ApiClientError && err.status === 409) {
-        setConflict(true);
+        markConflict();
       } else {
         setError(err instanceof Error ? err.message : "Failed to clear kill");
       }
@@ -607,6 +700,14 @@ function EnvConfigCard({
             setRules(next);
             touch();
           }}
+          onNameChange={(index, name) => {
+            setRules((current) =>
+              current.map((rule, i) => (i === index ? { ...rule, name } : rule)),
+            );
+          }}
+          onNamePersist={() => persistRuleNames()}
+          persistedNames={savedNames}
+          nameDisabled={conflict}
         />
       </div>
 
@@ -693,12 +794,78 @@ function valueHint(kind: ApiFlag["kind"]): string {
   return "Valid JSON.";
 }
 
+function RuleNameInput({
+  name,
+  fallbackId,
+  persistedName,
+  disabled,
+  onLocalChange,
+  onPersist,
+}: {
+  name: string;
+  fallbackId: string;
+  persistedName: string;
+  disabled?: boolean;
+  onLocalChange: (name: string) => void;
+  onPersist: () => Promise<unknown>;
+}) {
+  const debouncedName = useDebounce(name, 500);
+  const lastSubmittedRef = useRef(persistedName.trim());
+  const persistRef = useRef(onPersist);
+  persistRef.current = onPersist;
+
+  useEffect(() => {
+    lastSubmittedRef.current = persistedName.trim();
+  }, [persistedName]);
+
+  const flush = useCallback(() => {
+    const trimmed = name.trim().slice(0, RULE_NAME_MAX);
+    if (trimmed === lastSubmittedRef.current) return Promise.resolve();
+    lastSubmittedRef.current = trimmed;
+    return persistRef.current().catch(() => {
+      lastSubmittedRef.current = persistedName.trim();
+    });
+  }, [name, persistedName]);
+
+  useEffect(() => {
+    const trimmed = debouncedName.trim().slice(0, RULE_NAME_MAX);
+    if (trimmed === lastSubmittedRef.current) return;
+    lastSubmittedRef.current = trimmed;
+    void persistRef.current().catch(() => {
+      lastSubmittedRef.current = persistedName.trim();
+    });
+  }, [debouncedName, persistedName]);
+
+  return (
+    <input
+      className={cn(inputClass, "!h-7 min-w-0 flex-1 !px-2 !text-[12px]")}
+      value={name}
+      placeholder={fallbackId}
+      maxLength={RULE_NAME_MAX}
+      aria-label="Rule name"
+      disabled={disabled}
+      onChange={(event) => onLocalChange(event.target.value.slice(0, RULE_NAME_MAX))}
+      onBlur={() => {
+        void flush();
+      }}
+    />
+  );
+}
+
 function RulesEditor({
   rules,
   onChange,
+  onNameChange,
+  onNamePersist,
+  persistedNames,
+  nameDisabled,
 }: {
   rules: EditableRule[];
   onChange: (rules: EditableRule[]) => void;
+  onNameChange: (index: number, name: string) => void;
+  onNamePersist: () => Promise<unknown>;
+  persistedNames: Record<string, string>;
+  nameDisabled: boolean;
 }) {
   function updateRule(index: number, patch: Partial<EditableRule>) {
     onChange(rules.map((rule, i) => (i === index ? { ...rule, ...patch } : rule)));
@@ -730,7 +897,7 @@ function RulesEditor({
           onClick={() =>
             onChange([
               ...rules,
-              { id: newRuleId(), description: "", conditions: [], serve: "on", rolloutPctText: "" },
+              { id: newRuleId(), name: "", description: "", conditions: [], serve: "on", rolloutPctText: "" },
             ])
           }
         >
@@ -746,10 +913,19 @@ function RulesEditor({
         <div className="space-y-3">
           {rules.map((rule, index) => (
             <div key={rule.id} className="rounded-xl border border-line p-3">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="font-mono text-[11px] text-ink-muted">
-                  #{index + 1} · {rule.id}
-                </span>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <span className="shrink-0 font-mono text-[11px] text-ink-muted">#{index + 1}</span>
+                  <span className="shrink-0 text-[11px] text-ink-muted">·</span>
+                  <RuleNameInput
+                    name={rule.name}
+                    fallbackId={rule.id}
+                    persistedName={persistedNames[rule.id] ?? ""}
+                    disabled={nameDisabled}
+                    onLocalChange={(next) => onNameChange(index, next)}
+                    onPersist={onNamePersist}
+                  />
+                </div>
                 <div className="flex items-center gap-1">
                   <button
                     type="button"

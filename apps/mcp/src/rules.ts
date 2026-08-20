@@ -13,7 +13,7 @@
  * stays cheap; deep validation still runs at runtime via
  * `targetingRulesSchema.safeParse`.
  */
-import { ruleOperatorSchema, targetingRulesSchema } from "@betterflag/core";
+import { RULE_NAME_MAX, ruleOperatorSchema, targetingRulesSchema } from "@betterflag/core";
 import { z } from "zod";
 
 export { targetingRulesSchema };
@@ -32,6 +32,7 @@ export const ruleConditionInputSchema = z.object({
 
 export const targetingRuleInputSchema = z.object({
   id: z.string().min(1).max(64),
+  name: z.string().max(RULE_NAME_MAX).optional(),
   description: z.string().max(512).optional(),
   conditions: z.array(ruleConditionInputSchema).max(32),
   serve: z.enum(["on", "off"]),

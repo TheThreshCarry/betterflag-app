@@ -293,6 +293,19 @@ claude mcp add --transport http betterflag https://mcp.betterflag.app/mcp \\
 Admin keys (bf_adm_*) also work. SDK keys (bf_sdk_*) do NOT: those are
 publishable evaluation credentials for the edge, not management keys.
 
+## MCP Inspector
+
+npx @modelcontextprotocol/inspector@latest
+
+- Transport: Streamable HTTP (not SSE)
+- URL: https://mcp.betterflag.app/mcp (must include /mcp)
+- Auth: OAuth 2.0 → Connect, or header Authorization: Bearer bf_agt_...
+
+Do not use the health URL (https://mcp.betterflag.app), /authorize, SSE
+against /mcp, or Auth None. Unauthenticated /mcp is 401, not an
+initialize result. JSON with "method":"initialize" and clientInfo
+mcp-inspector is the request Inspector sent, not the server response.
+
 ## Notes
 
 - projectSlug is optional on every tool: with a single project it's
@@ -317,6 +330,7 @@ rollout.
 [
   {
     "id": "beta-testers",
+    "name": "EU beta",
     "description": "Internal + beta cohort",
     "conditions": [
       { "attribute": "plan", "op": "eq", "value": "beta" },
@@ -328,7 +342,8 @@ rollout.
 ]
 \`\`\`
 
-- id: string, 1–64 chars, unique per rule
+- id: string, 1–64 chars, unique per rule (evaluate keys by this)
+- name: optional display title, ≤80 chars
 - description: optional, ≤512 chars
 - conditions: ≤32 per rule; attribute is any user attribute passed to the
   SDK (via flag() attributes or signIn metadata)

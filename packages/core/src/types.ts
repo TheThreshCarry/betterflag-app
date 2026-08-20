@@ -31,6 +31,8 @@ export interface RuleCondition {
 
 export interface TargetingRule {
   id: string;
+  /** Optional display title. Evaluate still keys by `id`. */
+  name?: string;
   description?: string;
   /** All conditions must match (AND). An empty array matches everyone. */
   conditions: RuleCondition[];

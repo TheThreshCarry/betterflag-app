@@ -61,6 +61,27 @@ Legacy SSE clients can connect to `https://mcp.betterflag.app/sse` with the same
 header. Admin keys (`bf_adm_*`) also work; SDK keys (`bf_sdk_*`) do not -
 those are for the evaluation API.
 
+## MCP Inspector
+
+```sh
+npx @modelcontextprotocol/inspector@latest
+```
+
+| Field | Value |
+|---|---|
+| Transport | **Streamable HTTP** (not SSE, not stdio) |
+| URL | `https://mcp.betterflag.app/mcp` (must include `/mcp`) |
+| Auth | **OAuth 2.0** → Connect (browser consent), **or** header `Authorization: Bearer bf_agt_...` |
+
+Wrong URLs / transports:
+
+- `https://mcp.betterflag.app` — health JSON only (`GET /`)
+- `https://mcp.betterflag.app/authorize` — browser OAuth start, not an MCP endpoint
+- SSE transport — only if URL is `https://mcp.betterflag.app/sse`
+- Auth **None** — `/mcp` is protected. Unauthenticated POST is `401` + `WWW-Authenticate`, not an initialize result
+
+A successful initialize **result** looks like `{ "jsonrpc":"2.0", "id":0, "result": { "protocolVersion":"…", "serverInfo": { "name":"betterflag" }, … } }`. JSON with `"method":"initialize"` and `"clientInfo":{"name":"mcp-inspector"}` is the **request Inspector sent**, not the server response. If that is all you see, the handshake never completed (usually missing auth or the URL is not `/mcp`).
+
 ## Tools
 
 | Tool | What it does |

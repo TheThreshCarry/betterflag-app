@@ -361,7 +361,7 @@ export function registerTools(server: McpServer, getCtx: () => ApiCtx): void {
         key: keyParam,
         env: envParam,
         rules: targetingRulesInputSchema.describe(
-          "Full replacement rule list (max 64). Each rule: { id, description?, conditions: [{ attribute, op, value }], serve: 'on'|'off', rolloutPct? }.",
+          "Full replacement rule list (max 64). Each rule: { id, name?, description?, conditions: [{ attribute, op, value }], serve: 'on'|'off', rolloutPct? }.",
         ),
       },
     },

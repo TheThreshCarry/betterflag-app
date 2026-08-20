@@ -49,7 +49,7 @@ export interface IngestEnv {
   SUPABASE_URL: string;
   /** Secret, `wrangler secret put SUPABASE_SERVICE_ROLE_KEY`. */
   SUPABASE_SERVICE_ROLE_KEY: string;
-  /** Secret, e.g. https://<id>.clickhouse.cloud:8443 */
+  /** Secret, e.g. https://analytics.betterflag.app */
   CLICKHOUSE_URL: string;
   CLICKHOUSE_USER: string;
   CLICKHOUSE_PASSWORD: string;
