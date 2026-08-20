@@ -20,6 +20,7 @@ import {
   formatCount,
 } from "@/components/analytics-view";
 import { SparklineArea, StackedAreaChart } from "@/components/charts";
+import { AttributeField, ConditionValueField } from "@/components/condition-fields";
 import { FlagEvaluateCard } from "@/components/evaluate-snippet";
 import { KIND_COLORS } from "@/components/flags-view";
 import { VersionHistoryBadge } from "@/components/version-history-badge";
@@ -577,14 +578,13 @@ function EnvConfigCard({
             version={config.version}
           />
         </div>
-        <div className="flex items-center gap-3 text-[12px] text-ink-muted">
-          <span>
+        <div className="flex items-center gap-1.5 text-[12px] leading-none text-ink-muted">
+          <span className="inline-flex items-center gap-1">
             updated <RelativeTime iso={config.updatedAt} />
             {config.updatedByKeyPrefix ? (
               <>
-                {" "}
-                by{" "}
-                <Chip color="green" className="!px-1.5 !py-0 font-mono text-[11px]">
+                by
+                <Chip color="green" className="!h-5 !px-1.5 !py-0 font-mono text-[11px] leading-none">
                   {config.updatedByKeyPrefix}
                 </Chip>
               </>
@@ -965,14 +965,12 @@ function RulesEditor({
               <div className="space-y-2">
                 {rule.conditions.map((condition, conditionIndex) => (
                   <div key={conditionIndex} className="flex items-center gap-2">
-                    <input
-                      className={`${inputClass} !h-8 flex-1 font-mono !text-[12px]`}
-                      placeholder="attribute (e.g. userId, plan)"
+                    <AttributeField
                       value={condition.attribute}
-                      onChange={(event) =>
+                      onChange={(attribute) =>
                         updateRule(index, {
                           conditions: rule.conditions.map((c, i) =>
-                            i === conditionIndex ? { ...c, attribute: event.target.value } : c,
+                            i === conditionIndex ? { ...c, attribute } : c,
                           ),
                         })
                       }
@@ -996,14 +994,14 @@ function RulesEditor({
                         </option>
                       ))}
                     </select>
-                    <input
-                      className={`${inputClass} !h-8 flex-1 font-mono !text-[12px]`}
-                      placeholder='value ("pro", ["a","b"], 42)'
-                      value={condition.valueText}
-                      onChange={(event) =>
+                    <ConditionValueField
+                      attribute={condition.attribute}
+                      op={condition.op}
+                      valueText={condition.valueText}
+                      onChange={(valueText) =>
                         updateRule(index, {
                           conditions: rule.conditions.map((c, i) =>
-                            i === conditionIndex ? { ...c, valueText: event.target.value } : c,
+                            i === conditionIndex ? { ...c, valueText } : c,
                           ),
                         })
                       }
@@ -1106,15 +1104,15 @@ function EnvSparkline({ flagId, envSlug }: { flagId: string; envSlug: string }) 
     };
   }, [series]);
 
-  if (series === null) return <Skeleton className="h-6 w-28" />;
+  if (series === null) return <Skeleton className="h-5 w-16" />;
   if (series.length === 0) {
-    return <span className="text-[11px] text-ink-muted/70">no evals · 24h</span>;
+    return <span className="text-[11px] leading-none text-ink-muted/70">no evals · 24h</span>;
   }
 
   return (
-    <span className="data-in flex items-center gap-2" title={`${total.toLocaleString()} evaluations in the last 24h`}>
-      <SparklineArea data={points} className="aspect-auto h-7 w-24" />
-      <span className="font-mono text-[11px]">{total.toLocaleString()}</span>
+    <span className="data-in inline-flex items-center gap-1" title={`${total.toLocaleString()} evaluations in the last 24h`}>
+      <SparklineArea data={points} className="aspect-auto h-3.5 w-10 shrink-0 items-center" />
+      <span className="font-mono text-[11px] leading-none">{total.toLocaleString()}</span>
     </span>
   );
 }

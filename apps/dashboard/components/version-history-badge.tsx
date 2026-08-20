@@ -75,7 +75,7 @@ export function VersionHistoryBadge({
     >
       <PreviewCardTrigger
         className={cn(
-          "cursor-default rounded-md px-1 py-0.5 font-mono text-[11px] text-ink-muted transition-colors hover:bg-canvas hover:text-ink",
+          "inline-flex h-5 cursor-default items-center rounded-md px-1 font-mono text-[11px] leading-none text-ink-muted transition-colors hover:bg-canvas hover:text-ink",
           className,
         )}
         aria-label={`Version ${version}, show history`}
