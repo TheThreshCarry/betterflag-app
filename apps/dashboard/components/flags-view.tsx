@@ -1,7 +1,18 @@
 "use client";
 
+import { Toggle as ToggleItem } from "@appica/ui-react/toggle";
+import { ToggleGroup } from "@appica/ui-react/toggle-group";
 import { useDebounce } from "@uidotdev/usehooks";
-import { Check, ChevronDown, X } from "lucide-react";
+import {
+  Braces,
+  Check,
+  ChevronDown,
+  Hash,
+  Power,
+  Type,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -60,6 +71,24 @@ export const KIND_COLORS: Record<ApiFlag["kind"], ChipColor> = {
   number: "green",
   json: "pink",
 };
+
+const KIND_ICON_CLASS: Record<ApiFlag["kind"], string> = {
+  boolean: "text-chip-blue",
+  string: "text-chip-orange",
+  number: "text-chip-green",
+  json: "text-chip-pink",
+};
+
+const FLAG_KIND_OPTIONS: {
+  value: ApiFlag["kind"];
+  hint: string;
+  icon: LucideIcon;
+}[] = [
+  { value: "boolean", hint: "on/off", icon: Power },
+  { value: "string", hint: "variant names, copy", icon: Type },
+  { value: "number", hint: "limits, percentages", icon: Hash },
+  { value: "json", hint: "structured config", icon: Braces },
+];
 
 /** Flag keys: lowercase letters + digits only (no hyphens or other specials). */
 export function slugifyFlagKey(name: string): string {
@@ -725,16 +754,47 @@ function NewFlagDialog({
           />
         </Field>
         <Field label="Kind">
-          <select
-            className={inputClass}
-            value={kind}
-            onChange={(event) => setKind(event.target.value as ApiFlag["kind"])}
+          <ToggleGroup
+            value={[kind]}
+            onValueChange={(next) => {
+              const selected = next[0];
+              if (selected) setKind(selected as ApiFlag["kind"]);
+            }}
+            aria-label="Kind"
+            className="grid w-full grid-cols-2 gap-1.5"
           >
-            <option value="boolean">boolean, on/off</option>
-            <option value="string">string, variant names, copy</option>
-            <option value="number">number, limits, percentages</option>
-            <option value="json">json, structured config</option>
-          </select>
+            {FLAG_KIND_OPTIONS.map((option) => {
+              const Icon = option.icon;
+              return (
+                <ToggleItem
+                  key={option.value}
+                  type="button"
+                  value={option.value}
+                  aria-label={`${option.value}, ${option.hint}`}
+                  className={cn(
+                    "flex w-full items-start gap-2 rounded-xl border p-2.5 text-left transition-colors",
+                    "outline-none focus-visible:border-line-strong",
+                    "border-line bg-canvas hover:bg-surface/50",
+                    "data-pressed:border-line-strong data-pressed:bg-surface",
+                  )}
+                >
+                  <Icon
+                    className={cn("mt-0.5 size-4 shrink-0", KIND_ICON_CLASS[option.value])}
+                    strokeWidth={2}
+                    aria-hidden
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-[13px] font-semibold text-ink">
+                      {option.value}
+                    </span>
+                    <span className="mt-0.5 block text-[12px] leading-snug text-ink-muted">
+                      {option.hint}
+                    </span>
+                  </span>
+                </ToggleItem>
+              );
+            })}
+          </ToggleGroup>
         </Field>
         {kind !== "boolean" ? (
           <Field
